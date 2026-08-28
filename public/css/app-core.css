@@ -1,0 +1,441 @@
+/* ==========================================================================
+   APP CORE: MODO ENFOQUE & GRID STACKING
+   ========================================================================== */
+
+.app-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  align-items: start;
+  width: 100%;
+  gap: 0;
+  margin-top: 1rem;
+}
+
+/* Comparten mismas coordenadas y elevación (Floating UI) */
+.calendar-wrapper,
+.day-panel {
+  grid-column: 1;
+  grid-row: 1;
+  width: 100%;
+  max-width: 760px;
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  border-radius: 12px;
+  box-shadow:
+    0 12px 36px rgba(0, 119, 182, 0.04),
+    0 1px 3px rgba(0, 0, 0, 0.02);
+  position: relative;
+  z-index: 10;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease,
+    transform 0.3s ease;
+}
+
+/* Estado por defecto: Calendario visible, Panel oculto */
+.day-panel {
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.98);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.calendar-wrapper {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+  pointer-events: all;
+  overflow: hidden;
+}
+
+/* Estado activo (Modo Enfoque): Panel visible, Calendario oculto */
+.app-layout.panel-open .calendar-wrapper {
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.98);
+  pointer-events: none;
+}
+
+.app-layout.panel-open .day-panel {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+  pointer-events: all;
+}
+
+/* ==========================================================================
+   COMPONENTES INTERNOS DEL CALENDARIO
+   ========================================================================== */
+
+.calendar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 2px solid var(--color-text);
+}
+
+.calendar__title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.calendar__month {
+  margin-right: 0.4rem;
+}
+.calendar__year {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+.calendar__nav {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  text-decoration: none;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.nav-btn:hover {
+  background: var(--color-hover);
+  border-color: #ccc;
+}
+
+.calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+.calendar__day-name {
+  padding: 0.6rem 0;
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.calendar__cell {
+  min-height: var(--cell-min-h);
+  padding: 0.5rem 0.6rem;
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: background 0.12s;
+}
+.calendar__cell:nth-child(7n) {
+  border-right: none;
+}
+.calendar__cell:hover:not(.calendar__cell--ghost):not(.calendar__cell--today) {
+  background: var(--color-hover);
+}
+.calendar__cell--ghost {
+  background: #fafafa;
+}
+.calendar__cell--ghost .cell__number {
+  color: var(--color-text-muted);
+}
+.calendar__cell--today {
+  background: var(--color-today-bg);
+}
+.calendar__cell--today .cell__number {
+  color: var(--color-today-text);
+}
+.calendar__cell--selected {
+  outline: 2px solid var(--color-text);
+  outline-offset: -2px;
+}
+
+.cell__number {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.cell__events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 4px;
+  width: 100%;
+}
+
+/* ==========================================================================
+   COMPONENTES INTERNOS DEL PANEL DIARIO
+   ========================================================================== */
+
+.day-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 2px solid var(--color-text);
+}
+.day-panel__date {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.day-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.day-panel__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: none;
+  cursor: pointer;
+  color: var(--color-text);
+}
+.day-panel__close:hover {
+  background: var(--color-hover);
+}
+
+.day-panel__body {
+  padding: 1rem 1.25rem;
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
+}
+.panel-empty,
+.panel-loading {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.appointment-card {
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+}
+.appointment-card:last-child {
+  border-bottom: none;
+}
+
+/* Rediseño Estructural de Filas (Layout Premium de Escritorio) */
+.appointment-card__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1.25rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.appointment-card__row:hover {
+  background: var(--color-hover);
+}
+
+.appointment-card__col-left {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+.appointment-card__col-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.appointment-card__time {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text);
+  min-width: 45px;
+}
+.appointment-card__name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.appointment-card__doctor {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+/* ==========================================================================
+   SELECTORES DE FLUJO DINÁMICOS
+   ========================================================================== */
+
+.select-flujo-cambio {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.9rem;
+  font-family: var(--font);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  outline: none;
+}
+.select-flujo-cambio--reservado {
+  background-color: var(--color-reservado-bg);
+  color: var(--color-reservado-text);
+}
+.select-flujo-cambio--en-sala-de-espera {
+  background-color: var(--color-espera-bg);
+  color: var(--color-espera-text);
+}
+.select-flujo-cambio--en-atencion {
+  background-color: var(--color-atencion-bg);
+  color: var(--color-atencion-text);
+}
+.select-flujo-cambio--finalizado {
+  background-color: var(--color-finalizado-bg);
+  color: var(--color-finalizado-text);
+}
+.select-flujo-cambio--cancelado {
+  background-color: var(--color-cancelado-bg);
+  color: var(--color-cancelado-text);
+}
+.select-flujo-cambio--ausente {
+  background-color: var(--color-ausente-bg);
+  color: var(--color-ausente-text);
+}
+
+/* ==========================================================================
+   RESPONSIVIDAD DEL CORE (VISTA COMPACTA SIN SCROLL + MODAL FULLSCREEN)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  :root {
+    --cell-min-h: 45px;
+  }
+
+  .calendar__header {
+    padding: 0.75rem 1rem;
+  }
+
+  .calendar__title {
+    font-size: 1.1rem;
+  }
+
+  .calendar__nav {
+    transform: scale(0.9);
+  }
+
+  .calendar__day-name {
+    font-size: 0.6rem;
+    padding: 0.3rem 0;
+  }
+
+  .calendar__cell {
+    padding: 0.25rem;
+    justify-content: center;
+    align-items: center;
+    gap: 0;
+  }
+
+  .cell__number {
+    font-size: 0.85rem;
+  }
+
+  .cell__events {
+    display: none;
+  }
+
+  .app-layout.panel-open .day-panel {
+    max-width: 100%;
+    border-radius: 8px;
+    border: none;
+  }
+
+  .day-panel__header {
+    padding: 1rem;
+  }
+
+  .day-panel__body {
+    padding: 1rem;
+    min-height: calc(100dvh - 60px - 8rem);
+  }
+
+  .app-layout {
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0 0.5rem 0.5rem;
+  }
+
+  .calendar-wrapper,
+  .day-panel {
+    max-width: 100%;
+    margin: 0;
+    border-radius: 14px;
+  }
+
+  .day-panel {
+    min-height: calc(100dvh - 60px - 4rem);
+  }
+
+  .app-layout.panel-open .day-panel {
+    min-height: calc(100dvh - 60px - 4rem);
+  }
+
+  .calendar-wrapper {
+    width: 100%;
+  }
+
+  .app-layout.panel-open .calendar-wrapper {
+    opacity: 0;
+    visibility: hidden;
+    transform: none;
+    pointer-events: none;
+  }
+
+  /* Tarjetas Operativas a Doble Línea */
+  .appointment-card__row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+    padding: 0.85rem 1rem;
+  }
+  .appointment-card__col-left {
+    width: 100%;
+    gap: 0.75rem;
+  }
+  .appointment-card__col-right {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0;
+    border-top: 1px dashed rgba(0, 0, 0, 0.06);
+    padding-top: 0.4rem;
+  }
+  .appointment-card__name {
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+  .appointment-card__doctor {
+    font-size: 0.8rem;
+  }
+}
+
+/* Animación de entrada nativa para Modal Completo */
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

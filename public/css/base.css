@@ -1,0 +1,167 @@
+/* ==========================================================================
+   VARIABLES Y DISEÑO BASE — Sistema "Soft Clinical Tech"
+   ========================================================================== */
+
+:root {
+  /* Paleta Base */
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-border: #e2e8f0;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-today-bg: #0ea5e9;
+  --color-today-text: #ffffff;
+  --color-hover: #f1f5f9;
+
+  /* Radios */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 16px;
+
+  /* Tipografía: stack moderno con caída a sistema, sin depender de fuentes externas */
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --cell-min-h: 90px;
+
+  /* Sombras: escala única para evitar valores sueltos repetidos en cada archivo */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 4px 10px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 12px 28px rgba(15, 23, 42, 0.07);
+  --shadow-lg: 0 25px 50px -12px rgba(15, 23, 42, 0.18);
+  --shadow-float: 0 12px 36px rgba(0, 119, 182, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
+
+  /* Transiciones: timing consistente en toda la app */
+  --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --t-fast: 0.15s;
+  --t-base: 0.2s;
+  --t-slow: 0.3s;
+
+  /* Escala de Z-Index: única fuente de verdad. Evita colisiones de apilamiento
+     entre sidebar móvil, modales y overlays (ver nota en sidebar/components). */
+  --z-surface: 10;
+  --z-sidebar: 1000;
+  --z-mobile-header: 1010;
+  --z-sidebar-overlay: 1015;
+  --z-sidebar-mobile: 1020;
+  --z-burger: 1025;
+  --z-modal: 2000;
+  --z-modal-fullscreen: 3000;
+
+  /* Sidebar Premium */
+  --sidebar-bg: #0f172a;
+  --sidebar-surface: #1e293b;
+  --sidebar-border: #334155;
+  --sidebar-text: #f8fafc;
+  --sidebar-muted: #94a3b8;
+  --accent-glow-1: #10b981;
+  --accent-glow-2: #0ea5e9;
+
+  /* Paleta de Estados Clínicos */
+  --color-reservado-bg: #f1f5f9;
+  --color-reservado-text: #475569;
+  --color-espera-bg: #fef3c7;
+  --color-espera-text: #b45309;
+  --color-atencion-bg: #e0f2fe;
+  --color-atencion-text: #0369a1;
+  --color-finalizado-bg: #dcfce7;
+  --color-finalizado-text: #15803d;
+  --color-cancelado-bg: #fee2e2;
+  --color-cancelado-text: #b91c1c;
+  --color-ausente-bg: #ffedd5;
+  --color-ausente-text: #c2410c;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  letter-spacing: -0.011em;
+  background: var(--color-bg);
+  color: var(--color-text);
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-start;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Quita el flash gris al tocar elementos en móvil: clave para sensación premium */
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: var(--color-today-bg);
+  color: var(--color-today-text);
+}
+
+/* Scrollbar fina y discreta, coherente con la paleta clínica */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 20px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+
+/* Estado de foco accesible y consistente, sin depender del outline por defecto del navegador */
+:focus-visible {
+  outline: 2px solid var(--color-today-bg);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ==========================================================================
+   ESTRUCTURA GLOBAL
+   ========================================================================== */
+
+.app-viewport-container {
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.app-main-content {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 2.5rem;
+  overflow-y: auto;
+  height: 100vh;
+  position: relative;
+
+  /* Fondo "Soft Clinical Tech": profundidad estática mediante capas de gradiente,
+     sin animación en loop. El movimiento perpetuo restaba seriedad al producto. */
+  background-color: var(--color-bg);
+  background-image:
+    radial-gradient(ellipse 900px 600px at 8% 0%, rgba(14, 165, 233, 0.07), transparent 60%),
+    radial-gradient(ellipse 900px 700px at 100% 100%, rgba(16, 185, 129, 0.06), transparent 60%),
+    radial-gradient(ellipse 600px 500px at 50% 50%, rgba(255, 255, 255, 0.6), transparent 70%);
+  background-attachment: fixed;
+}
