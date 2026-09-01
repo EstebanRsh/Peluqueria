@@ -23,7 +23,7 @@
   border: 1px solid rgba(0, 0, 0, 0.03);
   border-radius: 12px;
   box-shadow:
-    0 12px 36px rgba(0, 119, 182, 0.04),
+    0 12px 36px rgba(197, 160, 89, 0.06),
     0 1px 3px rgba(0, 0, 0, 0.02);
   position: relative;
   z-index: 10;
@@ -143,7 +143,7 @@
   background: var(--color-hover);
 }
 .calendar__cell--ghost {
-  background: #fafafa;
+  background: #faf8f5;
 }
 .calendar__cell--ghost .cell__number {
   color: var(--color-text-muted);

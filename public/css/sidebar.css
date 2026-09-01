@@ -85,7 +85,7 @@
   );
   background-size: 100% 200%;
   animation: fluidEnergy 3s infinite linear;
-  box-shadow: 2px 0 8px rgba(16, 185, 129, 0.2);
+  box-shadow: 2px 0 8px rgba(197, 160, 89, 0.25);
 }
 
 .premium-sidebar__footer {

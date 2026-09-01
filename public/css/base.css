@@ -3,15 +3,16 @@
    ========================================================================== */
 
 :root {
-  /* Paleta Base */
-  --color-bg: #f8fafc;
+  /* Paleta Base — "Atelier Dorado": cálida, sobria, oscuros/marrón/negro/blanco/dorado */
+  --color-bg: #f7f5f1;
   --color-surface: #ffffff;
-  --color-border: #e2e8f0;
-  --color-text: #0f172a;
-  --color-text-muted: #64748b;
-  --color-today-bg: #0ea5e9;
-  --color-today-text: #ffffff;
-  --color-hover: #f1f5f9;
+  --color-border: #e5e0d6;
+  --color-text: #1c1712;
+  --color-text-muted: #7a6f61;
+  --color-today-bg: #c5a059;
+  --color-today-text: #1c1712;
+  --color-hover: #f1ede4;
+  --color-danger: #b91c1c;
 
   /* Radios */
   --radius: 12px;
@@ -19,16 +20,18 @@
   --radius-lg: 16px;
 
   /* Tipografía: stack moderno con caída a sistema, sin depender de fuentes externas */
-  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Helvetica, Arial, sans-serif;
+  --font:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
   --cell-min-h: 90px;
 
   /* Sombras: escala única para evitar valores sueltos repetidos en cada archivo */
-  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-sm: 0 4px 10px rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 12px 28px rgba(15, 23, 42, 0.07);
-  --shadow-lg: 0 25px 50px -12px rgba(15, 23, 42, 0.18);
-  --shadow-float: 0 12px 36px rgba(0, 119, 182, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
+  --shadow-xs: 0 1px 2px rgba(28, 23, 18, 0.05);
+  --shadow-sm: 0 4px 10px rgba(28, 23, 18, 0.06);
+  --shadow-md: 0 12px 28px rgba(28, 23, 18, 0.08);
+  --shadow-lg: 0 25px 50px -12px rgba(28, 23, 18, 0.2);
+  --shadow-float:
+    0 12px 36px rgba(197, 160, 89, 0.08), 0 1px 3px rgba(28, 23, 18, 0.04);
 
   /* Transiciones: timing consistente en toda la app */
   --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
@@ -49,13 +52,13 @@
   --z-modal-fullscreen: 3000;
 
   /* Sidebar Premium */
-  --sidebar-bg: #0f172a;
-  --sidebar-surface: #1e293b;
-  --sidebar-border: #334155;
-  --sidebar-text: #f8fafc;
-  --sidebar-muted: #94a3b8;
-  --accent-glow-1: #10b981;
-  --accent-glow-2: #0ea5e9;
+  --sidebar-bg: #1a1511;
+  --sidebar-surface: #26201a;
+  --sidebar-border: #3c332a;
+  --sidebar-text: #f7f4ee;
+  --sidebar-muted: #a89a86;
+  --accent-glow-1: #c5a059;
+  --accent-glow-2: #e6d3a3;
 
   /* Paleta de Estados Clínicos */
   --color-reservado-bg: #f1f5f9;
@@ -109,7 +112,7 @@ body {
 /* Scrollbar fina y discreta, coherente con la paleta clínica */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: #d6cfc2 transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
@@ -119,13 +122,13 @@ body {
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
+  background-color: #d6cfc2;
   border-radius: 20px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background-color: #94a3b8;
+  background-color: #a89a86;
 }
 
 /* Estado de foco accesible y consistente, sin depender del outline por defecto del navegador */
@@ -160,8 +163,20 @@ body {
      sin animación en loop. El movimiento perpetuo restaba seriedad al producto. */
   background-color: var(--color-bg);
   background-image:
-    radial-gradient(ellipse 900px 600px at 8% 0%, rgba(14, 165, 233, 0.07), transparent 60%),
-    radial-gradient(ellipse 900px 700px at 100% 100%, rgba(16, 185, 129, 0.06), transparent 60%),
-    radial-gradient(ellipse 600px 500px at 50% 50%, rgba(255, 255, 255, 0.6), transparent 70%);
+    radial-gradient(
+      ellipse 900px 600px at 8% 0%,
+      rgba(197, 160, 89, 0.09),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 900px 700px at 100% 100%,
+      rgba(90, 71, 48, 0.06),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 600px 500px at 50% 50%,
+      rgba(255, 253, 248, 0.6),
+      transparent 70%
+    );
   background-attachment: fixed;
 }
