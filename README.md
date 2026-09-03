@@ -1,76 +1,136 @@
-# Agenda Clínica
+<div align="center">
 
-Aplicación web sencilla para gestionar la agenda y los turnos de una clínica pequeña. El proyecto combina un calendario mensual, un panel diario de turnos y un flujo básico de estados para organizar la operación cotidiana de forma práctica y visual.
+# SISTEMA DE GESTIÓN DE TURNOS
 
-## ¿Qué es este proyecto?
+**Plataforma Integral de Administración Operativa para Peluquerías**
 
-Agenda Clínica nació como una herramienta personal y educativa para aprender a construir una aplicación web realista desde cero. Su idea central es simple: ayudar a administrar turnos de forma ordenada, sin depender de soluciones pesadas o complejas.
+[![PHP](https://img.shields.io/badge/PHP_8.0+-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
+[![MySQL](https://img.shields.io/badge/MySQL-005C84?style=for-the-badge&logo=mysql&logoColor=white)](https://mysql.com)
+[![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://w3.org)
+[![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)](https://w3.org)
+[![Vanilla JS](https://img.shields.io/badge/Vanilla_JS-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org)
 
-Aunque sigue en crecimiento, ya permite trabajar con los conceptos principales de una agenda clínica: crear turnos, visualizarlos por día, cambiar su estado y mantener un registro básico de actividad.
+<br>
 
-## Funcionalidades actuales
+[![Estado](https://img.shields.io/badge/Estado-Desarrollo_Activo-10b981?style=flat-square)](#)
+[![Arquitectura](https://img.shields.io/badge/Arquitectura-MVC-black?style=flat-square)](#)
+[![API](https://img.shields.io/badge/API-HTTP_JSON-0ea5e9?style=flat-square)](#)
 
-- Visualización de un calendario mensual con resumen de turnos por día.
-- Panel diario para ver los turnos de una fecha específica.
-- Alta de turnos con datos como paciente, teléfono, obra social, pago, profesional, notas y horarios.
-- Cambio de estado de un turno entre distintos pasos del flujo clínico.
-- Historial simple de cambios de estado por turno.
-- Interfaz web básica orientada a uso práctico y rápido.
+</div>
 
-## Tecnologías utilizadas
+<br>
 
-- PHP puro
-- MySQL / MariaDB
-- HTML, CSS y JavaScript vanilla
-- Arquitectura simple basada en MVC
+## 📌 Descripción del Proyecto
 
-## Estructura del proyecto
+Sistema web para la gestión de turnos de una peluquería. Permite organizar la agenda, utilizar servicios configurados, asignar profesionales, gestionar estados de los turnos y consultar el historial de cambios de cada reserva.
 
-- controllers/: maneja las peticiones y la lógica de control.
-- models/: encapsula la interacción con la base de datos.
-- views/: contiene las vistas principales de la interfaz.
-- public/: archivos estáticos como CSS y JavaScript.
-- config/: configuración de conexión y esquema de base de datos.
+---
 
-## Requisitos
+## ⚙️ Características Principales
 
-- Servidor local como XAMPP, Laragon o similar.
-- PHP 8 o superior.
-- MySQL o MariaDB.
+<table>
+  <tr>
+    <td width="50%">
+      <h3>📅 Gestión de Calendario</h3>
+      Visualización mensual con un resumen de ocupación, turnos disponibles y reservas consolidadas.
+    </td>
+    <td width="50%">
+      <h3>📊 Panel Operativo</h3>
+      Visualización de los turnos correspondientes a una fecha seleccionada, con búsqueda, filtros por estado y acceso a las acciones disponibles.
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <h3>📝 Administración de Turnos</h3>
+      Registro completo: información del cliente, contacto, servicio, profesional asignado y montos.
+    </td>
+    <td>
+      <h3>🔄 Trazabilidad de Estados</h3>
+      Seguimiento del ciclo de vida del turno (reservado, en sala de espera, en atención, finalizado, cancelado y ausente) y registro histórico de sus cambios de estado.
+    </td>
+  </tr>
+</table>
 
-## Instalación y uso
+---
 
-1. Clona o copia este proyecto en la carpeta de tu servidor local.
-2. Inicia Apache y MySQL.
-3. Crea una base de datos llamada consultorio.
-4. Importa el archivo de estructura disponible en config/schema.sql.
-5. Ajusta las credenciales de conexión si es necesario en config/database.php.
-6. Abre la aplicación en tu navegador desde la ruta correspondiente a la carpeta del proyecto.
+## 📂 Estructura del Proyecto
 
-## Estado actual del proyecto
+<details>
+  <summary><b>Haz clic para expandir la estructura del directorio</b></summary>
+  <br>
 
-El sistema ya incluye una base funcional para la gestión de turnos, pero sigue en proceso de mejora. Entre los próximos objetivos se encuentran:
+```text
+/
+├── controllers/    # Controladores que manejan la lógica de negocio y peticiones.
+├── models/         # Clases de acceso a datos y consultas a la base de datos.
+├── views/          # Interfaces de usuario y plantillas de presentación.
+├── public/         # Recursos estáticos (hojas de estilo CSS, scripts JS, imágenes).
+└── config/         # Archivos de configuración general y conexión a la base de datos.
+```
 
-- mejorar validaciones y manejo de errores
-- reforzar la experiencia de usuario
-- agregar más funcionalidades clínicas
-- fortalecer la organización de datos y la escalabilidad
+</details>
 
-## Próximos pasos
+---
 
-- Gestión más completa de pacientes y profesionales.
-- Mejor control de disponibilidad horaria y prevención de superposición.
-- Cancelaciones, reprogramaciones y estados más detallados.
-- Seguridad, autenticación y usuarios.
+## 🚀 Guía de Instalación Local
 
-## Filosofía del proyecto
+Para ejecutar el sistema en un entorno local, asegúrese de cumplir con los siguientes requisitos mínimos: **PHP 8.0+** y **MySQL/MariaDB**.
 
-Este proyecto no busca ser una solución empresarial compleja desde el inicio. Prioriza aprender, construir paso a paso y mantener un código claro, comprensible y útil para una clínica pequeña.
+1. **Clonar el repositorio** en el directorio raíz del servidor web (ej. `htdocs` en XAMPP o `www` en Laragon).
+2. **Iniciar los servicios** del servidor web (Apache/Nginx) y del motor de base de datos.
+3. **Preparar la base de datos**:
 
-## Licencia
+- Importar el script SQL de inicialización ubicado en `config/schema.sql`. El script crea la base de datos `peluqueria` y genera la estructura de tablas, siempre que el usuario de MySQL tenga permisos suficientes.
 
-Este proyecto se encuentra en desarrollo y puede adaptarse según las necesidades del autor.
+4. **Configurar el entorno**:
+   - Editar el archivo `config/database.php` con las credenciales de conexión correctas (usuario, contraseña y host).
+5. **Ejecución**:
+   - Acceder a la aplicación a través del navegador web utilizando la ruta correspondiente (ej. `http://localhost/nombre-del-proyecto`).
 
-Construir una aplicación funcional mientras se aprende programación de forma práctica y progresiva.
+---
 
-La calidad del proyecto no se medirá solamente por la cantidad de funcionalidades, sino también por cuánto se comprende de lo que se está construyendo.
+## 🗺️ Roadmap y Próximas Implementaciones
+
+### Fases Completadas
+
+- [x] Gestión básica de turnos y calendario mensual.
+- [x] Validaciones básicas de datos en backend.
+
+### Módulos Operativos (Próximos Pasos)
+
+- [ ] **Historial de servicios, fórmulas utilizadas y preferencias del cliente:** Registro avanzado de visitas anteriores, guardado de fórmulas exactas de tinturas, documentación de alergias a químicos y preferencias de corte.
+- [ ] **Gestión de Servicios y Precios:** Panel administrativo completo para crear, editar y eliminar servicios. Configuración de precios base con opción de sobreescritura manual en turnos individuales.
+- [ ] **Control de Stock Dual (Productos):** Diferenciación a nivel inventario entre artículos destinados a la venta al público (shampoos, tratamientos) y productos de uso profesional interno (oxidantes, pomos).
+- [ ] **Alertas de Stock:** Sistema de notificaciones automáticas para alertar cuando los insumos críticos o de alto uso alcancen su nivel mínimo.
+- [ ] **Sistema de Promociones y Descuentos:** Gestión de promociones por servicio, beneficios para clientes frecuentes, cupones y descuentos aplicables a turnos.
+- [ ] **Vencimiento de Productos:** Control automático de fechas de expiración de productos, alertas de próximo vencimiento y generación de reportes.
+
+### Gestión de Agenda
+
+- [ ] Detección de solapamientos de turnos.
+- [ ] Validación de disponibilidad del profesional.
+- [ ] Configuración de horarios de atención.
+- [ ] Bloqueo de días/horarios no laborables.
+
+### Reportes y Análisis
+
+- [ ] **Servicios Más Vendidos:** Estadísticas sobre los servicios con mayor demanda, frecuencia de reservas y tendencias mensuales.
+
+### Seguridad
+
+- [ ] Autenticación de usuarios.
+- [ ] Roles y permisos.
+- [ ] Protección de endpoints.
+- [ ] Manejo avanzado de excepciones y logging.
+
+### Infraestructura
+
+- [ ] **Respaldo automático de base de datos:** Generación programada de copias de seguridad y almacenamiento de varias versiones.
+- [ ] **Recuperación de respaldos:** Restauración controlada de la base de datos a partir de una copia seleccionada.
+- [ ] Configuración para despliegue productivo.
+
+---
+
+<div align="center">
+  <p><i>Proyecto desarrollado con fines educativos y de portfolio.</i></p>
+</div>

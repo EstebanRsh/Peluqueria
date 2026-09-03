@@ -7,7 +7,7 @@ $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión Clínica</title>
+    <title>Mi Peluquería</title>
     <link rel="stylesheet" href="<?= $base ?>/public/css/base.css">
     <link rel="stylesheet" href="<?= $base ?>/public/css/sidebar.css">
     <link rel="stylesheet" href="<?= $base ?>/public/css/components.css">
@@ -23,7 +23,7 @@ $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
             <span></span>
             <span></span>
         </button>
-        <div class="mobile-header__brand">Gestión Clínica</div>
+        <div class="mobile-header__brand">Mi Peluquería</div>
         <div style="width: 28px;"></div>
     </header>
 
@@ -32,7 +32,7 @@ $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
         <aside class="premium-sidebar">
             <div class="premium-sidebar__header">
                 <div class="premium-sidebar__logo"></div>
-                <div class="premium-sidebar__brand">Gestión Clínica</div>
+                <div class="premium-sidebar__brand">Mi Peluquería</div>
             </div>
 
             <nav class="premium-sidebar__nav">
@@ -40,10 +40,13 @@ $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
                     <span style="font-size: 1.1rem;">📅</span> Turnos
                 </a>
                 <a href="#" class="nav-item">
-                    <span style="font-size: 1.1rem;">👥</span> Directorio
+                    <span style="font-size: 1.1rem;">👥</span> Clientes
                 </a>
                 <a href="#" class="nav-item">
-                    <span style="font-size: 1.1rem;">🩺</span> Staff
+                    <span style="font-size: 1.1rem;">✂️</span> Servicios
+                </a>
+                <a href="#" class="nav-item">
+                    <span style="font-size: 1.1rem;">🧴</span> Productos
                 </a>
                 <a href="#" class="nav-item">
                     <span style="font-size: 1.1rem;">⚙️</span> Ajustes
@@ -51,7 +54,7 @@ $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
             </nav>
 
             <div class="premium-sidebar__footer">
-                <span class="premium-sidebar__user">Admin Turnos</span>
+                <span class="premium-sidebar__user">Recepción / Admin</span>
                 <span>En línea • Conectado</span>
             </div>
         </aside>

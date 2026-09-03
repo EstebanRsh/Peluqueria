@@ -6,6 +6,7 @@ require_once __DIR__ . '/controllers/AppointmentController.php';
 
 $action = $_GET['action'] ?? '';
 
+// Acciones relacionadas con turnos y servicios
 if (
     in_array(
         $action,
@@ -14,7 +15,8 @@ if (
             'create',
             'delete',
             'update_status',
-            'history'
+            'history',
+            'services'
         ]
     )
 ) {

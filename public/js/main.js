@@ -1,78 +1,125 @@
+// ============================================================
+// CONTROL PRINCIPAL DE LA APLICACIÓN
+// ============================================================
 import { openPanelForDate, closePanel } from "./ui.js";
 import { initModal } from "./modal.js";
 import { fetchAppointments } from "./api.js";
 import { slugify } from "./utils.js";
 
+// ============================================================
+// ELEMENTOS PRINCIPALES
+// ============================================================
 const panel = document.getElementById("dayPanel");
 const closeBtn = document.getElementById("panelClose");
 
-// Estado de la aplicación compartido en memoria de manera limpia
+// ============================================================
+// ESTADO DE LA APLICACIÓN
+// ============================================================
+// Estado compartido en memoria.
+// activeDay contiene la fecha que actualmente está seleccionada.
 export const appState = {
   activeDay: null,
 };
 
-// Inicialización de escuchas sobre el Calendario Primario
+// ============================================================
+// INTERACCIÓN CON EL CALENDARIO
+// ============================================================
+// Permite seleccionar una fecha del calendario y abrir/cerrar
+// el panel lateral correspondiente.
 document.querySelectorAll(".calendar__cell--active").forEach((cell) => {
   cell.addEventListener("click", () => {
     const date = cell.dataset.date;
+
+    // Si se vuelve a hacer clic sobre el día actualmente abierto,
+    // se cierra el panel.
     if (appState.activeDay === date && panel.classList.contains("is-open")) {
       closePanel();
     } else {
+      // Abrir el panel para la nueva fecha.
       openPanelForDate(cell, date, null);
     }
   });
 });
 
+// ============================================================
+// INDICADORES DE ESTADO
+// ============================================================
+// Permite abrir directamente el panel filtrado por un estado
+// haciendo clic sobre un indicador del calendario.
 document.querySelectorAll(".cell__status-badge").forEach((badge) => {
-  badge.addEventListener("click", (e) => {
-    e.stopPropagation();
+  badge.addEventListener("click", (event) => {
+    event.stopPropagation();
+
     const date = badge.dataset.date;
     const status = badge.dataset.status;
     const cell = badge.closest(".calendar__cell--active");
+
     openPanelForDate(cell, date, status);
   });
 
+  // Al pasar el mouse sobre un indicador, se muestran
+  // los nombres de los clientes de ese estado.
   badge.addEventListener("mouseenter", async () => {
-    if (badge.dataset.loadedNames) return;
+    if (badge.dataset.loadedNames) {
+      return;
+    }
+
     const date = badge.dataset.date;
     const status = badge.dataset.status;
-    const originalTitle = badge.getAttribute("title");
+    const originalTitle = badge.getAttribute("title") || "";
 
     try {
       const data = await fetchAppointments(date);
-      const filtered = data.filter((a) => slugify(a.status) === status);
-      const names = filtered.map((a) => a.patient_name).join(", ");
+
+      const filtered = data.filter(
+        (appointment) => slugify(appointment.status) === status,
+      );
+
+      // La aplicación ahora trabaja con clientes, no con pacientes.
+      const names = filtered
+        .map((appointment) => appointment.client_name)
+        .join(", ");
+
       if (names) {
         badge.setAttribute("title", `${originalTitle} \n(${names})`);
         badge.dataset.loadedNames = "true";
       }
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error("Error al cargar nombres de clientes:", error);
     }
   });
 });
 
-closeBtn.addEventListener("click", closePanel);
+// ============================================================
+// CIERRE DEL PANEL
+// ============================================================
+// Cierra el panel lateral mediante su botón de cierre.
+if (closeBtn) {
+  closeBtn.addEventListener("click", closePanel);
+}
 
-// ==========================================================================
-// INTERACCIÓN SIDEBAR RESPONSIVE (MÓVIL)
-// ==========================================================================
+// ============================================================
+// SIDEBAR RESPONSIVE
+// ============================================================
 const burgerBtn = document.getElementById("mobileBurger");
 const sidebar = document.querySelector(".premium-sidebar");
 const sidebarOverlay = document.getElementById("sidebarOverlay");
 
 if (burgerBtn && sidebar && sidebarOverlay) {
+  // Abre o cierra el menú lateral en dispositivos móviles.
   const toggleMobileSidebar = () => {
     sidebar.classList.toggle("mobile-open");
     sidebarOverlay.classList.toggle("is-visible");
     burgerBtn.classList.toggle("is-active");
   };
 
-  // Eventos para abrir/cerrar
+  // Abrir/cerrar mediante el botón hamburguesa.
   burgerBtn.addEventListener("click", toggleMobileSidebar);
+
+  // Cerrar haciendo clic sobre el fondo.
   sidebarOverlay.addEventListener("click", toggleMobileSidebar);
 
-  // UX: Si se cambia de sección en el menú, lo colapsamos automáticamente
+  // Cerrar automáticamente el menú al seleccionar una sección de navegación.
   sidebar.querySelectorAll(".nav-item").forEach((item) => {
     item.addEventListener("click", () => {
       sidebar.classList.remove("mobile-open");
@@ -82,10 +129,16 @@ if (burgerBtn && sidebar && sidebarOverlay) {
   });
 }
 
-// Inicializar el módulo del modal
+// ============================================================
+// INICIALIZACIÓN
+// ============================================================
+// Inicializa el modal de creación de turnos.
 initModal();
 
-// Manejo Global de Excepciones del Navegador
+// ============================================================
+// MANEJO GLOBAL DE ERRORES
+// ============================================================
+// Captura errores JavaScript no controlados.
 window.addEventListener("error", (event) => {
   console.group("ERROR GLOBAL");
   console.error(event.message);
@@ -94,6 +147,7 @@ window.addEventListener("error", (event) => {
   console.groupEnd();
 });
 
+// Captura Promises rechazadas que no hayan sido controladas.
 window.addEventListener("unhandledrejection", (event) => {
   console.group("PROMESA RECHAZADA");
   console.error(event.reason);

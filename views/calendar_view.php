@@ -60,7 +60,7 @@ $today      = date('Y-m-d');
                 <?php endfor; ?>
 
                 <?php for ($d = 1; $d <= $daysInMonth; $d++):
-                    $dateKey  = "$year-" . str_pad($month, 2, '0', STR_PAD_LEFT) . "-" . str_pad($d, 2, '0', STR_PAD_LEFT);
+                    $dateKey = sprintf('%04d-%02d-%02d', $year, $month, $d);
                     $isToday  = $dateKey === $today;
                     $hasEvent = isset($events[$dateKey]);
                     $classes  = 'calendar__cell calendar__cell--active';
@@ -73,7 +73,12 @@ $today      = date('Y-m-d');
                             <div class="cell__events">
                                 <?php foreach ($events[$dateKey] as $st):
                                     // Normalizamos el nombre del estado para la clase CSS de manera segura
-                                    $statusSlug = strtolower(str_replace([' ', 'ó', 'á', 'é', 'í', 'ú'], ['-', 'o', 'a', 'e', 'i', 'u'], $st['status']));
+                                    $lowerStatus = mb_strtolower($st['status'], 'UTF-8');
+                                    $statusSlug  = str_replace(
+                                        [' ', 'á', 'é', 'í', 'ó', 'ú', 'ñ'],
+                                        ['-', 'a', 'e', 'i', 'o', 'u', 'n'],
+                                        $lowerStatus
+                                    );
                                 ?>
                                     <span class="cell__status-badge cell__status-badge--<?= $statusSlug ?>"
                                         data-status="<?= $statusSlug ?>"

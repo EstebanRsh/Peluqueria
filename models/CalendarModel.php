@@ -20,7 +20,7 @@ class CalendarModel
             FROM appointments 
             WHERE date BETWEEN ? AND ? 
             GROUP BY date, status
-            ORDER BY date ASC, FIELD(status, 'En atención', 'En sala de espera', 'Reservado', 'Ausente', 'Cancelado', 'Finalizado') ASC
+            ORDER BY date ASC, FIELD(status, 'Reservado', 'En sala de espera', 'En atención', 'Finalizado', 'Ausente', 'Cancelado') ASC
             ";
 
         $stmt = $this->conn->prepare($query);
