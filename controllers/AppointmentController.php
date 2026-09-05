@@ -23,20 +23,6 @@ class AppointmentController
         $action =
             $_GET['action'] ?? '';
 
-
-        // ========================================================
-        // SERVICIOS
-        // ========================================================
-
-        // Devuelve los servicios activos disponibles.
-        if ($action === 'services') {
-
-            $this->json(
-                $this->model->getServices()
-            );
-        }
-
-
         // ========================================================
         // LISTADO DE TURNOS
         // ========================================================

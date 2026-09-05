@@ -3,10 +3,11 @@ date_default_timezone_set('America/Argentina/Buenos_Aires');
 
 require_once __DIR__ . '/controllers/CalendarController.php';
 require_once __DIR__ . '/controllers/AppointmentController.php';
+require_once __DIR__ . '/controllers/ServiceController.php';
 
 $action = $_GET['action'] ?? '';
 
-// Acciones relacionadas con turnos y servicios
+// Acciones relacionadas con turnos
 if (
     in_array(
         $action,
@@ -15,12 +16,32 @@ if (
             'create',
             'delete',
             'update_status',
-            'history',
-            'services'
+            'history'
         ]
     )
 ) {
     $controller = new AppointmentController();
+    $controller->handleRequest();
+    exit;
+}
+
+// Acciones relacionadas con la gestión de servicios
+if (
+    in_array(
+        $action,
+        [
+            'services',
+            'services_all',
+            'service_get',
+            'service_create',
+            'service_update',
+            'service_activate',
+            'service_deactivate',
+            'service_delete'
+        ]
+    )
+) {
+    $controller = new ServiceController();
     $controller->handleRequest();
     exit;
 }

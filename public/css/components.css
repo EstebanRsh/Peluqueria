@@ -80,6 +80,14 @@
   flex-shrink: 0;
   box-shadow: var(--shadow-xs);
 }
+.status-badge--activo {
+  background-color: var(--color-finalizado-bg);
+  color: var(--color-finalizado-text);
+}
+.status-badge--inactivo {
+  background-color: var(--color-reservado-bg);
+  color: var(--color-reservado-text);
+}
 .status-badge--reservado,
 .cell__status-badge--reservado {
   background-color: var(--color-reservado-bg);
@@ -448,10 +456,101 @@
 }
 
 /* ==========================================================================
+   TABLA DE DATOS (LISTADOS ADMINISTRATIVOS)
+   ========================================================================== */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.88rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.data-table th {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+  background: var(--color-hover);
+}
+
+.data-table__actions {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+}
+
+/* ==========================================================================
    RESPONSIVIDAD (FAT FINGER RULE + MODAL FULLSCREEN)
    ========================================================================== */
 
 @media (max-width: 768px) {
+  /* La tabla de servicios se convierte en tarjetas apiladas,
+   sin anidar componentes .card: son <tr> con borde propio. */
+  .data-table thead {
+    display: none;
+  }
+
+  .data-table,
+  .data-table tbody,
+  .data-table tr,
+  .data-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .data-table tr {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.75rem;
+    padding: 0.25rem 0;
+  }
+
+  .data-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    border-bottom: 1px dashed var(--color-border);
+    padding: 0.6rem 1rem;
+  }
+
+  .data-table td:last-child {
+    border-bottom: none;
+  }
+
+  .data-table td::before {
+    content: attr(data-label);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    letter-spacing: 0.03em;
+  }
+
+  .data-table__actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
   /* Objetivo táctil mínimo de 44px en toda acción primaria */
   .btn {
     min-height: 44px;

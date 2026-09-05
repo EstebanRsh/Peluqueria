@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS services (
     duration INT NOT NULL COMMENT 'Duración en minutos',
     price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- =========================================================
@@ -61,14 +62,3 @@ CREATE TABLE IF NOT EXISTS appointment_history (
     changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE
 );
-
--- =========================================================
--- SERVICIOS INICIALES
--- =========================================================
-
-INSERT INTO services (name, description, duration, price) VALUES
-('Corte', 'Corte de cabello', 30, 0.00),
-('Corte + barba', 'Corte de cabello y arreglo de barba', 45, 0.00),
-('Lavado', 'Lavado de cabello', 15, 0.00),
-('Peinado', 'Peinado', 30, 0.00),
-('Coloración', 'Coloración de cabello', 120, 0.00);

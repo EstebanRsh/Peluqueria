@@ -168,42 +168,6 @@ class AppointmentModel
         return $service ?: null;
     }
 
-
-    // ============================================================
-    // OBTENER SERVICIOS
-    // ============================================================
-
-    // Obtiene todos los servicios activos de la peluquería.
-    public function getServices(): array
-    {
-        $stmt =
-            $this->conn->prepare("
-                SELECT
-                    id,
-                    name,
-                    description,
-                    duration,
-                    price
-                FROM services
-                WHERE active = TRUE
-                ORDER BY name ASC
-            ");
-
-
-        if (!$stmt) {
-            return [];
-        }
-
-
-        $stmt->execute();
-
-
-        return $stmt
-            ->get_result()
-            ->fetch_all(MYSQLI_ASSOC);
-    }
-
-
     // ============================================================
     // CREAR TURNO
     // ============================================================

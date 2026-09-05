@@ -180,3 +180,10 @@ body {
     );
   background-attachment: fixed;
 }
+/* Utilidad para alternar secciones completas de la aplicación
+   (Turnos / Servicios) sin recargar la página. El !important
+   es intencional: garantiza que ninguna otra regla de layout
+   (ej. display:flex de .admin-view más abajo) la pise. */
+.is-hidden {
+  display: none !important;
+}

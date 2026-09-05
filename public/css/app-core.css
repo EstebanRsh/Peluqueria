@@ -12,6 +12,30 @@
   margin-top: 1rem;
 }
 
+/* ==========================================================================
+   VISTA ADMINISTRATIVA (SERVICIOS)
+   ========================================================================== */
+
+#viewAppointments {
+  width: 100%;
+}
+
+#viewServices {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.admin-view {
+  width: 100%;
+  max-width: 760px;
+  background-color: var(--color-surface);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-float);
+  margin-top: 1rem;
+}
+
 /* Comparten mismas coordenadas y elevación (Floating UI) */
 .calendar-wrapper,
 .day-panel {
@@ -317,6 +341,12 @@
 @media (max-width: 768px) {
   :root {
     --cell-min-h: 45px;
+  }
+
+  .admin-view {
+    max-width: 100%;
+    margin: 0.5rem 0 0;
+    border-radius: 14px;
   }
 
   .calendar__header {

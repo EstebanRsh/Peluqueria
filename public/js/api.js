@@ -6,18 +6,28 @@ import { BASE_URL } from "./config.js";
 // CONFIGURACIÓN Y MANEJO DE RESPUESTAS
 // ============================================================
 
-// Valida la respuesta del servidor y convierte el JSON recibido
-// en un objeto JavaScript.
+// Valida la respuesta del servidor y convierte el JSON recibido.
 async function handleJsonResponse(response) {
   const contentType = response.headers.get("content-type");
+  const isJson = contentType && contentType.includes("application/json");
 
   if (!response.ok) {
+    if (isJson) {
+      const errorBody = await response.json();
+
+      throw new Error(
+        errorBody.error || `Error del servidor: HTTP ${response.status}`,
+      );
+    }
+
     const textError = await response.text();
+
     console.error("Error del Servidor (Texto Plano):", textError);
+
     throw new Error(`Error del servidor: HTTP ${response.status}`);
   }
 
-  if (!contentType || !contentType.includes("application/json")) {
+  if (!isJson) {
     const rawText = await response.text();
 
     console.group("❌ RESPUESTA NO-JSON DETECTADA");
@@ -32,7 +42,6 @@ async function handleJsonResponse(response) {
 
   return await response.json();
 }
-
 // ============================================================
 // TURNOS
 // ============================================================
@@ -126,9 +135,97 @@ export async function removeAppointment(id) {
 // SERVICIOS
 // ============================================================
 
-// Obtiene la lista de servicios activos disponibles
-// en la peluquería.
+// Obtiene la lista de servicios activos disponibles en la peluquería.
 export async function fetchServices() {
   const res = await fetch(`${BASE_URL}/?action=services`);
+  return await handleJsonResponse(res);
+}
+// Obtiene todos los servicios, activos e inactivos.
+// Se utiliza en el panel administrativo.
+export async function fetchAllServices() {
+  const res = await fetch(`${BASE_URL}/?action=services_all`);
+  return await handleJsonResponse(res);
+}
+
+// Obtiene un servicio puntual por su ID.
+export async function fetchServiceById(id) {
+  const res = await fetch(`${BASE_URL}/?action=service_get&id=${id}`);
+
+  return await handleJsonResponse(res);
+}
+
+// Crea un nuevo servicio.
+export async function createService(data) {
+  const res = await fetch(`${BASE_URL}/?action=service_create`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  return await handleJsonResponse(res);
+}
+
+// Actualiza un servicio existente.
+export async function updateService(id, data) {
+  const res = await fetch(`${BASE_URL}/?action=service_update`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: Number(id),
+      ...data,
+    }),
+  });
+
+  return await handleJsonResponse(res);
+}
+
+// Activa un servicio.
+export async function activateService(id) {
+  const res = await fetch(`${BASE_URL}/?action=service_activate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: Number(id),
+    }),
+  });
+
+  return await handleJsonResponse(res);
+}
+
+// Desactiva un servicio.
+export async function deactivateService(id) {
+  const res = await fetch(`${BASE_URL}/?action=service_deactivate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: Number(id),
+    }),
+  });
+
+  return await handleJsonResponse(res);
+}
+
+// Elimina un servicio.
+// El backend impide eliminar servicios que tengan
+// turnos asociados.
+export async function deleteService(id) {
+  const res = await fetch(`${BASE_URL}/?action=service_delete`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: Number(id),
+    }),
+  });
+
   return await handleJsonResponse(res);
 }

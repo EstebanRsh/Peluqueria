@@ -36,13 +36,13 @@ $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
             </div>
 
             <nav class="premium-sidebar__nav">
-                <a href="#" class="nav-item is-active">
+                <a href="#" class="nav-item is-active" data-view="appointments">
                     <span style="font-size: 1.1rem;">📅</span> Turnos
                 </a>
                 <a href="#" class="nav-item">
                     <span style="font-size: 1.1rem;">👥</span> Clientes
                 </a>
-                <a href="#" class="nav-item">
+                <a href="#" class="nav-item" data-view="services">
                     <span style="font-size: 1.1rem;">✂️</span> Servicios
                 </a>
                 <a href="#" class="nav-item">
@@ -60,12 +60,18 @@ $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
         </aside>
 
         <main class="app-main-content">
-            <?php require __DIR__ . '/calendar_view.php'; ?>
+            <div id="viewAppointments">
+                <?php require __DIR__ . '/calendar_view.php'; ?>
+            </div>
+            <div id="viewServices" class="is-hidden">
+                <?php require __DIR__ . '/services_view.php'; ?>
+                <?php require __DIR__ . '/modal_service.php'; ?>
+            </div>
         </main>
     </div>
 
     <script>
-        const BASE_URL = '<?= $base ?>';
+        window.BASE_URL = '<?= $base ?>';
     </script>
     <script src="<?= $base ?>/public/js/main.js" type="module"></script>
 </body>
