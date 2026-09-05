@@ -22,7 +22,7 @@
 
 ## 📌 Descripción del Proyecto
 
-Sistema web para la gestión de turnos de una peluquería. Permite organizar la agenda, utilizar servicios configurados, asignar profesionales, gestionar estados de los turnos y consultar el historial de cambios de cada reserva.
+Sistema web para la gestión de turnos de una peluquería. Permite organizar la agenda, administrar servicios y precios, asignar profesionales, gestionar estados de los turnos y consultar el historial de cambios de cada reserva.
 
 ---
 
@@ -47,6 +47,16 @@ Sistema web para la gestión de turnos de una peluquería. Permite organizar la 
     <td>
       <h3>🔄 Trazabilidad de Estados</h3>
       Seguimiento del ciclo de vida del turno (reservado, en sala de espera, en atención, finalizado, cancelado y ausente) y registro histórico de sus cambios de estado.
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <h3>💇 Gestión de Servicios y Precios</h3>
+      Creación, edición, activación, desactivación y eliminación de servicios, con configuración de duración y precio base.
+    </td>
+    <td>
+      <h3>🔎 Búsqueda y Filtros</h3>
+      Consulta de servicios por nombre y filtrado por estado activo o inactivo desde el panel administrativo.
     </td>
   </tr>
 </table>
@@ -95,11 +105,11 @@ Para ejecutar el sistema en un entorno local, asegúrese de cumplir con los sigu
 
 - [x] Gestión básica de turnos y calendario mensual.
 - [x] Validaciones básicas de datos en backend.
+- [x] Panel administrativo de servicios y precios.
 
 ### Módulos Operativos (Próximos Pasos)
 
 - [ ] **Historial de servicios, fórmulas utilizadas y preferencias del cliente:** Registro avanzado de visitas anteriores, guardado de fórmulas exactas de tinturas, documentación de alergias a químicos y preferencias de corte.
-- [ ] **Gestión de Servicios y Precios:** Panel administrativo completo para crear, editar y eliminar servicios. Configuración de precios base con opción de sobreescritura manual en turnos individuales.
 - [ ] **Control de Stock Dual (Productos):** Diferenciación a nivel inventario entre artículos destinados a la venta al público (shampoos, tratamientos) y productos de uso profesional interno (oxidantes, pomos).
 - [ ] **Alertas de Stock:** Sistema de notificaciones automáticas para alertar cuando los insumos críticos o de alto uso alcancen su nivel mínimo.
 - [ ] **Sistema de Promociones y Descuentos:** Gestión de promociones por servicio, beneficios para clientes frecuentes, cupones y descuentos aplicables a turnos.
