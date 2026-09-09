@@ -234,42 +234,43 @@ function renderAppointmentsList(appointments) {
   appointments.forEach((appointment) => {
     const sluggedStatus = slugify(appointment.status);
 
+    const displayClientName =
+      appointment.client_name || appointment.alias || "Sin cliente asociado";
+
     appointmentMap.set(String(appointment.id), appointment);
 
     html += `
-      <div
-        class="appointment-card"
-        data-id="${escapeHtml(appointment.id)}"
-      >
-        <div class="appointment-card__row">
-          <div class="appointment-card__col-left">
-            <span class="appointment-card__time">
-              ${escapeHtml(appointment.time_start.substring(0, 5))}
-            </span>
+    <div
+      class="appointment-card"
+      data-id="${escapeHtml(appointment.id)}"
+    >
+      <div class="appointment-card__row">
+        <div class="appointment-card__col-left">
+          <span class="appointment-card__time">
+            ${escapeHtml(appointment.time_start.substring(0, 5))}
+          </span>
 
-            <span class="appointment-card__name">
-              ${escapeHtml(appointment.client_name)}
-            </span>
+          <span class="appointment-card__name">
+            ${escapeHtml(displayClientName)}
+          </span>
 
-            <span class="appointment-card__service">
-              ${escapeHtml(
-                appointment.service_name || "Servicio no disponible",
-              )}
-            </span>
-          </div>
+          <span class="appointment-card__service">
+            ${escapeHtml(appointment.service_name || "Servicio no disponible")}
+          </span>
+        </div>
 
-          <div class="appointment-card__col-right">
-            <span class="appointment-card__stylist">
-              ${escapeHtml(appointment.stylist || "Sin asignar")}
-            </span>
+        <div class="appointment-card__col-right">
+          <span class="appointment-card__stylist">
+            ${escapeHtml(appointment.stylist || "Sin asignar")}
+          </span>
 
-            <span class="status-badge status-badge--${sluggedStatus}">
-              ${escapeHtml(appointment.status)}
-            </span>
-          </div>
+          <span class="status-badge status-badge--${sluggedStatus}">
+            ${escapeHtml(appointment.status)}
+          </span>
         </div>
       </div>
-    `;
+    </div>
+  `;
   });
 
   html += `</div>`;
@@ -294,6 +295,9 @@ function openAppointmentDetailModal(appointmentId) {
 
   closeAppointmentDetailModal();
 
+  const displayClientName =
+    appointment.client_name || appointment.alias || "Sin cliente asociado";
+
   const container = document.createElement("div");
   container.className = "modal-overlay is-open";
 
@@ -311,7 +315,7 @@ function openAppointmentDetailModal(appointmentId) {
           </span>
 
           <h3 class="modal__title">
-            ${escapeHtml(appointment.client_name)}
+            ${escapeHtml(displayClientName)}
           </h3>
         </div>
 

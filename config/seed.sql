@@ -6,12 +6,14 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- Borrar los datos usando DELETE (que sí lo permite)
 DELETE FROM appointment_history;
 DELETE FROM appointments;
+DELETE FROM clients;
 DELETE FROM services;
 DELETE FROM events;
 
 -- Resetear los IDs para que vuelvan a empezar desde 1
 ALTER TABLE appointment_history AUTO_INCREMENT = 1;
 ALTER TABLE appointments AUTO_INCREMENT = 1;
+ALTER TABLE clients AUTO_INCREMENT = 1;
 ALTER TABLE services AUTO_INCREMENT = 1;
 ALTER TABLE events AUTO_INCREMENT = 1;
 
@@ -56,65 +58,99 @@ INSERT INTO events (id, title, description, event_date) VALUES
 (12, 'Feriado Puente', 'Día no laborable.', '2026-11-23');
 
 -- =========================================================
--- 3. MÁS TURNOS (45 turnos)
--- Distribuidos en el pasado (agosto), hoy (4 de sept) y futuro.
+-- 3. CLIENTES CON FICHA (25 clientes frecuentes)
+-- El resto de los turnos corresponde a clientes ocasionales
+-- (client_id NULL), que solo quedan registrados por client_name.
 -- =========================================================
-INSERT INTO appointments (id, client_name, phone, service_id, stylist, price, notes, status, date, time_start, time_end) VALUES
+INSERT INTO clients (id, internal_code, alias, notes, active) VALUES
+(1, 'CLI-0001', 'Roberto G.', 'Cliente habitual, corte clásico cada 3 semanas.', TRUE),
+(2, 'CLI-0002', 'Carla T.', 'Prefiere cortar solo puntas; evitar keratina por alergia.', TRUE),
+(3, 'CLI-0003', 'Mariana P.', 'Le gusta el esmaltado semipermanente en tonos rojos.', TRUE),
+(4, 'CLI-0004', 'Lucía F.', 'Balayage, siempre trae foto de referencia.', TRUE),
+(5, 'CLI-0005', 'Camila R.', 'Cabello muy largo, requiere turno extendido.', TRUE),
+(6, 'CLI-0006', 'Diego A.', 'Corte rápido, viene en su hora de almuerzo.', TRUE),
+(7, 'CLI-0007', 'Marta B.', 'Retoque de raíces mensual, sensible al amoníaco.', TRUE),
+(8, 'CLI-0008', 'Fernando C.', 'Cliente puntual, siempre pide el mismo estilista.', TRUE),
+(9, 'CLI-0009', 'Romina K.', 'Tratamiento de keratina cada 4 meses.', TRUE),
+(10, 'CLI-0010', 'Gustavo M.', 'Prefiere máquina, corte bajo.', TRUE),
+(11, 'CLI-0011', 'Florencia D.', 'Primera decoloración, seguimiento de cuidado post-color.', TRUE),
+(12, 'CLI-0012', 'Silvia Q.', 'Le gusta charlar, conviene agendar con tiempo extra.', TRUE),
+(13, 'CLI-0013', 'Laura W.', 'Eligió color rosa pastel en su última manicura.', TRUE),
+(14, 'CLI-0014', 'Rocío E.', 'Diseño de cejas cada 3 semanas.', TRUE),
+(15, 'CLI-0015', 'Diana C.', 'Cliente VIP, prefiere turnos por la tarde.', TRUE),
+(16, 'CLI-0016', 'Oscar V.', 'Pasa rápido antes de entrar a trabajar.', TRUE),
+(17, 'CLI-0017', 'Micaela R.', 'Peinados para eventos y casamientos.', TRUE),
+(18, 'CLI-0018', 'Ana F.', 'Servicio largo, coordinar con tiempo.', TRUE),
+(19, 'CLI-0019', 'Tomás P.', 'Cliente nuevo, llegó recomendado.', TRUE),
+(20, 'CLI-0020', 'Victoria M.', 'Cliente nueva, primer corte femenino.', TRUE),
+(21, 'CLI-0021', 'Julieta D.', 'Renueva su semipermanente cada 3 semanas.', TRUE),
+(22, 'CLI-0022', 'Emiliano G.', 'Barba prolija, viene cada 2 semanas.', TRUE),
+(23, 'CLI-0023', 'Federico A.', 'A veces trae a su hijo también.', TRUE),
+(24, 'CLI-0024', 'Cristian L.', 'Cliente de la zona, viene caminando.', TRUE),
+(25, 'CLI-0025', 'Gabriel O.', 'Prefiere toalla caliente antes del recorte de barba.', TRUE);
+
+-- =========================================================
+-- 4. MÁS TURNOS (45 turnos)
+-- Distribuidos en el pasado (agosto), hoy (4 de sept) y futuro.
+-- Los turnos de clientes con ficha llevan su client_id; el resto
+-- queda en NULL (cliente ocasional, solo con client_name/phone).
+-- =========================================================
+INSERT INTO appointments (id, client_id, client_name, phone, service_id, stylist, price, notes, status, date, time_start, time_end) VALUES
 -- Turnos Pasados (Agosto 2026)
-(1, 'Roberto G.', '1144445555', 1, 'Lucas', 15.00, '', 'Finalizado', '2026-08-15', '10:00:00', '10:30:00'),
-(2, 'Carla T.', '1155556666', 2, 'Ana', 25.00, 'Cortar solo 2 dedos.', 'Finalizado', '2026-08-15', '11:00:00', '11:45:00'),
-(3, 'Mariana P.', '1166667777', 9, 'Sofia', 20.00, 'Color rojo.', 'Finalizado', '2026-08-16', '14:00:00', '15:00:00'),
-(4, 'Esteban M.', '1177778888', 5, 'Lucas', 10.00, '', 'Ausente', '2026-08-16', '16:00:00', '16:20:00'),
-(5, 'Lucía F.', '1188889999', 4, 'Martín', 85.00, 'Trae foto de referencia.', 'Finalizado', '2026-08-17', '09:00:00', '11:00:00'),
-(6, 'Javier S.', '1199990000', 1, 'Lucas', 15.00, '', 'Cancelado', '2026-08-18', '18:00:00', '18:30:00'),
-(7, 'Camila R.', '1122334455', 11, 'Ana', 100.00, 'Pelo muy largo y abundante.', 'Finalizado', '2026-08-20', '15:00:00', '17:30:00'),
-(8, 'Diego A.', '1133445566', 1, 'Martín', 15.00, '', 'Finalizado', '2026-08-22', '10:00:00', '10:30:00'),
-(9, 'Valentina L.', '1144556677', 13, 'Sofia', 18.00, '', 'Finalizado', '2026-08-25', '11:00:00', '11:30:00'),
-(10, 'Jorge V.', '1155667788', 12, 'Lucas', 10.00, '', 'Finalizado', '2026-08-28', '09:30:00', '09:50:00'),
+(1, 1, 'Roberto G.', '1144445555', 1, 'Lucas', 15.00, '', 'Finalizado', '2026-08-15', '10:00:00', '10:30:00'),
+(2, 2, 'Carla T.', '1155556666', 2, 'Ana', 25.00, 'Cortar solo 2 dedos.', 'Finalizado', '2026-08-15', '11:00:00', '11:45:00'),
+(3, 3, 'Mariana P.', '1166667777', 9, 'Sofia', 20.00, 'Color rojo.', 'Finalizado', '2026-08-16', '14:00:00', '15:00:00'),
+(4, NULL, 'Esteban M.', '1177778888', 5, 'Lucas', 10.00, '', 'Ausente', '2026-08-16', '16:00:00', '16:20:00'),
+(5, 4, 'Lucía F.', '1188889999', 4, 'Martín', 85.00, 'Trae foto de referencia.', 'Finalizado', '2026-08-17', '09:00:00', '11:00:00'),
+(6, NULL, 'Javier S.', '1199990000', 1, 'Lucas', 15.00, '', 'Cancelado', '2026-08-18', '18:00:00', '18:30:00'),
+(7, 5, 'Camila R.', '1122334455', 11, 'Ana', 100.00, 'Pelo muy largo y abundante.', 'Finalizado', '2026-08-20', '15:00:00', '17:30:00'),
+(8, 6, 'Diego A.', '1133445566', 1, 'Martín', 15.00, '', 'Finalizado', '2026-08-22', '10:00:00', '10:30:00'),
+(9, NULL, 'Valentina L.', '1144556677', 13, 'Sofia', 18.00, '', 'Finalizado', '2026-08-25', '11:00:00', '11:30:00'),
+(10, NULL, 'Jorge V.', '1155667788', 12, 'Lucas', 10.00, '', 'Finalizado', '2026-08-28', '09:30:00', '09:50:00'),
 
 -- Turnos Recientes (1 al 3 de Septiembre 2026)
-(11, 'Marta B.', '1166778899', 3, 'Ana', 50.00, 'Retoque de raíces.', 'Finalizado', '2026-09-01', '10:00:00', '11:30:00'),
-(12, 'Fernando C.', '1177889900', 1, 'Lucas', 15.00, '', 'Finalizado', '2026-09-01', '10:30:00', '11:00:00'),
-(13, 'Paula N.', '1188990011', 8, 'Sofia', 12.00, '', 'Ausente', '2026-09-01', '14:00:00', '14:40:00'),
-(14, 'Hugo P.', '1199001122', 5, 'Martín', 10.00, '', 'Finalizado', '2026-09-02', '15:00:00', '15:20:00'),
-(15, 'Romina K.', '1100112233', 6, 'Ana', 45.00, 'Pelo por los hombros.', 'Finalizado', '2026-09-02', '16:00:00', '17:30:00'),
-(16, 'Andrea G.', '1111223344', 14, 'Sofia', 8.00, '', 'Cancelado', '2026-09-03', '09:00:00', '09:15:00'),
-(17, 'Gustavo M.', '1122334455', 1, 'Lucas', 15.00, '', 'Finalizado', '2026-09-03', '10:00:00', '10:30:00'),
-(18, 'Florencia D.', '1133445566', 15, 'Martín', 70.00, 'Primera decoloración.', 'Finalizado', '2026-09-03', '14:00:00', '16:00:00'),
+(11, 7, 'Marta B.', '1166778899', 3, 'Ana', 50.00, 'Retoque de raíces.', 'Finalizado', '2026-09-01', '10:00:00', '11:30:00'),
+(12, 8, 'Fernando C.', '1177889900', 1, 'Lucas', 15.00, '', 'Finalizado', '2026-09-01', '10:30:00', '11:00:00'),
+(13, NULL, 'Paula N.', '1188990011', 8, 'Sofia', 12.00, '', 'Ausente', '2026-09-01', '14:00:00', '14:40:00'),
+(14, NULL, 'Hugo P.', '1199001122', 5, 'Martín', 10.00, '', 'Finalizado', '2026-09-02', '15:00:00', '15:20:00'),
+(15, 9, 'Romina K.', '1100112233', 6, 'Ana', 45.00, 'Pelo por los hombros.', 'Finalizado', '2026-09-02', '16:00:00', '17:30:00'),
+(16, NULL, 'Andrea G.', '1111223344', 14, 'Sofia', 8.00, '', 'Cancelado', '2026-09-03', '09:00:00', '09:15:00'),
+(17, 10, 'Gustavo M.', '1122334455', 1, 'Lucas', 15.00, '', 'Finalizado', '2026-09-03', '10:00:00', '10:30:00'),
+(18, 11, 'Florencia D.', '1133445566', 15, 'Martín', 70.00, 'Primera decoloración.', 'Finalizado', '2026-09-03', '14:00:00', '16:00:00'),
 
 -- Turnos del Día Actual (4 de Septiembre 2026)
-(19, 'Carlos I.', '1144556677', 1, 'Lucas', 15.00, 'Primer turno del día', 'Finalizado', '2026-09-04', '09:00:00', '09:30:00'),
-(20, 'Silvia Q.', '1155667788', 2, 'Ana', 25.00, '', 'Finalizado', '2026-09-04', '09:30:00', '10:15:00'),
-(21, 'Pedro O.', '1166778899', 5, 'Martín', 10.00, '', 'En atención', '2026-09-04', '10:20:00', '10:40:00'),
-(22, 'Laura W.', '1177889900', 9, 'Sofia', 20.00, 'Eligió color rosa paste.', 'En atención', '2026-09-04', '10:00:00', '11:00:00'),
-(23, 'Ignacio Z.', '1188990011', 1, 'Lucas', 15.00, 'Esperando tomando café.', 'En sala de espera', '2026-09-04', '10:45:00', '11:15:00'),
-(24, 'Rocío E.', '1199001122', 14, 'Sofia', 8.00, '', 'Reservado', '2026-09-04', '11:30:00', '11:45:00'),
-(25, 'Marcelo Y.', '1100112233', 1, 'Martín', 15.00, '', 'Reservado', '2026-09-04', '15:00:00', '15:30:00'),
-(26, 'Diana C.', '1111223344', 3, 'Ana', 50.00, '', 'Reservado', '2026-09-04', '16:00:00', '17:30:00'),
-(27, 'Oscar V.', '1122334455', 12, 'Lucas', 10.00, '', 'Reservado', '2026-09-04', '17:30:00', '17:50:00'),
+(19, NULL, 'Carlos I.', '1144556677', 1, 'Lucas', 15.00, 'Primer turno del día', 'Finalizado', '2026-09-04', '09:00:00', '09:30:00'),
+(20, 12, 'Silvia Q.', '1155667788', 2, 'Ana', 25.00, '', 'Finalizado', '2026-09-04', '09:30:00', '10:15:00'),
+(21, NULL, 'Pedro O.', '1166778899', 5, 'Martín', 10.00, '', 'En atención', '2026-09-04', '10:20:00', '10:40:00'),
+(22, 13, 'Laura W.', '1177889900', 9, 'Sofia', 20.00, 'Eligió color rosa paste.', 'En atención', '2026-09-04', '10:00:00', '11:00:00'),
+(23, NULL, 'Ignacio Z.', '1188990011', 1, 'Lucas', 15.00, 'Esperando tomando café.', 'En sala de espera', '2026-09-04', '10:45:00', '11:15:00'),
+(24, 14, 'Rocío E.', '1199001122', 14, 'Sofia', 8.00, '', 'Reservado', '2026-09-04', '11:30:00', '11:45:00'),
+(25, NULL, 'Marcelo Y.', '1100112233', 1, 'Martín', 15.00, '', 'Reservado', '2026-09-04', '15:00:00', '15:30:00'),
+(26, 15, 'Diana C.', '1111223344', 3, 'Ana', 50.00, '', 'Reservado', '2026-09-04', '16:00:00', '17:30:00'),
+(27, 16, 'Oscar V.', '1122334455', 12, 'Lucas', 10.00, '', 'Reservado', '2026-09-04', '17:30:00', '17:50:00'),
 
 -- Turnos Futuros (Septiembre / Octubre 2026)
-(28, 'Micaela R.', '1133445566', 7, 'Ana', 35.00, 'Peinado para casamiento.', 'Reservado', '2026-09-05', '14:00:00', '15:00:00'),
-(29, 'Bruno L.', '1144556677', 1, 'Lucas', 15.00, '', 'Reservado', '2026-09-06', '10:00:00', '10:30:00'),
-(30, 'Ana F.', '1155667788', 4, 'Martín', 85.00, '', 'Reservado', '2026-09-07', '09:00:00', '11:00:00'),
-(31, 'Claudio H.', '1166778899', 5, 'Lucas', 10.00, '', 'Reservado', '2026-09-08', '18:00:00', '18:20:00'),
-(32, 'Daniela J.', '1177889900', 10, 'Sofia', 25.00, '', 'Reservado', '2026-09-10', '15:00:00', '16:00:00'),
-(33, 'Tomás P.', '1188990011', 1, 'Martín', 15.00, '', 'Reservado', '2026-09-12', '10:00:00', '10:30:00'),
-(34, 'Victoria M.', '1199001122', 2, 'Ana', 25.00, '', 'Reservado', '2026-09-15', '11:00:00', '11:45:00'),
-(35, 'Joaquín S.', '1100112233', 12, 'Lucas', 10.00, '', 'Reservado', '2026-09-18', '17:00:00', '17:20:00'),
-(36, 'Julieta D.', '1111223344', 9, 'Sofia', 20.00, '', 'Reservado', '2026-09-20', '14:00:00', '15:00:00'),
-(37, 'Sebastián K.', '1122334455', 1, 'Martín', 15.00, '', 'Reservado', '2026-09-22', '09:30:00', '10:00:00'),
-(38, 'Agustina T.', '1133445566', 3, 'Ana', 50.00, '', 'Reservado', '2026-09-25', '15:30:00', '17:00:00'),
-(39, 'Emiliano G.', '1144556677', 5, 'Lucas', 10.00, '', 'Reservado', '2026-09-28', '18:00:00', '18:20:00'),
-(40, 'Lorena P.', '1155667788', 11, 'Ana', 100.00, '', 'Reservado', '2026-10-02', '14:00:00', '16:30:00'),
-(41, 'Federico A.', '1166778899', 1, 'Martín', 15.00, '', 'Reservado', '2026-10-05', '10:00:00', '10:30:00'),
-(42, 'Tatiana R.', '1177889900', 8, 'Sofia', 12.00, '', 'Reservado', '2026-10-10', '11:00:00', '11:40:00'),
-(43, 'Cristian L.', '1188990011', 1, 'Lucas', 15.00, '', 'Reservado', '2026-10-15', '16:30:00', '17:00:00'),
-(44, 'Mónica F.', '1199001122', 15, 'Ana', 70.00, '', 'Reservado', '2026-10-20', '09:00:00', '11:00:00'),
-(45, 'Gabriel O.', '1100112233', 5, 'Martín', 10.00, '', 'Reservado', '2026-10-25', '18:00:00', '18:20:00');
+(28, 17, 'Micaela R.', '1133445566', 7, 'Ana', 35.00, 'Peinado para casamiento.', 'Reservado', '2026-09-05', '14:00:00', '15:00:00'),
+(29, NULL, 'Bruno L.', '1144556677', 1, 'Lucas', 15.00, '', 'Reservado', '2026-09-06', '10:00:00', '10:30:00'),
+(30, 18, 'Ana F.', '1155667788', 4, 'Martín', 85.00, '', 'Reservado', '2026-09-07', '09:00:00', '11:00:00'),
+(31, NULL, 'Claudio H.', '1166778899', 5, 'Lucas', 10.00, '', 'Reservado', '2026-09-08', '18:00:00', '18:20:00'),
+(32, NULL, 'Daniela J.', '1177889900', 10, 'Sofia', 25.00, '', 'Reservado', '2026-09-10', '15:00:00', '16:00:00'),
+(33, 19, 'Tomás P.', '1188990011', 1, 'Martín', 15.00, '', 'Reservado', '2026-09-12', '10:00:00', '10:30:00'),
+(34, 20, 'Victoria M.', '1199001122', 2, 'Ana', 25.00, '', 'Reservado', '2026-09-15', '11:00:00', '11:45:00'),
+(35, NULL, 'Joaquín S.', '1100112233', 12, 'Lucas', 10.00, '', 'Reservado', '2026-09-18', '17:00:00', '17:20:00'),
+(36, 21, 'Julieta D.', '1111223344', 9, 'Sofia', 20.00, '', 'Reservado', '2026-09-20', '14:00:00', '15:00:00'),
+(37, NULL, 'Sebastián K.', '1122334455', 1, 'Martín', 15.00, '', 'Reservado', '2026-09-22', '09:30:00', '10:00:00'),
+(38, NULL, 'Agustina T.', '1133445566', 3, 'Ana', 50.00, '', 'Reservado', '2026-09-25', '15:30:00', '17:00:00'),
+(39, 22, 'Emiliano G.', '1144556677', 5, 'Lucas', 10.00, '', 'Reservado', '2026-09-28', '18:00:00', '18:20:00'),
+(40, NULL, 'Lorena P.', '1155667788', 11, 'Ana', 100.00, '', 'Reservado', '2026-10-02', '14:00:00', '16:30:00'),
+(41, 23, 'Federico A.', '1166778899', 1, 'Martín', 15.00, '', 'Reservado', '2026-10-05', '10:00:00', '10:30:00'),
+(42, NULL, 'Tatiana R.', '1177889900', 8, 'Sofia', 12.00, '', 'Reservado', '2026-10-10', '11:00:00', '11:40:00'),
+(43, 24, 'Cristian L.', '1188990011', 1, 'Lucas', 15.00, '', 'Reservado', '2026-10-15', '16:30:00', '17:00:00'),
+(44, NULL, 'Mónica F.', '1199001122', 15, 'Ana', 70.00, '', 'Reservado', '2026-10-20', '09:00:00', '11:00:00'),
+(45, 25, 'Gabriel O.', '1100112233', 5, 'Martín', 10.00, '', 'Reservado', '2026-10-25', '18:00:00', '18:20:00');
 
 -- =========================================================
--- 4. HISTORIAL DE TURNOS MÁS COMPLETO
+-- 5. HISTORIAL DE ESTADOS DE LOS TURNOS MÁS COMPLETO
 -- Se simulan las transiciones (Reservado -> Espera -> Atención -> Finalizado)
 -- =========================================================
 INSERT INTO appointment_history (appointment_id, status_from, status_to, changed_at) VALUES

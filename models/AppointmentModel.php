@@ -26,10 +26,12 @@ class AppointmentModel
             SELECT
                 appointments.*,
                 services.name AS service_name,
-                services.duration AS service_duration
+                services.duration AS service_duration,
+                COALESCE(clients.alias, appointments.client_name) AS client_name,
+                clients.internal_code AS client_internal_code
             FROM appointments
-            INNER JOIN services
-                ON appointments.service_id = services.id
+            INNER JOIN services ON appointments.service_id = services.id
+            LEFT JOIN clients ON clients.id = appointments.client_id
             WHERE appointments.date = ?
         ";
 
@@ -42,15 +44,15 @@ class AppointmentModel
 
             $query .= "
                 AND (
-                    appointments.client_name LIKE ?
+                    COALESCE(clients.alias, appointments.client_name) LIKE ?
+                    OR COALESCE(clients.internal_code, '') LIKE ?
                     OR appointments.stylist LIKE ?
                 )
             ";
 
-            $types .= 'ss';
-
+            $types .= 'sss';
             $searchParam = "%$search%";
-
+            $params[] = $searchParam;
             $params[] = $searchParam;
             $params[] = $searchParam;
         }
@@ -122,6 +124,42 @@ class AppointmentModel
 
 
     // ============================================================
+    // OBTENER CLIENTE POR ID
+    // ============================================================
+
+    public function getClientById(
+        int $clientId
+    ): ?array {
+
+        $stmt =
+            $this->conn->prepare("
+                SELECT
+                    id,
+                    alias,
+                    internal_code,
+                    active
+                FROM clients
+                WHERE id = ?
+                LIMIT 1
+            ");
+
+        if (!$stmt) {
+            return null;
+        }
+
+        $stmt->bind_param('i', $clientId);
+        $stmt->execute();
+
+        $client =
+            $stmt
+            ->get_result()
+            ->fetch_assoc();
+
+        return $client ?: null;
+    }
+
+
+    // ============================================================
     // OBTENER SERVICIO
     // ============================================================
 
@@ -172,58 +210,102 @@ class AppointmentModel
     // CREAR TURNO
     // ============================================================
 
-    // Crea un nuevo turno y registra su estado inicial
-    // en el historial.
-    public function create(
-        array $data
-    ): bool {
-
+    // Crea un nuevo turno y registra su estado inicial en el historial.
+    public function create(array $data): bool
+    {
         $this->conn->begin_transaction();
 
-
         try {
+            $clientId = $data['client_id'] ?? null;
+            $clientName = trim($data['client_name'] ?? '');
 
-            $stmt =
-                $this->conn->prepare("
-                    INSERT INTO appointments
-                    (
-                        client_name,
-                        phone,
-                        service_id,
-                        stylist,
-                        price,
-                        notes,
-                        date,
-                        time_start,
-                        time_end,
-                        status
-                    )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ");
+            if ($clientId !== null && $clientId > 0 && $clientName === '') {
+                $client = $this->getClientById((int)$clientId);
 
-
-            if (!$stmt) {
-                throw new Exception(
-                    "No se pudo preparar la creación del turno: " .
-                        $this->conn->error
-                );
+                if ($client && !empty($client['alias'])) {
+                    $clientName = trim((string)$client['alias']);
+                }
             }
 
+            if ($clientId !== null && $clientId > 0) {
+                $stmt = $this->conn->prepare("
+                INSERT INTO appointments
+                (
+                    client_id,
+                    client_name,
+                    phone,
+                    service_id,
+                    stylist,
+                    price,
+                    notes,
+                    date,
+                    time_start,
+                    time_end,
+                    status
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
 
-            $stmt->bind_param(
-                'ssisdsssss',
-                $data['client_name'],
-                $data['phone'],
-                $data['service_id'],
-                $data['stylist'],
-                $data['price'],
-                $data['notes'],
-                $data['date'],
-                $data['time_start'],
-                $data['time_end'],
-                $data['status']
-            );
+                if (!$stmt) {
+                    throw new Exception(
+                        "No se pudo preparar la creación del turno: " .
+                            $this->conn->error
+                    );
+                }
 
+                $stmt->bind_param(
+                    'issisdsssss',
+                    $clientId,
+                    $clientName,
+                    $data['phone'],
+                    $data['service_id'],
+                    $data['stylist'],
+                    $data['price'],
+                    $data['notes'],
+                    $data['date'],
+                    $data['time_start'],
+                    $data['time_end'],
+                    $data['status']
+                );
+            } else {
+                $stmt = $this->conn->prepare("
+                INSERT INTO appointments
+                (
+                    client_name,
+                    phone,
+                    service_id,
+                    stylist,
+                    price,
+                    notes,
+                    date,
+                    time_start,
+                    time_end,
+                    status
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+
+                if (!$stmt) {
+                    throw new Exception(
+                        "No se pudo preparar la creación del turno: " .
+                            $this->conn->error
+                    );
+                }
+
+                $stmt->bind_param(
+                    'ssisdsssss',
+                    $clientName,
+                    $data['phone'],
+                    $data['service_id'],
+                    $data['stylist'],
+                    $data['price'],
+                    $data['notes'],
+                    $data['date'],
+                    $data['time_start'],
+                    $data['time_end'],
+                    $data['status']
+                );
+            }
 
             if (!$stmt->execute()) {
                 throw new Exception(
@@ -232,26 +314,17 @@ class AppointmentModel
                 );
             }
 
+            $appointmentId = $this->conn->insert_id;
 
-            $appointmentId =
-                $this->conn->insert_id;
-
-
-            // --------------------------------------------------------
-            // HISTORIAL
-            // --------------------------------------------------------
-
-            $stmtHist =
-                $this->conn->prepare("
-                    INSERT INTO appointment_history
-                    (
-                        appointment_id,
-                        status_from,
-                        status_to
-                    )
-                    VALUES (?, NULL, ?)
-                ");
-
+            $stmtHist = $this->conn->prepare("
+            INSERT INTO appointment_history
+            (
+                appointment_id,
+                status_from,
+                status_to
+            )
+            VALUES (?, NULL, ?)
+        ");
 
             if (!$stmtHist) {
                 throw new Exception(
@@ -260,13 +333,7 @@ class AppointmentModel
                 );
             }
 
-
-            $stmtHist->bind_param(
-                'is',
-                $appointmentId,
-                $data['status']
-            );
-
+            $stmtHist->bind_param('is', $appointmentId, $data['status']);
 
             if (!$stmtHist->execute()) {
                 throw new Exception(
@@ -275,19 +342,100 @@ class AppointmentModel
                 );
             }
 
+            // Registro mínimo de historial de atención por cliente
+            // usando snapshot del servicio y precio del turno.
+            $serviceName = '';
+            $serviceStmt = $this->conn->prepare("SELECT name FROM services WHERE id = ? LIMIT 1");
+            if ($serviceStmt) {
+                $serviceStmt->bind_param('i', $data['service_id']);
+                $serviceStmt->execute();
+                $serviceRes = $serviceStmt->get_result()->fetch_assoc();
+                $serviceName = $serviceRes['name'] ?? '';
+            }
+
+            $performedAt = $data['date'] . ' ' . $data['time_start'];
+
+            if (!empty($data['client_id'])) {
+                $stmtServiceHistory = $this->conn->prepare("
+                    INSERT INTO service_history
+                    (
+                        client_id,
+                        appointment_id,
+                        service_id,
+                        service_name_snapshot,
+                        price,
+                        performed_at,
+                        stylist,
+                        notes
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+
+                if (!$stmtServiceHistory) {
+                    throw new Exception(
+                        "No se pudo preparar el historial de servicio: " .
+                            $this->conn->error
+                    );
+                }
+
+                $stmtServiceHistory->bind_param(
+                    'iiisdsss',
+                    $data['client_id'],
+                    $appointmentId,
+                    $data['service_id'],
+                    $serviceName,
+                    $data['price'],
+                    $performedAt,
+                    $data['stylist'],
+                    $data['notes']
+                );
+            } else {
+                $stmtServiceHistory = $this->conn->prepare("
+                    INSERT INTO service_history
+                    (
+                        appointment_id,
+                        service_id,
+                        service_name_snapshot,
+                        price,
+                        performed_at,
+                        stylist,
+                        notes
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ");
+
+                if (!$stmtServiceHistory) {
+                    throw new Exception(
+                        "No se pudo preparar el historial de servicio: " .
+                            $this->conn->error
+                    );
+                }
+
+                $stmtServiceHistory->bind_param(
+                    'iisdsss',
+                    $appointmentId,
+                    $data['service_id'],
+                    $serviceName,
+                    $data['price'],
+                    $performedAt,
+                    $data['stylist'],
+                    $data['notes']
+                );
+            }
+
+            if (!$stmtServiceHistory->execute()) {
+                throw new Exception(
+                    "No se pudo registrar el historial de servicio: " .
+                        $stmtServiceHistory->error
+                );
+            }
 
             $this->conn->commit();
 
             return true;
         } catch (Exception $e) {
-
             $this->conn->rollback();
-
-            error_log(
-                "Error al crear turno: " .
-                    $e->getMessage()
-            );
-
+            error_log("Error al crear turno: " . $e->getMessage());
             return false;
         }
     }

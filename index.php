@@ -4,6 +4,7 @@ date_default_timezone_set('America/Argentina/Buenos_Aires');
 require_once __DIR__ . '/controllers/CalendarController.php';
 require_once __DIR__ . '/controllers/AppointmentController.php';
 require_once __DIR__ . '/controllers/ServiceController.php';
+require_once __DIR__ . '/controllers/ClientController.php';
 
 $action = $_GET['action'] ?? '';
 
@@ -42,6 +43,28 @@ if (
     )
 ) {
     $controller = new ServiceController();
+    $controller->handleRequest();
+    exit;
+}
+
+// Acciones relacionadas con la gestión de clientes
+if (
+    in_array(
+        $action,
+        [
+            'clients',
+            'clients_all',
+            'client_get',
+            'client_search',
+            'client_create',
+            'client_update',
+            'client_activate',
+            'client_deactivate',
+            'client_delete'
+        ]
+    )
+) {
+    $controller = new ClientController();
     $controller->handleRequest();
     exit;
 }

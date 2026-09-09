@@ -229,3 +229,112 @@ export async function deleteService(id) {
 
   return await handleJsonResponse(res);
 }
+
+// ============================================================
+// CLIENTES
+// ============================================================
+
+// Obtiene los clientes activos.
+export async function fetchClients() {
+  const res = await fetch(`${BASE_URL}/?action=clients`);
+  return await handleJsonResponse(res);
+}
+
+// Obtiene todos los clientes, activos e inactivos.
+// Se utiliza en el panel administrativo.
+export async function fetchAllClients() {
+  const res = await fetch(`${BASE_URL}/?action=clients_all`);
+  return await handleJsonResponse(res);
+}
+
+// Obtiene un cliente puntual por su ID.
+export async function fetchClientById(id) {
+  const res = await fetch(`${BASE_URL}/?action=client_get&id=${id}`);
+
+  return await handleJsonResponse(res);
+}
+
+// Busca clientes por alias o código interno.
+export async function searchClients(query) {
+  const res = await fetch(
+    `${BASE_URL}/?action=client_search&q=${encodeURIComponent(query)}`,
+  );
+
+  return await handleJsonResponse(res);
+}
+
+// Crea un nuevo cliente.
+export async function createClient(data) {
+  const res = await fetch(`${BASE_URL}/?action=client_create`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  return await handleJsonResponse(res);
+}
+
+// Actualiza un cliente existente.
+export async function updateClient(id, data) {
+  const res = await fetch(`${BASE_URL}/?action=client_update`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: Number(id),
+      ...data,
+    }),
+  });
+
+  return await handleJsonResponse(res);
+}
+
+// Activa un cliente.
+export async function activateClient(id) {
+  const res = await fetch(`${BASE_URL}/?action=client_activate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: Number(id),
+    }),
+  });
+
+  return await handleJsonResponse(res);
+}
+
+// Desactiva un cliente.
+export async function deactivateClient(id) {
+  const res = await fetch(`${BASE_URL}/?action=client_deactivate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: Number(id),
+    }),
+  });
+
+  return await handleJsonResponse(res);
+}
+
+// Elimina un cliente.
+// El backend impide eliminar clientes que tengan
+// turnos asociados.
+export async function deleteClient(id) {
+  const res = await fetch(`${BASE_URL}/?action=client_delete`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: Number(id),
+    }),
+  });
+
+  return await handleJsonResponse(res);
+}

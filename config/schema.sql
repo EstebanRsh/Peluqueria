@@ -29,13 +29,41 @@ CREATE TABLE IF NOT EXISTS services (
 );
 
 -- =========================================================
+-- CLIENTES
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS clients (
+
+    id INT AUTO_INCREMENT PRIMARY KEY,
+
+    internal_code VARCHAR(40) UNIQUE,
+
+    alias VARCHAR(100) NOT NULL,
+
+    notes TEXT,
+
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_clients_alias (alias),
+
+    INDEX idx_clients_active (active)
+
+);
+
+-- =========================================================
 -- TURNOS
 -- =========================================================
 
 CREATE TABLE IF NOT EXISTS appointments (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    client_name VARCHAR(255) NOT NULL,
-    phone VARCHAR(50),
+    client_id INT NULL,
+    client_name VARCHAR(255) NULL,
+    phone VARCHAR(50) NULL,
     service_id INT NOT NULL,
     stylist VARCHAR(100),
     price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
@@ -47,7 +75,37 @@ CREATE TABLE IF NOT EXISTS appointments (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (service_id)
         REFERENCES services(id)
-        ON DELETE RESTRICT
+        ON DELETE RESTRICT,
+    FOREIGN KEY (client_id)
+        REFERENCES clients(id)
+        ON DELETE SET NULL
+);
+
+-- =========================================================
+-- HISTORIAL DE SERVICIOS REALIZADOS (SNAPSHOT OPERATIVO)
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS service_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    client_id INT NULL,
+    appointment_id INT NOT NULL,
+    service_id INT NOT NULL,
+    service_name_snapshot VARCHAR(100) NOT NULL,
+    price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    performed_at DATETIME NOT NULL,
+    stylist VARCHAR(100),
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (client_id)
+        REFERENCES clients(id)
+        ON DELETE SET NULL,
+    FOREIGN KEY (appointment_id)
+        REFERENCES appointments(id)
+        ON DELETE CASCADE,
+    FOREIGN KEY (service_id)
+        REFERENCES services(id)
+        ON DELETE RESTRICT,
+    UNIQUE (appointment_id)
 );
 
 -- =========================================================

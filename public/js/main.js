@@ -6,6 +6,7 @@ import { initModal } from "./modal.js";
 import { fetchAppointments } from "./api.js";
 import { slugify } from "./utils.js";
 import { initServices, loadServicesList } from "./services.js";
+import { initClients, loadClientsList } from "./clients.js";
 
 const panel = document.getElementById("dayPanel");
 const closeBtn = document.getElementById("panelClose");
@@ -71,7 +72,16 @@ if (closeBtn) {
 
 const viewAppointments = document.getElementById("viewAppointments");
 const viewServices = document.getElementById("viewServices");
+const viewClients = document.getElementById("viewClients");
 const navItems = document.querySelectorAll(".nav-item[data-view]");
+
+// Mapa de vistas disponibles. Agregar una nueva vista solo
+// requiere sumarla acá y crear su contenedor en layout.php.
+const views = {
+  appointments: viewAppointments,
+  services: viewServices,
+  clients: viewClients,
+};
 
 navItems.forEach((item) => {
   item.addEventListener("click", (event) => {
@@ -82,13 +92,15 @@ navItems.forEach((item) => {
     navItems.forEach((nav) => nav.classList.remove("is-active"));
     item.classList.add("is-active");
 
+    Object.entries(views).forEach(([key, element]) => {
+      if (!element) return;
+      element.classList.toggle("is-hidden", key !== view);
+    });
+
     if (view === "services") {
-      viewAppointments.classList.add("is-hidden");
-      viewServices.classList.remove("is-hidden");
       loadServicesList();
-    } else {
-      viewServices.classList.add("is-hidden");
-      viewAppointments.classList.remove("is-hidden");
+    } else if (view === "clients") {
+      loadClientsList();
     }
   });
 });
@@ -118,6 +130,7 @@ if (burgerBtn && sidebar && sidebarOverlay) {
 
 initModal();
 initServices();
+initClients();
 
 window.addEventListener("error", (event) => {
   console.group("ERROR GLOBAL");

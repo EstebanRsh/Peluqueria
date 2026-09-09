@@ -94,7 +94,17 @@ class AppointmentController
             // CONSTRUIR DATOS DEL TURNO
             // ----------------------------------------------------
 
+            $clientId =
+                filter_var(
+                    $input['client_id'] ?? 0,
+                    FILTER_VALIDATE_INT
+                );
+
             $data = [
+
+                'client_id' => ($clientId === false || $clientId <= 0)
+                    ? null
+                    : $clientId,
 
                 'client_name' =>
                 trim(
@@ -157,14 +167,35 @@ class AppointmentController
             // ----------------------------------------------------
 
             if (
+                $data['client_id'] === null &&
                 $data['client_name'] === ''
             ) {
 
                 $this->json([
                     'success' => false,
                     'error' =>
-                    'El nombre del cliente es obligatorio.'
+                    'Debe seleccionar un cliente o ingresar un alias de referencia.'
                 ], 400);
+            }
+
+            if (
+                $data['client_id'] !== null
+            ) {
+                $client =
+                    $this->model->getClientById(
+                        $data['client_id']
+                    );
+
+                if (
+                    !$client ||
+                    !$client['active']
+                ) {
+                    $this->json([
+                        'success' => false,
+                        'error' =>
+                        'El cliente seleccionado no existe o está inactivo.'
+                    ], 400);
+                }
             }
 
 

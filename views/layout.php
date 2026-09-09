@@ -39,7 +39,7 @@ $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
                 <a href="#" class="nav-item is-active" data-view="appointments">
                     <span style="font-size: 1.1rem;">📅</span> Turnos
                 </a>
-                <a href="#" class="nav-item">
+                <a href="#" class="nav-item" data-view="clients">
                     <span style="font-size: 1.1rem;">👥</span> Clientes
                 </a>
                 <a href="#" class="nav-item" data-view="services">
@@ -66,6 +66,10 @@ $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
             <div id="viewServices" class="is-hidden">
                 <?php require __DIR__ . '/services_view.php'; ?>
                 <?php require __DIR__ . '/modal_service.php'; ?>
+            </div>
+            <div id="viewClients" class="is-hidden">
+                <?php require __DIR__ . '/clients_view.php'; ?>
+                <?php require __DIR__ . '/modal_client.php'; ?>
             </div>
         </main>
     </div>

@@ -27,26 +27,28 @@
 
             <!-- Cliente y teléfono -->
             <div class="form-row">
+                <div class="form-group">
+                    <label for="clientId">Cliente</label>
+                    <select id="clientId" class="form-select">
+                        <option value="">Sin cliente asociado</option>
+                    </select>
+                </div>
 
                 <div class="form-group">
-                    <label for="clientName">Cliente</label>
-
+                    <label for="clientName">Alias o referencia</label>
                     <input
                         type="text"
                         id="clientName"
-                        placeholder="Nombre completo">
+                        placeholder="Alias o referencia">
                 </div>
-
 
                 <div class="form-group">
                     <label for="phone">Teléfono</label>
-
                     <input
                         type="text"
                         id="phone"
                         placeholder="+54 9 ...">
                 </div>
-
             </div>
 
 

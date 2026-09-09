@@ -232,15 +232,21 @@ export function initServices() {
     .getElementById("servicesTableBody")
     ?.addEventListener("click", handleTableAction);
 
-  document.querySelectorAll(".btn-filter[data-filter]").forEach((button) => {
-    button.addEventListener("click", () => {
-      servicesState.filter = button.dataset.filter;
-      document.querySelectorAll(".btn-filter[data-filter]").forEach((item) => {
-        item.classList.toggle("active", item === button);
+  // Acotado a #viewServices para no interferir con los mismos
+  // botones .btn-filter que usa el panel de clientes.
+  document
+    .querySelectorAll("#viewServices .btn-filter[data-filter]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        servicesState.filter = button.dataset.filter;
+        document
+          .querySelectorAll("#viewServices .btn-filter[data-filter]")
+          .forEach((item) => {
+            item.classList.toggle("active", item === button);
+          });
+        renderServicesList();
       });
-      renderServicesList();
     });
-  });
 
   document
     .getElementById("serviceModalClose")

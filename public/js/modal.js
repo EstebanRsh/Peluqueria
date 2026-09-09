@@ -2,7 +2,7 @@
 // MODAL DE CREACIÓN DE TURNOS
 // ============================================================
 
-import { createAppointment, fetchServices } from "./api.js";
+import { createAppointment, fetchClients, fetchServices } from "./api.js";
 import { formatDate } from "./utils.js";
 import { appState } from "./main.js";
 import { loadAppointments } from "./ui.js";
@@ -48,6 +48,7 @@ export function initModal() {
     lastCalculatedEndTime = "";
 
     loadServices();
+    loadClientsForSelect();
 
     modal.classList.add("is-open");
   });
@@ -96,6 +97,42 @@ export function initModal() {
   // GUARDAR
   // ----------------------------------------------------------
   modalSave.addEventListener("click", submitModalData);
+}
+
+// ============================================================
+// CLIENTES
+// ============================================================
+
+// Carga los clientes activos para elegir el vínculo real
+// de client_id desde el modal de creación del turno.
+async function loadClientsForSelect() {
+  const clientSelect = document.getElementById("clientId");
+
+  if (!clientSelect) {
+    return;
+  }
+
+  try {
+    const clients = await fetchClients();
+
+    if (!Array.isArray(clients)) {
+      clientSelect.innerHTML = '<option value="">Sin cliente asociado</option>';
+      return;
+    }
+
+    clientSelect.innerHTML = '<option value="">Sin cliente asociado</option>';
+
+    clients
+      .filter((client) => client.active === true || Number(client.active) === 1)
+      .forEach((client) => {
+        const option = document.createElement("option");
+        option.value = client.id;
+        option.textContent = `${client.alias} (${client.internal_code || "sin código"})`;
+        clientSelect.appendChild(option);
+      });
+  } catch (error) {
+    console.error("Error al cargar clientes:", error);
+  }
 }
 
 // ============================================================
@@ -263,6 +300,7 @@ function closeModal() {
 // Restablece todos los campos y el estado interno del modal.
 function clearModal() {
   const fields = [
+    "clientId",
     "clientName",
     "phone",
     "timeStart",
@@ -303,8 +341,9 @@ function clearModal() {
 async function submitModalData() {
   const data = {
     // Cliente
-    client_name: document.getElementById("clientName").value.trim(),
-    phone: document.getElementById("phone").value.trim(),
+    client_id: Number(document.getElementById("clientId")?.value) || null,
+    client_name: document.getElementById("clientName")?.value.trim() || "",
+    phone: document.getElementById("phone")?.value.trim() || "",
 
     // Servicio
     service_id: Number(document.getElementById("serviceId").value),
@@ -336,8 +375,8 @@ async function submitModalData() {
   // formularios evidentemente incompletos.
   // El backend realiza las validaciones definitivas.
 
-  if (!data.client_name) {
-    alert("El nombre del cliente es obligatorio.");
+  if (!data.client_id && !data.client_name) {
+    alert("Debe seleccionar un cliente o ingresar un alias de referencia.");
     return;
   }
 
