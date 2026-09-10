@@ -1,8 +1,8 @@
 <div align="center">
 
-# SISTEMA DE GESTIÓN DE TURNOS
+# Sistema de Gestión de Turnos para Peluquería
 
-**Plataforma Integral de Administración Operativa para Peluquerías**
+**Una agenda pensada para el día a día real de una peluquería**
 
 [![PHP](https://img.shields.io/badge/PHP_8.0+-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
 [![MySQL](https://img.shields.io/badge/MySQL-005C84?style=for-the-badge&logo=mysql&logoColor=white)](https://mysql.com)
@@ -10,137 +10,109 @@
 [![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)](https://w3.org)
 [![Vanilla JS](https://img.shields.io/badge/Vanilla_JS-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org)
 
-<br>
-
-[![Estado](https://img.shields.io/badge/Estado-Desarrollo_Activo-10b981?style=flat-square)](#)
-[![Arquitectura](https://img.shields.io/badge/Arquitectura-MVC-black?style=flat-square)](#)
-[![API](https://img.shields.io/badge/API-HTTP_JSON-0ea5e9?style=flat-square)](#)
+[![Estado](https://img.shields.io/badge/Estado-En_desarrollo-10b981?style=flat-square)](#estado-del-proyecto)
+[![Arquitectura](https://img.shields.io/badge/Arquitectura-MVC-black?style=flat-square)](#aspectos-técnicos)
 
 </div>
 
 <br>
 
-## 📌 Descripción del Proyecto
+## ¿Qué es esta aplicación?
 
-Sistema web para la gestión de turnos de una peluquería. Permite organizar la agenda, administrar servicios y precios, asignar profesionales, gestionar estados de los turnos y consultar el historial de cambios de cada reserva.
+Cualquiera que haya trabajado en una peluquería o gestionado sus turnos conoce esta escena: la agenda repartida entre mensajes de WhatsApp, un cuaderno y la memoria del profesional. Buscar quién tiene turno hoy a las 15hs, confirmar si tal cliente ya vino esta semana, o recordar qué color se le aplicó la última vez. Termina consumiendo tiempo y generando errores.
 
----
-
-## ⚙️ Características Principales
-
-<table>
-  <tr>
-    <td width="50%">
-      <h3>📅 Gestión de Calendario</h3>
-      Visualización mensual con un resumen de ocupación, turnos disponibles y reservas consolidadas.
-    </td>
-    <td width="50%">
-      <h3>📊 Panel Operativo</h3>
-      Visualización de los turnos correspondientes a una fecha seleccionada, con búsqueda, filtros por estado y acceso a las acciones disponibles.
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <h3>📝 Administración de Turnos</h3>
-      Registro completo: información del cliente, contacto, servicio, profesional asignado y montos.
-    </td>
-    <td>
-      <h3>🔄 Trazabilidad de Estados</h3>
-      Seguimiento del ciclo de vida del turno (reservado, en sala de espera, en atención, finalizado, cancelado y ausente) y registro histórico de sus cambios de estado.
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <h3>💇 Gestión de Servicios y Precios</h3>
-      Creación, edición, activación, desactivación y eliminación de servicios, con configuración de duración y precio base.
-    </td>
-    <td>
-      <h3>🔎 Búsqueda y Filtros</h3>
-      Consulta de servicios por nombre y filtrado por estado activo o inactivo desde el panel administrativo.
-    </td>
-  </tr>
-</table>
+Esta aplicación esta siendo desarrollada para solucionar esto: ordenar la agenda diaria, dejar registrado qué se hizo en cada turno, y con el tiempo, darle a cada profesional una historial claro de cada cliente sin tener que confiar en la memoria o anotaciones dificiles de allar.
 
 ---
 
-## 📂 Estructura del Proyecto
+## Qué podés hacer hoy con la app
 
-<details>
-  <summary><b>Haz clic para expandir la estructura del directorio</b></summary>
-  <br>
+### 📅 Calendario y turnos
+
+- Vista mensual del calendario, con los turnos agrupados por día y por estado.
+- Un panel al seleccionar un dia del calendario muestra la agenda completa del día seleccionado.
+- Buscador y filtros por estado dentro de ese panel, para encontrar un turno rápido sin scrollear toda la lista.
+- Alta de un turno, con o sin cliente asociado (para cuando alguien llega sin estar registrado todavía).
+- El turno se valida antes de guardarse: cliente, servicio, fecha y horarios de inicio y fin.
+- Búsqueda de turnos por nombre o alias del cliente, código interno.
+- El estado de un turno se puede mover entre: **Reservado → En sala de espera → En atención → Finalizado**, o marcarlo como **Cancelado** o **Ausente**.
+- Cada cambio de estado queda registrado con fecha y hora, formando una pequeña línea de tiempo del turno.
+- Eliminación de turnos.
+
+### 👤 Clientes
+
+- Alta y edición de clientes, con alias, código interno y notas.
+- Búsqueda por alias o código.
+- Activar, desactivar o eliminar un cliente (solo si no tiene turnos asociados, para no perder información).
+- Listado de clientes activos e inactivos.
+
+> **Nota:** hoy el panel de clientes todavía no muestra el historial de atención de cada persona. Eso es el próximo paso — lo explicamos más abajo en _"Hacia dónde va el proyecto"_.
+
+### 💈 Servicios
+
+- Alta, edición, activación, desactivación y eliminación de servicios, con protección para no borrar un servicio que ya tiene turnos asociados.
+- Cada servicio tiene nombre, descripción, duración y precio base.
+- Listado de servicios activos (para elegir al crear un turno) y listado completo activos/inactivos (para administración).
+
+### 🕒 Lo que la app ya guarda para el futuro
+
+Aunque todavía no hay una pantalla que lo muestre de forma consolidada, la aplicación ya está guardando la información necesaria para reconstruir el historial de cada cliente:
+
+- **Historial de estados del turno**: cada cambio de estado (de "Reservado" a "En atención", por ejemplo) queda registrado con fecha.
+- **Snapshot del servicio realizado**: al crear un turno, se guarda un registro en el historial del servicio y en qué fecha realizado.
+
+Esta base es la que permitirá construir el historial de cliente sin tener que rediseñar todo desde cero.
+
+---
+
+### 🔭 Visión a más largo plazo (futuro, aún en desarrollo)
+
+- **Control de productos y stock**, con alertas para productos por agotarse o próximos a vencer.
+- **Separación entre productos de venta y productos de uso profesional interno**.
+- **Panel de notificaciones**, para recordatorios y avisos configurables.
+- **Panel de ajustes**, con configuraciones generales del sistema.
+- **Promociones y descuentos**.
+- **Autenticación de usuarios, roles y permisos**, y protección de los endpoints de la API.
+- **Gestión de profesionales** como entidad propia (hoy el profesional se guarda como un texto libre dentro del turno, no como un registro independiente).
+- **Recuperación de respaldos** de la base de datos.
+
+Ninguno de estos puntos debe presentarse en materiales de producto, capturas o documentación como si ya estuviera implementado.
+
+---
+
+## Estructura del proyecto
 
 ```text
 /
-├── controllers/    # Controladores que manejan la lógica de negocio y peticiones.
-├── models/         # Clases de acceso a datos y consultas a la base de datos.
-├── views/          # Interfaces de usuario y plantillas de presentación.
-├── public/         # Recursos estáticos (hojas de estilo CSS, scripts JS, imágenes).
-└── config/         # Archivos de configuración general y conexión a la base de datos.
+├── controllers/    # Lógica de negocio y manejo de las peticiones
+├── models/         # Acceso a datos y consultas a la base de datos
+├── views/          # Interfaces de usuario y plantillas de presentación
+├── public/         # Recursos estáticos (CSS, JS, imágenes)
+├── config/         # Configuración general y esquema de base de datos
+└── index.php       # Enrutador principal de la aplicación
 ```
 
-</details>
+## Aspectos técnicos
+
+- **Backend:** PHP 8.0+, arquitectura MVC simple, conexión a base de datos con `mysqli`.
+- **Base de datos:** MySQL/MariaDB.
+- **Frontend:** JavaScript vanilla (sin frameworks), HTML5 y CSS3.
+- **API:** HTTP basada en JSON, con acciones definidas por parámetro `action`.
+
+Las tablas que existen hoy en el esquema son: `events`, `services`, `clients`, `appointments`, `service_history` y `appointment_history`.
+
+## Guía de instalación local
+
+Requisitos mínimos: **PHP 8.0+** y **MySQL/MariaDB**, junto con un servidor web (Apache o Nginx).
+
+1. **Clonar el repositorio** en la raíz del servidor web (por ejemplo, `htdocs` en XAMPP o `www` en Laragon).
+2. **Iniciar los servicios** del servidor web y del motor de base de datos.
+3. **Preparar la base de datos:** importar el script de [`config/schema.sql`](config/schema.sql). Crea la base `peluqueria` y toda la estructura de tablas, siempre que el usuario de MySQL tenga permisos suficientes.
+4. **Configurar el entorno:** editar [`config/database.php`](config/database.php) con las credenciales de conexión correctas (usuario, contraseña y host).
+5. **Ejecutar la aplicación:** acceder desde el navegador a la ruta correspondiente (por ejemplo, `http://localhost/nombre-del-proyecto`).
 
 ---
 
-## 🚀 Guía de Instalación Local
+## Estado del proyecto
 
-Para ejecutar el sistema en un entorno local, asegúrese de cumplir con los siguientes requisitos mínimos: **PHP 8.0+** y **MySQL/MariaDB**.
-
-1. **Clonar el repositorio** en el directorio raíz del servidor web (ej. `htdocs` en XAMPP o `www` en Laragon).
-2. **Iniciar los servicios** del servidor web (Apache/Nginx) y del motor de base de datos.
-3. **Preparar la base de datos**:
-
-- Importar el script SQL de inicialización ubicado en `config/schema.sql`. El script crea la base de datos `peluqueria` y genera la estructura de tablas, siempre que el usuario de MySQL tenga permisos suficientes.
-
-4. **Configurar el entorno**:
-   - Editar el archivo `config/database.php` con las credenciales de conexión correctas (usuario, contraseña y host).
-5. **Ejecución**:
-   - Acceder a la aplicación a través del navegador web utilizando la ruta correspondiente (ej. `http://localhost/nombre-del-proyecto`).
-
----
-
-## 🗺️ Roadmap y Próximas Implementaciones
-
-### Fases Completadas
-
-- [x] Gestión básica de turnos y calendario mensual.
-- [x] Validaciones básicas de datos en backend.
-- [x] Panel administrativo de servicios y precios.
-
-### Módulos Operativos (Próximos Pasos)
-
-- [ ] **Historial de servicios, fórmulas utilizadas y preferencias del cliente:** Registro avanzado de visitas anteriores, guardado de fórmulas exactas de tinturas, documentación de alergias a químicos y preferencias de corte.
-- [ ] **Control de Stock Dual (Productos):** Diferenciación a nivel inventario entre artículos destinados a la venta al público (shampoos, tratamientos) y productos de uso profesional interno (oxidantes, pomos).
-- [ ] **Alertas de Stock:** Sistema de notificaciones automáticas para alertar cuando los insumos críticos o de alto uso alcancen su nivel mínimo.
-- [ ] **Sistema de Promociones y Descuentos:** Gestión de promociones por servicio, beneficios para clientes frecuentes, cupones y descuentos aplicables a turnos.
-- [ ] **Vencimiento de Productos:** Control automático de fechas de expiración de productos, alertas de próximo vencimiento y generación de reportes.
-
-### Gestión de Agenda
-
-- [ ] Detección de solapamientos de turnos.
-- [ ] Validación de disponibilidad del profesional.
-- [ ] Configuración de horarios de atención.
-- [ ] Bloqueo de días/horarios no laborables.
-
-### Reportes y Análisis
-
-- [ ] **Servicios Más Vendidos:** Estadísticas sobre los servicios con mayor demanda, frecuencia de reservas y tendencias mensuales.
-
-### Seguridad
-
-- [ ] Autenticación de usuarios.
-- [ ] Roles y permisos.
-- [ ] Protección de endpoints.
-- [ ] Manejo avanzado de excepciones y logging.
-
-### Infraestructura
-
-- [ ] **Respaldo automático de base de datos:** Generación programada de copias de seguridad y almacenamiento de varias versiones.
-- [ ] **Recuperación de respaldos:** Restauración controlada de la base de datos a partir de una copia seleccionada.
-- [ ] Configuración para despliegue productivo.
-
----
-
-<div align="center">
-  <p><i>Proyecto desarrollado con fines educativos y de portfolio.</i></p>
-</div>
+Este proyecto es de uso privado para el negocio para el que fue desarrollado. Por el momento no cuenta con una licencia de código abierto definida; cualquier uso, copia o distribución fuera de ese contexto debe consultarse previamente con quienes mantienen el proyecto.
