@@ -354,14 +354,6 @@ function openAppointmentDetailModal(appointmentId) {
             </span>
           </div>
 
-          <!-- Teléfono -->
-          <div class="detail-card">
-            <span class="detail-label">Teléfono</span>
-            <span class="detail-value">
-              ${escapeHtml(appointment.phone || "No registrado")}
-            </span>
-          </div>
-
           <!-- Duración -->
           <div class="detail-card">
             <span class="detail-label">Duración</span>

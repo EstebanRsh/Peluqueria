@@ -111,11 +111,6 @@ class AppointmentController
                     $input['client_name'] ?? ''
                 ),
 
-                'phone' =>
-                trim(
-                    $input['phone'] ?? ''
-                ),
-
                 'service_id' =>
                 filter_var(
                     $input['service_id'] ?? 0,

@@ -41,14 +41,6 @@
                         id="clientName"
                         placeholder="Alias o referencia">
                 </div>
-
-                <div class="form-group">
-                    <label for="phone">Teléfono</label>
-                    <input
-                        type="text"
-                        id="phone"
-                        placeholder="+54 9 ...">
-                </div>
             </div>
 
 

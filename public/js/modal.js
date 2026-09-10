@@ -302,7 +302,6 @@ function clearModal() {
   const fields = [
     "clientId",
     "clientName",
-    "phone",
     "timeStart",
     "timeEnd",
     "price",
@@ -343,7 +342,6 @@ async function submitModalData() {
     // Cliente
     client_id: Number(document.getElementById("clientId")?.value) || null,
     client_name: document.getElementById("clientName")?.value.trim() || "",
-    phone: document.getElementById("phone")?.value.trim() || "",
 
     // Servicio
     service_id: Number(document.getElementById("serviceId").value),

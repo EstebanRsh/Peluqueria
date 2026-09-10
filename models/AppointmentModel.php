@@ -233,7 +233,6 @@ class AppointmentModel
                 (
                     client_id,
                     client_name,
-                    phone,
                     service_id,
                     stylist,
                     price,
@@ -257,7 +256,6 @@ class AppointmentModel
                     'issisdsssss',
                     $clientId,
                     $clientName,
-                    $data['phone'],
                     $data['service_id'],
                     $data['stylist'],
                     $data['price'],
@@ -272,7 +270,6 @@ class AppointmentModel
                 INSERT INTO appointments
                 (
                     client_name,
-                    phone,
                     service_id,
                     stylist,
                     price,
@@ -295,7 +292,6 @@ class AppointmentModel
                 $stmt->bind_param(
                     'ssisdsssss',
                     $clientName,
-                    $data['phone'],
                     $data['service_id'],
                     $data['stylist'],
                     $data['price'],
