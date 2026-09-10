@@ -8,14 +8,12 @@ DELETE FROM appointment_history;
 DELETE FROM appointments;
 DELETE FROM clients;
 DELETE FROM services;
-DELETE FROM events;
 
 -- Resetear los IDs para que vuelvan a empezar desde 1
 ALTER TABLE appointment_history AUTO_INCREMENT = 1;
 ALTER TABLE appointments AUTO_INCREMENT = 1;
 ALTER TABLE clients AUTO_INCREMENT = 1;
 ALTER TABLE services AUTO_INCREMENT = 1;
-ALTER TABLE events AUTO_INCREMENT = 1;
 
 -- Volver a activar las claves foráneas
 SET FOREIGN_KEY_CHECKS = 1;

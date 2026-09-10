@@ -99,7 +99,7 @@ Ninguno de estos puntos debe presentarse en materiales de producto, capturas o d
 - **Frontend:** JavaScript vanilla (sin frameworks), HTML5 y CSS3.
 - **API:** HTTP basada en JSON, con acciones definidas por parámetro `action`.
 
-Las tablas que existen hoy en el esquema son: `events`, `services`, `clients`, `appointments`, `service_history` y `appointment_history`.
+Las tablas que existen hoy en el esquema son: `services`, `clients`, `appointments`, `service_history` y `appointment_history`.
 
 ## Guía de instalación local
 
