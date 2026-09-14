@@ -35,6 +35,7 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .premium-sidebar__nav {
@@ -54,10 +55,34 @@
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 500;
+  white-space: nowrap;
   transition:
     color 0.2s ease,
     background 0.2s ease;
   position: relative;
+}
+
+.nav-item__icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  transition:
+    background var(--t-fast) var(--ease-out),
+    transform var(--t-fast) var(--ease-out);
+}
+
+.nav-item:hover .nav-item__icon {
+  background: rgba(255, 255, 255, 0.07);
+  transform: scale(1.08);
+}
+
+.nav-item.is-active .nav-item__icon {
+  background: rgba(197, 160, 89, 0.18);
 }
 
 .nav-item:hover {
@@ -96,6 +121,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .premium-sidebar__user {
@@ -128,6 +155,55 @@
     transform: scale(1.2);
     opacity: 1;
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* ==========================================================================
+   SIDEBAR COLAPSABLE (SOLO ESCRITORIO)
+   En pantallas grandes el sidebar arranca angosto, mostrando solo los
+   íconos, y se expande al pasar el mouse (o con foco de teclado) para
+   mostrar las etiquetas. No aplica en mobile: ahí sigue siendo el drawer
+   off-canvas de siempre, con las etiquetas completas.
+   ========================================================================== */
+
+@media (min-width: 769px) {
+  .premium-sidebar {
+    width: 76px;
+    overflow: hidden;
+    transition: width var(--t-slow) var(--ease-out);
+  }
+
+  .premium-sidebar:hover,
+  .premium-sidebar:has(:focus-visible) {
+    width: 260px;
+  }
+
+  .premium-sidebar__header {
+    justify-content: center;
+    gap: 0;
+    transition: justify-content var(--t-slow) var(--ease-out);
+  }
+
+  .premium-sidebar:hover .premium-sidebar__header,
+  .premium-sidebar:has(:focus-visible) .premium-sidebar__header {
+    justify-content: flex-start;
+    gap: 0.75rem;
+  }
+
+  .premium-sidebar__brand,
+  .nav-item__label,
+  .premium-sidebar__footer {
+    opacity: 0;
+    transition: opacity var(--t-fast) var(--ease-out);
+  }
+
+  .premium-sidebar:hover .premium-sidebar__brand,
+  .premium-sidebar:hover .nav-item__label,
+  .premium-sidebar:hover .premium-sidebar__footer,
+  .premium-sidebar:has(:focus-visible) .premium-sidebar__brand,
+  .premium-sidebar:has(:focus-visible) .nav-item__label,
+  .premium-sidebar:has(:focus-visible) .premium-sidebar__footer {
+    opacity: 1;
   }
 }
 
@@ -238,8 +314,7 @@
 
   .app-main-content {
     padding-top: calc(60px + 0.75rem);
-    height: auto;
-    min-height: calc(100dvh - 60px);
+    height: 100dvh;
   }
 
   .app-layout {

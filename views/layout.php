@@ -37,19 +37,24 @@ $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
 
             <nav class="premium-sidebar__nav">
                 <a href="#" class="nav-item is-active" data-view="appointments">
-                    <span style="font-size: 1.1rem;">📅</span> Turnos
+                    <span class="nav-item__icon" aria-hidden="true">📅</span>
+                    <span class="nav-item__label">Turnos</span>
                 </a>
                 <a href="#" class="nav-item" data-view="clients">
-                    <span style="font-size: 1.1rem;">👥</span> Clientes
+                    <span class="nav-item__icon" aria-hidden="true">👥</span>
+                    <span class="nav-item__label">Clientes</span>
                 </a>
                 <a href="#" class="nav-item" data-view="services">
-                    <span style="font-size: 1.1rem;">✂️</span> Servicios
+                    <span class="nav-item__icon" aria-hidden="true">✂️</span>
+                    <span class="nav-item__label">Servicios</span>
                 </a>
                 <a href="#" class="nav-item">
-                    <span style="font-size: 1.1rem;">🧴</span> Productos
+                    <span class="nav-item__icon" aria-hidden="true">🧴</span>
+                    <span class="nav-item__label">Productos</span>
                 </a>
                 <a href="#" class="nav-item">
-                    <span style="font-size: 1.1rem;">⚙️</span> Ajustes
+                    <span class="nav-item__icon" aria-hidden="true">⚙️</span>
+                    <span class="nav-item__label">Ajustes</span>
                 </a>
             </nav>
 

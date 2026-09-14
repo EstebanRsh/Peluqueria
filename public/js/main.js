@@ -128,6 +128,46 @@ if (burgerBtn && sidebar && sidebarOverlay) {
   });
 }
 
+const fabToggle = document.getElementById("fabToggle");
+const fabActions = document.getElementById("fabActions");
+const fabBackdrop = document.getElementById("fabBackdrop");
+
+if (fabToggle && fabActions) {
+  const fabItems = fabActions.querySelectorAll(".fab-actions__item");
+
+  const setFabOpen = (isOpen) => {
+    fabActions.classList.toggle("is-open", isOpen);
+    fabToggle.setAttribute("aria-expanded", String(isOpen));
+    fabBackdrop?.classList.toggle("is-visible", isOpen);
+
+    // Evita que un Tab llegue a botones invisibles cuando el
+    // menú está cerrado (accesibilidad de teclado).
+    fabItems.forEach((item) => {
+      item.tabIndex = isOpen ? 0 : -1;
+    });
+  };
+
+  const closeFab = () => setFabOpen(false);
+  const toggleFab = () => setFabOpen(!fabActions.classList.contains("is-open"));
+
+  setFabOpen(false);
+
+  fabToggle.addEventListener("click", toggleFab);
+  fabBackdrop?.addEventListener("click", closeFab);
+
+  // Cierra el menú apenas se elige una acción: no lo dejamos abierto
+  // tapando la pantalla mientras se abre el modal correspondiente.
+  fabItems.forEach((item) => {
+    item.addEventListener("click", closeFab);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && fabActions.classList.contains("is-open")) {
+      closeFab();
+    }
+  });
+}
+
 initModal();
 initServices();
 initClients();

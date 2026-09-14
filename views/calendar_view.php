@@ -104,6 +104,7 @@ $today      = date('Y-m-d');
             </div>
         </div>
     </main>
+
 </div>
 
 <!-- =====================================================
@@ -124,5 +125,56 @@ $today      = date('Y-m-d');
     </div>
     <div class="day-panel__body" id="panelBody"></div>
 </aside>
+<!-- ============================================================
+     BOTÓN FLOTANTE DE ACCIONES RÁPIDAS (FAB)
+============================================================= -->
+<div class="fab-actions-backdrop" id="fabBackdrop"></div>
+
+<div class="fab-actions" id="fabActions">
+    <div class="fab-actions__menu" id="fabMenu">
+        <button class="fab-actions__item" id="btnNewAppointment" type="button" tabindex="-1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="17" rx="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+                <line x1="12" y1="14" x2="12" y2="18" />
+                <line x1="10" y1="16" x2="14" y2="16" />
+            </svg>
+            <span>Nuevo Turno</span>
+        </button>
+        <button class="fab-actions__item" id="btnNewHistory" type="button" tabindex="-1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 3h6a1 1 0 0 1 1 1v1h1a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h1V4a1 1 0 0 1 1-1z" />
+                <line x1="8" y1="11" x2="16" y2="11" />
+                <line x1="8" y1="15" x2="16" y2="15" />
+            </svg>
+            <span>Nueva Historia</span>
+        </button>
+
+        <button class="fab-actions__item" id="btnNewProduct" type="button" tabindex="-1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 8v8a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 16V8" />
+                <path d="M3.27 6.96 12 12l8.73-5.04" />
+                <path d="M12 22V12" />
+                <path d="M8.5 4.27L16 8.5" />
+            </svg>
+            <span>Nuevo Producto</span>
+        </button>
+
+        <button class="fab-actions__item" id="btnNewCustomer" type="button" tabindex="-1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="7.5" r="4" />
+                <path d="M4.5 21a7.5 7.5 0 0 1 15 0" />
+            </svg>
+            <span>Nuevo Cliente</span>
+        </button>
+
+    </div>
+
+    <button class="fab-actions__toggle" id="fabToggle" type="button" aria-label="Abrir acciones rápidas" aria-expanded="false" aria-controls="fabMenu">
+        <span class="fab-actions__toggle-icon">+</span>
+    </button>
+</div>
 
 <?php require __DIR__ . '/modal_appointment.php'; ?>

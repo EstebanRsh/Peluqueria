@@ -55,6 +55,188 @@
   border-color: #dc2626;
 }
 
+.btn--large {
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   BOTÓN FLOTANTE DE ACCIONES RÁPIDAS (FAB)
+   No ocupa espacio fijo en el layout: flota sobre el contenido y se
+   despliega en abanico al tocar #fabToggle (lógica en main.js).
+   ========================================================================== */
+
+.fab-actions {
+  --fab-item-width: 190px;
+  position: fixed;
+  right: 1.5rem;
+  bottom: 3rem;
+  z-index: var(--z-fab);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.85rem;
+}
+
+.fab-actions__menu {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.6rem;
+  pointer-events: none;
+}
+
+.fab-actions__item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: var(--fab-item-width);
+  padding: 0.65rem 1.1rem 0.65rem 0.85rem;
+  background: var(--color-text);
+  color: #fff;
+  border: 1px solid var(--color-text);
+  border-radius: 999px;
+  font-family: var(--font);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transform: translateY(10px) scale(0.94);
+  transition:
+    opacity var(--t-fast) var(--ease-out),
+    transform var(--t-fast) var(--ease-out),
+    background var(--t-fast) var(--ease-out);
+}
+
+.fab-actions__item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.fab-actions__item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fab-actions__item:hover {
+  background: #2b2620;
+}
+
+/* La acción principal (Nuevo Turno) se destaca con el dorado de marca,
+   igual criterio que .calendar__cell--today. */
+.fab-actions__item--accent {
+  background: var(--color-today-bg);
+  border-color: var(--color-today-bg);
+  color: var(--color-text);
+}
+
+.fab-actions__item--accent:hover {
+  background: #b6913f;
+}
+
+/* Escalonado: cada botón aparece con un pequeño delay para dar
+   sensación de abanico en vez de un salto simultáneo. */
+.fab-actions__menu .fab-actions__item:nth-child(1) {
+  transition-delay: 0.03s;
+}
+.fab-actions__menu .fab-actions__item:nth-child(2) {
+  transition-delay: 0.06s;
+}
+.fab-actions__menu .fab-actions__item:nth-child(3) {
+  transition-delay: 0.09s;
+}
+.fab-actions__menu .fab-actions__item:nth-child(4) {
+  transition-delay: 0.12s;
+}
+
+.fab-actions.is-open .fab-actions__menu {
+  pointer-events: all;
+}
+
+.fab-actions.is-open .fab-actions__item {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.fab-actions__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-text);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+  transition:
+    transform var(--t-base) var(--ease-spring),
+    background var(--t-fast) var(--ease-out);
+}
+
+.fab-actions__toggle:hover {
+  background: #2b2620;
+}
+
+.fab-actions__toggle-icon {
+  font-size: 1.7rem;
+  font-weight: 300;
+  line-height: 1;
+  display: block;
+  transition: transform var(--t-base) var(--ease-out);
+}
+
+.fab-actions.is-open .fab-actions__toggle {
+  background: var(--color-today-bg);
+  color: var(--color-text);
+}
+
+.fab-actions.is-open .fab-actions__toggle-icon {
+  transform: rotate(45deg);
+}
+
+/* Backdrop sutil para separar el menú abierto del contenido de atrás,
+   mismo criterio que .side-drawer-overlay / .modal-overlay. */
+.fab-actions-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 21, 16, 0.25);
+  backdrop-filter: blur(2px);
+  z-index: calc(var(--z-fab) - 1);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--t-base) var(--ease-out);
+}
+
+.fab-actions-backdrop.is-visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+@media (max-width: 768px) {
+  .fab-actions {
+    --fab-item-width: 168px;
+    right: 1rem;
+    bottom: calc(3rem + env(safe-area-inset-bottom));
+  }
+
+  .fab-actions__item {
+    font-size: 0.8rem;
+    min-height: 44px;
+  }
+
+  .fab-actions__toggle {
+    width: 52px;
+    height: 52px;
+  }
+}
+
 /* Badges */
 .status-badge {
   display: inline-flex;
