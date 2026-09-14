@@ -76,8 +76,9 @@ function renderServicesList() {
 }
 
 function showServiceModal(service = null) {
-  const modal = document.getElementById("serviceModalOverlay");
-  if (!modal) return;
+  const overlay = document.getElementById("serviceModalOverlay");
+  const panel = document.getElementById("serviceFormPanel");
+  if (!overlay || !panel) return;
 
   document.getElementById("managedServiceId").value = service?.id || "";
   document.getElementById("serviceName").value = service?.name || "";
@@ -88,11 +89,17 @@ function showServiceModal(service = null) {
   document.getElementById("serviceModalTitle").textContent = service
     ? "Editar servicio"
     : "Nuevo servicio";
-  modal.classList.add("is-open");
+
+  overlay.classList.add("is-open");
+  panel.classList.add("is-open");
+  panel.setAttribute("aria-hidden", "false");
 }
 
 function closeServiceModal() {
   document.getElementById("serviceModalOverlay")?.classList.remove("is-open");
+  const panel = document.getElementById("serviceFormPanel");
+  panel?.classList.remove("is-open");
+  panel?.setAttribute("aria-hidden", "true");
 }
 
 function formData() {
@@ -259,7 +266,13 @@ export function initServices() {
     ?.addEventListener("click", saveService);
   document
     .getElementById("serviceModalOverlay")
-    ?.addEventListener("click", (event) => {
-      if (event.target.id === "serviceModalOverlay") closeServiceModal();
-    });
+    ?.addEventListener("click", closeServiceModal);
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    if (
+      document.getElementById("serviceFormPanel")?.classList.contains("is-open")
+    ) {
+      closeServiceModal();
+    }
+  });
 }

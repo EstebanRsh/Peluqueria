@@ -11,7 +11,8 @@ import { loadAppointments } from "./ui.js";
 // ELEMENTOS DEL MODAL
 // ============================================================
 
-const modal = document.getElementById("modalOverlay");
+const modalOverlay = document.getElementById("modalOverlay");
+const modalPanel = document.getElementById("appointmentFormPanel");
 const modalDate = document.getElementById("modalDate");
 const modalClose = document.getElementById("modalClose");
 const modalCancel = document.getElementById("modalCancel");
@@ -50,7 +51,9 @@ export function initModal() {
     loadServices();
     loadClientsForSelect();
 
-    modal.classList.add("is-open");
+    modalOverlay.classList.add("is-open");
+    modalPanel.classList.add("is-open");
+    modalPanel.setAttribute("aria-hidden", "false");
   });
 
   // ----------------------------------------------------------
@@ -60,9 +63,13 @@ export function initModal() {
     element.addEventListener("click", closeModal);
   });
 
-  // Cerrar al hacer clic fuera del modal.
-  modal.addEventListener("click", (event) => {
-    if (event.target === modal) {
+  // Cerrar al hacer clic fuera del panel (sobre el overlay).
+  modalOverlay.addEventListener("click", closeModal);
+
+  // Cerrar con Escape.
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    if (modalPanel.classList.contains("is-open")) {
       closeModal();
     }
   });
@@ -289,7 +296,9 @@ function calculateEndTime(durationMinutes) {
 
 // Cierra el modal y limpia todos sus campos.
 function closeModal() {
-  modal.classList.remove("is-open");
+  modalOverlay.classList.remove("is-open");
+  modalPanel.classList.remove("is-open");
+  modalPanel.setAttribute("aria-hidden", "true");
   clearModal();
 }
 

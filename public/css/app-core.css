@@ -1,92 +1,50 @@
 /* ==========================================================================
-   APP CORE: MODO ENFOQUE & GRID STACKING
+   APP CORE: LAYOUT DEL CALENDARIO Y VISTAS ADMINISTRATIVAS
    ========================================================================== */
 
 .app-layout {
   display: grid;
   grid-template-columns: 1fr;
-  justify-items: center;
+  justify-items: stretch;
   align-items: start;
   width: 100%;
   gap: 0;
-  margin-top: 1rem;
+  margin-top: 0;
 }
 
 /* ==========================================================================
-   VISTA ADMINISTRATIVA (SERVICIOS)
+   VISTA ADMINISTRATIVA (SERVICIOS / CLIENTES)
    ========================================================================== */
 
-#viewAppointments {
+#viewAppointments,
+#viewServices,
+#viewClients {
   width: 100%;
-}
-
-#viewServices {
-  width: 100%;
-  display: flex;
-  justify-content: center;
+  height: 100%;
 }
 
 .admin-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  max-width: 760px;
   background-color: var(--color-surface);
   border: 1px solid rgba(0, 0, 0, 0.03);
-  border-radius: var(--radius);
+  border-radius: 0;
   box-shadow: var(--shadow-float);
-  margin-top: 1rem;
+  margin-top: 0;
 }
 
-/* Comparten mismas coordenadas y elevación (Floating UI) */
-.calendar-wrapper,
-.day-panel {
-  grid-column: 1;
-  grid-row: 1;
+.calendar-wrapper {
   width: 100%;
-  max-width: 760px;
   background-color: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.03);
-  border-radius: 12px;
+  border-radius: 0;
   box-shadow:
     0 12px 36px rgba(197, 160, 89, 0.06),
     0 1px 3px rgba(0, 0, 0, 0.02);
   position: relative;
   z-index: 10;
-  transition:
-    opacity 0.3s ease,
-    visibility 0.3s ease,
-    transform 0.3s ease;
-}
-
-/* Estado por defecto: Calendario visible, Panel oculto */
-.day-panel {
-  opacity: 0;
-  visibility: hidden;
-  transform: scale(0.98);
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.calendar-wrapper {
-  opacity: 1;
-  visibility: visible;
-  transform: scale(1);
-  pointer-events: all;
-  overflow: hidden;
-}
-
-/* Estado activo (Modo Enfoque): Panel visible, Calendario oculto */
-.app-layout.panel-open .calendar-wrapper {
-  opacity: 0;
-  visibility: hidden;
-  transform: scale(0.98);
-  pointer-events: none;
-}
-
-.app-layout.panel-open .day-panel {
-  opacity: 1;
-  visibility: visible;
-  transform: scale(1);
-  pointer-events: all;
 }
 
 /* ==========================================================================
@@ -253,7 +211,7 @@
   border-bottom: none;
 }
 
-/* Rediseño Estructural de Filas (Layout Premium de Escritorio) */
+/* Estructural de Filas (Layout de Escritorio) */
 .appointment-card__row {
   display: flex;
   justify-content: space-between;
@@ -335,18 +293,18 @@
 }
 
 /* ==========================================================================
-   RESPONSIVIDAD DEL CORE (VISTA COMPACTA SIN SCROLL + MODAL FULLSCREEN)
+   RESPONSIVIDAD DEL CORE (VISTA COMPACTA DEL CALENDARIO)
    ========================================================================== */
 
 @media (max-width: 768px) {
   :root {
-    --cell-min-h: 45px;
+    --cell-min-h: 68px;
   }
 
   .admin-view {
     max-width: 100%;
     margin: 0.5rem 0 0;
-    border-radius: 14px;
+    border-radius: 0;
   }
 
   .calendar__header {
@@ -367,33 +325,22 @@
   }
 
   .calendar__cell {
-    padding: 0.25rem;
+    padding: 0.4rem 0.3rem;
     justify-content: center;
     align-items: center;
     gap: 0;
   }
 
   .cell__number {
-    font-size: 0.85rem;
+    font-size: 0.95rem;
   }
 
   .cell__events {
     display: none;
   }
 
-  .app-layout.panel-open .day-panel {
-    max-width: 100%;
-    border-radius: 8px;
-    border: none;
-  }
-
   .day-panel__header {
     padding: 1rem;
-  }
-
-  .day-panel__body {
-    padding: 1rem;
-    min-height: calc(100dvh - 60px - 8rem);
   }
 
   .app-layout {
@@ -402,30 +349,11 @@
     padding: 0 0.5rem 0.5rem;
   }
 
-  .calendar-wrapper,
-  .day-panel {
-    max-width: 100%;
-    margin: 0;
-    border-radius: 14px;
-  }
-
-  .day-panel {
-    min-height: calc(100dvh - 60px - 4rem);
-  }
-
-  .app-layout.panel-open .day-panel {
-    min-height: calc(100dvh - 60px - 4rem);
-  }
-
   .calendar-wrapper {
+    max-width: 100%;
     width: 100%;
-  }
-
-  .app-layout.panel-open .calendar-wrapper {
-    opacity: 0;
-    visibility: hidden;
-    transform: none;
-    pointer-events: none;
+    margin: 0;
+    border-radius: 0;
   }
 
   /* Tarjetas Operativas a Doble Línea */
@@ -455,17 +383,5 @@
   }
   .appointment-card__doctor {
     font-size: 0.8rem;
-  }
-}
-
-/* Animación de entrada nativa para Modal Completo */
-@keyframes modalFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
   }
 }

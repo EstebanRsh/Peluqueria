@@ -1,101 +1,103 @@
-<div class="modal-overlay" id="serviceModalOverlay">
-    <div class="modal">
+<!-- =====================================================
+     PANEL LATERAL — ALTA / EDICIÓN DE SERVICIO
+     Mismo drawer que perfil/alta de cliente: overlay + aside
+     con day-panel__header / day-panel__body / footer.
+====================================================== -->
 
-        <!-- =====================================================
-             ENCABEZADO DEL MODAL
-        ====================================================== -->
+<div class="side-drawer-overlay" id="serviceModalOverlay"></div>
 
-        <div class="modal__header">
-            <h3 class="modal__title" id="serviceModalTitle">
-                Nuevo servicio
-            </h3>
+<aside class="side-drawer" id="serviceFormPanel" aria-hidden="true">
 
-            <button
-                class="modal__close"
-                id="serviceModalClose"
-                aria-label="Cerrar">
-                &#10005;
-            </button>
+    <div class="day-panel__header">
+        <h3 class="day-panel__date" id="serviceModalTitle">
+            Nuevo servicio
+        </h3>
+
+        <button
+            class="day-panel__close"
+            id="serviceModalClose"
+            aria-label="Cerrar">
+            ×
+        </button>
+    </div>
+
+
+    <!-- =====================================================
+         FORMULARIO
+    ====================================================== -->
+
+    <div class="day-panel__body">
+
+        <input type="hidden" id="managedServiceId">
+
+        <div class="form-row">
+            <div class="form-group form-group--full">
+                <label for="serviceName">Nombre</label>
+
+                <input
+                    type="text"
+                    id="serviceName"
+                    maxlength="100"
+                    placeholder="Ej: Corte de cabello">
+            </div>
         </div>
 
+        <div class="form-row">
+            <div class="form-group form-group--full">
+                <label for="serviceDescription">Descripción</label>
 
-        <!-- =====================================================
-             FORMULARIO
-        ====================================================== -->
-
-        <div class="modal__body">
-
-            <input type="hidden" id="managedServiceId">
-
-            <div class="form-row">
-                <div class="form-group form-group--full">
-                    <label for="serviceName">Nombre</label>
-
-                    <input
-                        type="text"
-                        id="serviceName"
-                        maxlength="100"
-                        placeholder="Ej: Corte de cabello">
-                </div>
+                <textarea
+                    id="serviceDescription"
+                    rows="2"
+                    placeholder="Descripción opcional..."></textarea>
             </div>
-
-            <div class="form-row">
-                <div class="form-group form-group--full">
-                    <label for="serviceDescription">Descripción</label>
-
-                    <textarea
-                        id="serviceDescription"
-                        rows="2"
-                        placeholder="Descripción opcional..."></textarea>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="serviceDuration">Duración (minutos)</label>
-
-                    <input
-                        type="number"
-                        id="serviceDuration"
-                        min="1"
-                        step="1"
-                        placeholder="30">
-                </div>
-
-                <div class="form-group">
-                    <label for="servicePrice">Precio base ($)</label>
-
-                    <input
-                        type="number"
-                        id="servicePrice"
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00">
-                </div>
-            </div>
-
         </div>
 
+        <div class="form-row">
+            <div class="form-group">
+                <label for="serviceDuration">Duración (minutos)</label>
 
-        <!-- =====================================================
-             BOTONES
-        ====================================================== -->
+                <input
+                    type="number"
+                    id="serviceDuration"
+                    min="1"
+                    step="1"
+                    placeholder="30">
+            </div>
 
-        <div class="modal__footer">
+            <div class="form-group">
+                <label for="servicePrice">Precio base ($)</label>
 
-            <button
-                class="btn btn--ghost"
-                id="serviceModalCancel">
-                Cancelar
-            </button>
-
-            <button
-                class="btn btn--primary"
-                id="serviceModalSave">
-                Guardar servicio
-            </button>
-
+                <input
+                    type="number"
+                    id="servicePrice"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00">
+            </div>
         </div>
 
     </div>
-</div>
+
+
+    <!-- =====================================================
+         BOTONES
+    ====================================================== -->
+
+    <div class="appointment-detail-footer">
+
+        <button
+            class="btn btn--ghost"
+            id="serviceModalCancel">
+            Cancelar
+        </button>
+
+        <button
+            class="btn btn--primary"
+            id="serviceModalSave">
+            Guardar servicio
+        </button>
+
+    </div>
+
+</aside>

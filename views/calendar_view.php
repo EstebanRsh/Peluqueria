@@ -104,17 +104,25 @@ $today      = date('Y-m-d');
             </div>
         </div>
     </main>
-
-    <aside class="day-panel" id="dayPanel">
-        <div class="day-panel__header">
-            <span class="day-panel__date" id="panelDate"></span>
-            <div class="day-panel__actions">
-                <button class="btn btn--primary btn--sm" id="btnAddAppointment">+ Turno</button>
-                <button class="day-panel__close" id="panelClose" aria-label="Cerrar">&#10005;</button>
-            </div>
-        </div>
-        <div class="day-panel__body" id="panelBody"></div>
-    </aside>
 </div>
+
+<!-- =====================================================
+     PANEL LATERAL — TURNOS DEL DÍA
+     Mismo drawer que el resto de paneles: overlay + aside
+     con day-panel__header / day-panel__body.
+====================================================== -->
+
+<div class="side-drawer-overlay" id="dayPanelOverlay"></div>
+
+<aside class="side-drawer side-drawer--wide" id="dayPanel" aria-hidden="true">
+    <div class="day-panel__header">
+        <span class="day-panel__date" id="panelDate"></span>
+        <div class="day-panel__actions">
+            <button class="btn btn--primary btn--sm" id="btnAddAppointment">+ Turno</button>
+            <button class="day-panel__close" id="panelClose" aria-label="Cerrar">×</button>
+        </div>
+    </div>
+    <div class="day-panel__body" id="panelBody"></div>
+</aside>
 
 <?php require __DIR__ . '/modal_appointment.php'; ?>

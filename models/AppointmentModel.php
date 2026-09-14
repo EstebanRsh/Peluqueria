@@ -242,7 +242,7 @@ class AppointmentModel
                     time_end,
                     status
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
 
                 if (!$stmt) {
@@ -253,7 +253,7 @@ class AppointmentModel
                 }
 
                 $stmt->bind_param(
-                    'issisdsssss',
+                    'isisdsssss',
                     $clientId,
                     $clientName,
                     $data['service_id'],
@@ -279,7 +279,7 @@ class AppointmentModel
                     time_end,
                     status
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
 
                 if (!$stmt) {
@@ -290,7 +290,7 @@ class AppointmentModel
                 }
 
                 $stmt->bind_param(
-                    'ssisdsssss',
+                    'sisdssss',
                     $clientName,
                     $data['service_id'],
                     $data['stylist'],
@@ -338,8 +338,9 @@ class AppointmentModel
                 );
             }
 
-            // Registro mínimo de historial de atención por cliente
-            // usando snapshot del servicio y precio del turno.
+            // Registro mínimo de historial técnico por cliente o cliente ocasional.
+            // Se usa el esquema actual de service_history (no se persisten precio,
+            // estilista ni notas en el snapshot del historial de servicios).
             $serviceName = '';
             $serviceStmt = $this->conn->prepare("SELECT name FROM services WHERE id = ? LIMIT 1");
             if ($serviceStmt) {
@@ -359,12 +360,10 @@ class AppointmentModel
                         appointment_id,
                         service_id,
                         service_name_snapshot,
-                        price,
                         performed_at,
-                        stylist,
-                        notes
+                        technical_notes
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 ");
 
                 if (!$stmtServiceHistory) {
@@ -375,14 +374,12 @@ class AppointmentModel
                 }
 
                 $stmtServiceHistory->bind_param(
-                    'iiisdsss',
+                    'iiisss',
                     $data['client_id'],
                     $appointmentId,
                     $data['service_id'],
                     $serviceName,
-                    $data['price'],
                     $performedAt,
-                    $data['stylist'],
                     $data['notes']
                 );
             } else {
@@ -392,12 +389,10 @@ class AppointmentModel
                         appointment_id,
                         service_id,
                         service_name_snapshot,
-                        price,
                         performed_at,
-                        stylist,
-                        notes
+                        technical_notes
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?)
                 ");
 
                 if (!$stmtServiceHistory) {
@@ -408,13 +403,11 @@ class AppointmentModel
                 }
 
                 $stmtServiceHistory->bind_param(
-                    'iisdsss',
+                    'iisss',
                     $appointmentId,
                     $data['service_id'],
                     $serviceName,
-                    $data['price'],
                     $performedAt,
-                    $data['stylist'],
                     $data['notes']
                 );
             }

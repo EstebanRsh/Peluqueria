@@ -17,14 +17,14 @@ import { appState } from "./main.js";
 // ============================================================
 
 const panel = document.getElementById("dayPanel");
+const panelOverlay = document.getElementById("dayPanelOverlay");
 const panelDate = document.getElementById("panelDate");
 const panelBody = document.getElementById("panelBody");
-const layout = document.querySelector(".app-layout");
 
 // Guarda temporalmente los turnos cargados por ID.
 const appointmentMap = new Map();
 
-// Modal de detalle actualmente abierto.
+// Modal de detalle actualmente abierto (overlay + panel).
 let activeDetailModal = null;
 
 // ============================================================
@@ -84,7 +84,8 @@ export function openPanelForDate(cell, date, statusFilter) {
 
   // Abrir panel.
   panel.classList.add("is-open");
-  layout.classList.add("panel-open");
+  panel.setAttribute("aria-hidden", "false");
+  panelOverlay?.classList.add("is-open");
 
   // Cargar turnos.
   loadAppointments(date);
@@ -97,7 +98,8 @@ export function openPanelForDate(cell, date, statusFilter) {
 // Cierra el panel lateral y limpia la selección actual.
 export function closePanel() {
   panel.classList.remove("is-open");
-  layout.classList.remove("panel-open");
+  panel.setAttribute("aria-hidden", "true");
+  panelOverlay?.classList.remove("is-open");
 
   document.querySelectorAll(".calendar__cell--selected").forEach((cell) => {
     cell.classList.remove("calendar__cell--selected");
@@ -105,6 +107,16 @@ export function closePanel() {
 
   appState.activeDay = null;
 }
+
+// Cerrar al hacer clic afuera (sobre el overlay) o con Escape,
+// igual que el resto de los paneles laterales de la app.
+panelOverlay?.addEventListener("click", closePanel);
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && panel.classList.contains("is-open")) {
+    closePanel();
+  }
+});
 
 // ============================================================
 // CARGA DE TURNOS
@@ -298,37 +310,37 @@ function openAppointmentDetailModal(appointmentId) {
   const displayClientName =
     appointment.client_name || appointment.alias || "Sin cliente asociado";
 
-  const container = document.createElement("div");
-  container.className = "modal-overlay is-open";
+  const overlay = document.createElement("div");
+  overlay.className = "side-drawer-overlay is-open";
 
-  container.innerHTML = `
-    <div
-      class="modal"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Detalle del turno"
-    >
-      <div class="modal__header appointment-detail-header">
+  const panel = document.createElement("aside");
+  panel.className = "side-drawer is-open";
+  panel.setAttribute("role", "dialog");
+  panel.setAttribute("aria-modal", "true");
+  panel.setAttribute("aria-label", "Detalle del turno");
+
+  panel.innerHTML = `
+      <div class="day-panel__header appointment-detail-header">
         <div>
           <span class="appointment-detail-meta">
             ${escapeHtml(appointment.time_start.substring(0, 5))}
           </span>
 
-          <h3 class="modal__title">
+          <h3 class="day-panel__date">
             ${escapeHtml(displayClientName)}
           </h3>
         </div>
 
         <button
           type="button"
-          class="modal__close appointment-detail-close"
+          class="day-panel__close appointment-detail-close"
           aria-label="Cerrar detalle"
         >
-          &times;
+          ×
         </button>
       </div>
 
-      <div class="modal__body appointment-detail-body">
+      <div class="day-panel__body appointment-detail-body">
         <section class="detail-grid">
           <!-- Fecha -->
           <div class="detail-card">
@@ -460,7 +472,7 @@ function openAppointmentDetailModal(appointmentId) {
       </div>
 
       <!-- Botones -->
-      <div class="modal__footer appointment-detail-footer">
+      <div class="appointment-detail-footer">
         <button
           type="button"
           class="btn btn--ghost appointment-detail-close-btn"
@@ -476,14 +488,14 @@ function openAppointmentDetailModal(appointmentId) {
           Eliminar turno
         </button>
       </div>
-    </div>
   `;
 
-  document.body.appendChild(container);
+  document.body.appendChild(overlay);
+  document.body.appendChild(panel);
   document.body.classList.add("has-detail-modal");
-  activeDetailModal = container;
+  activeDetailModal = { overlay, panel };
 
-  attachDetailModalEvents(container, appointment.id);
+  attachDetailModalEvents(panel, overlay, appointment.id);
   loadTimelineHistory(appointment.id);
 }
 
@@ -497,22 +509,31 @@ function closeAppointmentDetailModal() {
     return;
   }
 
-  activeDetailModal.remove();
+  activeDetailModal.overlay.remove();
+  activeDetailModal.panel.remove();
   activeDetailModal = null;
   document.body.classList.remove("has-detail-modal");
 }
+
+// Cierra el detalle del turno con la tecla Escape, igual que
+// el resto de los paneles laterales de la app.
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && activeDetailModal) {
+    closeAppointmentDetailModal();
+  }
+});
 
 // ============================================================
 // EVENTOS DEL DETALLE
 // ============================================================
 
 // Configura los botones y controles del modal de detalle.
-function attachDetailModalEvents(container, appointmentId) {
-  const closeButtons = container.querySelectorAll(
+function attachDetailModalEvents(panel, overlay, appointmentId) {
+  const closeButtons = panel.querySelectorAll(
     ".appointment-detail-close, .appointment-detail-close-btn",
   );
-  const deleteButton = container.querySelector(".appointment-detail-delete");
-  const statusSelect = container.querySelector("#modalStatusSelect");
+  const deleteButton = panel.querySelector(".appointment-detail-delete");
+  const statusSelect = panel.querySelector("#modalStatusSelect");
 
   // ----------------------------------------------------------
   // CERRAR
@@ -522,11 +543,7 @@ function attachDetailModalEvents(container, appointmentId) {
     button.addEventListener("click", closeAppointmentDetailModal),
   );
 
-  container.addEventListener("click", (event) => {
-    if (event.target === container) {
-      closeAppointmentDetailModal();
-    }
-  });
+  overlay.addEventListener("click", closeAppointmentDetailModal);
 
   // ----------------------------------------------------------
   // CAMBIAR ESTADO

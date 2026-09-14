@@ -237,7 +237,6 @@
   }
 
   .app-main-content {
-    padding: 0.75rem;
     padding-top: calc(60px + 0.75rem);
     height: auto;
     min-height: calc(100dvh - 60px);

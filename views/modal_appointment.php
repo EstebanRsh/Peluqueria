@@ -1,194 +1,196 @@
-<div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
+<!-- =====================================================
+     PANEL LATERAL — NUEVO TURNO
+     Mismo drawer que el resto: overlay + aside con
+     day-panel__header / day-panel__body / footer.
+====================================================== -->
 
-        <!-- =====================================================
-             ENCABEZADO DEL MODAL
-        ====================================================== -->
+<div class="side-drawer-overlay" id="modalOverlay"></div>
 
-        <div class="modal__header">
-            <h3 class="modal__title">
-                Nuevo turno — <span id="modalDate"></span>
-            </h3>
+<aside class="side-drawer" id="appointmentFormPanel" aria-hidden="true">
 
-            <button
-                class="modal__close"
-                id="modalClose"
-                aria-label="Cerrar">
-                &#10005;
-            </button>
+    <div class="day-panel__header">
+        <h3 class="day-panel__date">
+            Nuevo turno — <span id="modalDate"></span>
+        </h3>
+
+        <button
+            class="day-panel__close"
+            id="modalClose"
+            aria-label="Cerrar">
+            ×
+        </button>
+    </div>
+
+
+    <!-- =====================================================
+         FORMULARIO
+    ====================================================== -->
+
+    <div class="day-panel__body">
+
+        <!-- Cliente y teléfono -->
+        <div class="form-row">
+            <div class="form-group">
+                <label for="clientId">Cliente</label>
+                <select id="clientId" class="form-select">
+                    <option value="">Sin cliente asociado</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="clientName">Alias o referencia</label>
+                <input
+                    type="text"
+                    id="clientName"
+                    placeholder="Alias o referencia">
+            </div>
         </div>
 
 
-        <!-- =====================================================
-             FORMULARIO
-        ====================================================== -->
+        <!-- Horario -->
+        <div class="form-row">
 
-        <div class="modal__body">
+            <div class="form-group">
+                <label for="timeStart">Hora inicio</label>
 
-            <!-- Cliente y teléfono -->
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="clientId">Cliente</label>
-                    <select id="clientId" class="form-select">
-                        <option value="">Sin cliente asociado</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="clientName">Alias o referencia</label>
-                    <input
-                        type="text"
-                        id="clientName"
-                        placeholder="Alias o referencia">
-                </div>
+                <input
+                    type="time"
+                    id="timeStart">
             </div>
 
 
-            <!-- Horario -->
-            <div class="form-row">
+            <div class="form-group">
+                <label for="timeEnd">Hora fin</label>
 
-                <div class="form-group">
-                    <label for="timeStart">Hora inicio</label>
-
-                    <input
-                        type="time"
-                        id="timeStart">
-                </div>
-
-
-                <div class="form-group">
-                    <label for="timeEnd">Hora fin</label>
-
-                    <input
-                        type="time"
-                        id="timeEnd">
-                </div>
-
-            </div>
-
-
-            <!-- Servicio y precio -->
-            <div class="form-row">
-
-                <div class="form-group">
-                    <label for="serviceId">Servicio</label>
-
-                    <select
-                        id="serviceId"
-                        class="form-select">
-                        <option value="">
-                            Seleccionar servicio
-                        </option>
-                    </select>
-                </div>
-
-
-                <div class="form-group">
-                    <label for="price">Precio ($)</label>
-
-                    <input
-                        type="number"
-                        id="price"
-                        placeholder="0.00"
-                        min="0"
-                        step="0.01">
-                </div>
-
-            </div>
-
-
-            <!-- Peluquero/a -->
-            <div class="form-row">
-
-                <div class="form-group form-group--full">
-                    <label for="stylist">Peluquero/a</label>
-
-                    <input
-                        type="text"
-                        id="stylist"
-                        placeholder="Nombre del peluquero/a">
-                </div>
-
-            </div>
-
-
-            <!-- Estado -->
-            <div class="form-row">
-
-                <div class="form-group form-group--full">
-                    <label for="appointmentStatus">
-                        Estado Inicial del Turno
-                    </label>
-
-                    <select
-                        id="appointmentStatus"
-                        class="form-select">
-                        <option value="Reservado" selected>
-                            Reservado
-                        </option>
-
-                        <option value="En sala de espera">
-                            En sala de espera
-                        </option>
-
-                        <option value="En atención">
-                            En atención
-                        </option>
-
-                        <option value="Finalizado">
-                            Finalizado
-                        </option>
-
-                        <option value="Cancelado">
-                            Cancelado
-                        </option>
-
-                        <option value="Ausente">
-                            Ausente
-                        </option>
-                    </select>
-                </div>
-
-            </div>
-
-
-            <!-- Notas -->
-            <div class="form-row">
-
-                <div class="form-group form-group--full">
-                    <label for="notes">Notas</label>
-
-                    <textarea
-                        id="notes"
-                        rows="3"
-                        placeholder="Observaciones del turno..."></textarea>
-                </div>
-
+                <input
+                    type="time"
+                    id="timeEnd">
             </div>
 
         </div>
 
 
-        <!-- =====================================================
-             BOTONES
-        ====================================================== -->
+        <!-- Servicio y precio -->
+        <div class="form-row">
 
-        <div class="modal__footer">
+            <div class="form-group">
+                <label for="serviceId">Servicio</label>
 
-            <button
-                class="btn btn--ghost"
-                id="modalCancel">
-                Cancelar
-            </button>
+                <select
+                    id="serviceId"
+                    class="form-select">
+                    <option value="">
+                        Seleccionar servicio
+                    </option>
+                </select>
+            </div>
 
 
-            <button
-                class="btn btn--primary"
-                id="modalSave">
-                Guardar turno
-            </button>
+            <div class="form-group">
+                <label for="price">Precio ($)</label>
+
+                <input
+                    type="number"
+                    id="price"
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01">
+            </div>
+
+        </div>
+
+
+        <!-- Peluquero/a -->
+        <div class="form-row">
+
+            <div class="form-group form-group--full">
+                <label for="stylist">Peluquero/a</label>
+
+                <input
+                    type="text"
+                    id="stylist"
+                    placeholder="Nombre del peluquero/a">
+            </div>
+
+        </div>
+
+
+        <!-- Estado -->
+        <div class="form-row">
+
+            <div class="form-group form-group--full">
+                <label for="appointmentStatus">
+                    Estado Inicial del Turno
+                </label>
+
+                <select
+                    id="appointmentStatus"
+                    class="form-select">
+                    <option value="Reservado" selected>
+                        Reservado
+                    </option>
+
+                    <option value="En sala de espera">
+                        En sala de espera
+                    </option>
+
+                    <option value="En atención">
+                        En atención
+                    </option>
+
+                    <option value="Finalizado">
+                        Finalizado
+                    </option>
+
+                    <option value="Cancelado">
+                        Cancelado
+                    </option>
+
+                    <option value="Ausente">
+                        Ausente
+                    </option>
+                </select>
+            </div>
+
+        </div>
+
+
+        <!-- Notas -->
+        <div class="form-row">
+
+            <div class="form-group form-group--full">
+                <label for="notes">Notas</label>
+
+                <textarea
+                    id="notes"
+                    rows="3"
+                    placeholder="Observaciones del turno..."></textarea>
+            </div>
 
         </div>
 
     </div>
-</div>
+
+
+    <!-- =====================================================
+         BOTONES
+    ====================================================== -->
+
+    <div class="appointment-detail-footer">
+
+        <button
+            class="btn btn--ghost"
+            id="modalCancel">
+            Cancelar
+        </button>
+
+
+        <button
+            class="btn btn--primary"
+            id="modalSave">
+            Guardar turno
+        </button>
+
+    </div>
+
+</aside>

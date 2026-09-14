@@ -1,5 +1,5 @@
 /* ==========================================================================
-   VARIABLES Y DISEÑO BASE — Sistema "Soft Clinical Tech"
+   VARIABLES Y DISEÑO BASE
    ========================================================================== */
 
 :root {
@@ -40,18 +40,18 @@
   --t-base: 0.2s;
   --t-slow: 0.3s;
 
-  /* Escala de Z-Index: única fuente de verdad. Evita colisiones de apilamiento
-     entre sidebar móvil, modales y overlays (ver nota en sidebar/components). */
+  /* Escala de Z-Index: Evita colisiones de apilamiento entre sidebar móvil, modales y overlays*/
   --z-surface: 10;
   --z-sidebar: 1000;
   --z-mobile-header: 1010;
   --z-sidebar-overlay: 1015;
   --z-sidebar-mobile: 1020;
   --z-burger: 1025;
+  --z-drawer: 1500;
   --z-modal: 2000;
   --z-modal-fullscreen: 3000;
 
-  /* Sidebar Premium */
+  /* Sidebar */
   --sidebar-bg: #1a1511;
   --sidebar-surface: #26201a;
   --sidebar-border: #3c332a;
@@ -60,7 +60,7 @@
   --accent-glow-1: #c5a059;
   --accent-glow-2: #e6d3a3;
 
-  /* Paleta de Estados Clínicos */
+  /* Paleta de Estados */
   --color-reservado-bg: #f1f5f9;
   --color-reservado-text: #475569;
   --color-espera-bg: #fef3c7;
@@ -100,8 +100,7 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Quita el flash gris al tocar elementos en móvil: clave para sensación premium */
-  -webkit-tap-highlight-color: transparent;
+  /* Quita el flash gris al tocar elementos en móvil */
 }
 
 ::selection {
@@ -109,7 +108,7 @@ body {
   color: var(--color-today-text);
 }
 
-/* Scrollbar fina y discreta, coherente con la paleta clínica */
+/* Scrollbar fina y discreta */
 * {
   scrollbar-width: thin;
   scrollbar-color: #d6cfc2 transparent;
@@ -152,15 +151,13 @@ body {
 .app-main-content {
   flex: 1;
   display: flex;
-  justify-content: center;
+  justify-content: stretch;
   align-items: flex-start;
-  padding: 2.5rem;
   overflow-y: auto;
   height: 100vh;
   position: relative;
 
-  /* Fondo "Soft Clinical Tech": profundidad estática mediante capas de gradiente,
-     sin animación en loop. El movimiento perpetuo restaba seriedad al producto. */
+  /* Fondo */
   background-color: var(--color-bg);
   background-image:
     radial-gradient(
