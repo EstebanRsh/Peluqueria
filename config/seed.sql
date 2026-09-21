@@ -4,12 +4,20 @@ USE peluqueria;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- Borrar los datos usando DELETE (que sí lo permite)
+-- (con FOREIGN_KEY_CHECKS = 0 los ON DELETE CASCADE no se ejecutan,
+--  por eso se vacían explícitamente todas las tablas)
+DELETE FROM service_consumptions;
+DELETE FROM service_history;
+DELETE FROM products;
 DELETE FROM appointment_history;
 DELETE FROM appointments;
 DELETE FROM clients;
 DELETE FROM services;
 
 -- Resetear los IDs para que vuelvan a empezar desde 1
+ALTER TABLE service_consumptions AUTO_INCREMENT = 1;
+ALTER TABLE service_history AUTO_INCREMENT = 1;
+ALTER TABLE products AUTO_INCREMENT = 1;
 ALTER TABLE appointment_history AUTO_INCREMENT = 1;
 ALTER TABLE appointments AUTO_INCREMENT = 1;
 ALTER TABLE clients AUTO_INCREMENT = 1;
@@ -39,39 +47,41 @@ INSERT INTO services (id, name, description, duration, price, active) VALUES
 (15, 'Decoloración Global', 'Llevar el cabello a tonos platinos.', 120, 70.00, TRUE);
 
 -- =========================================================
--- 3. CLIENTES CON FICHA (25 clientes frecuentes)
+-- 2. CLIENTES CON FICHA (25 clientes frecuentes)
+-- Incluye el diagnóstico capilar base (tono natural, canas,
+-- tipo de cabello y alergias).
 -- El resto de los turnos corresponde a clientes ocasionales
 -- (client_id NULL), que solo quedan registrados por client_name.
 -- =========================================================
-INSERT INTO clients (id, internal_code, alias, notes, active) VALUES
-(1, 'CLI-0001', 'Roberto G.', 'Cliente habitual, corte clásico cada 3 semanas.', TRUE),
-(2, 'CLI-0002', 'Carla T.', 'Prefiere cortar solo puntas; evitar keratina por alergia.', TRUE),
-(3, 'CLI-0003', 'Mariana P.', 'Le gusta el esmaltado semipermanente en tonos rojos.', TRUE),
-(4, 'CLI-0004', 'Lucía F.', 'Balayage, siempre trae foto de referencia.', TRUE),
-(5, 'CLI-0005', 'Camila R.', 'Cabello muy largo, requiere turno extendido.', TRUE),
-(6, 'CLI-0006', 'Diego A.', 'Corte rápido, viene en su hora de almuerzo.', TRUE),
-(7, 'CLI-0007', 'Marta B.', 'Retoque de raíces mensual, sensible al amoníaco.', TRUE),
-(8, 'CLI-0008', 'Fernando C.', 'Cliente puntual, siempre pide el mismo estilista.', TRUE),
-(9, 'CLI-0009', 'Romina K.', 'Tratamiento de keratina cada 4 meses.', TRUE),
-(10, 'CLI-0010', 'Gustavo M.', 'Prefiere máquina, corte bajo.', TRUE),
-(11, 'CLI-0011', 'Florencia D.', 'Primera decoloración, seguimiento de cuidado post-color.', TRUE),
-(12, 'CLI-0012', 'Silvia Q.', 'Le gusta charlar, conviene agendar con tiempo extra.', TRUE),
-(13, 'CLI-0013', 'Laura W.', 'Eligió color rosa pastel en su última manicura.', TRUE),
-(14, 'CLI-0014', 'Rocío E.', 'Diseño de cejas cada 3 semanas.', TRUE),
-(15, 'CLI-0015', 'Diana C.', 'Cliente VIP, prefiere turnos por la tarde.', TRUE),
-(16, 'CLI-0016', 'Oscar V.', 'Pasa rápido antes de entrar a trabajar.', TRUE),
-(17, 'CLI-0017', 'Micaela R.', 'Peinados para eventos y casamientos.', TRUE),
-(18, 'CLI-0018', 'Ana F.', 'Servicio largo, coordinar con tiempo.', TRUE),
-(19, 'CLI-0019', 'Tomás P.', 'Cliente nuevo, llegó recomendado.', TRUE),
-(20, 'CLI-0020', 'Victoria M.', 'Cliente nueva, primer corte femenino.', TRUE),
-(21, 'CLI-0021', 'Julieta D.', 'Renueva su semipermanente cada 3 semanas.', TRUE),
-(22, 'CLI-0022', 'Emiliano G.', 'Barba prolija, viene cada 2 semanas.', TRUE),
-(23, 'CLI-0023', 'Federico A.', 'A veces trae a su hijo también.', TRUE),
-(24, 'CLI-0024', 'Cristian L.', 'Cliente de la zona, viene caminando.', TRUE),
-(25, 'CLI-0025', 'Gabriel O.', 'Prefiere toalla caliente antes del recorte de barba.', TRUE);
+INSERT INTO clients (id, internal_code, alias, natural_base_tone, grey_hair, hair_type, allergies, notes, active) VALUES
+(1, 'CLI-0001', 'Roberto G.', 'Castaño oscuro (3)', 30, 'Grueso, liso', NULL, 'Cliente habitual, corte clásico cada 3 semanas.', TRUE),
+(2, 'CLI-0002', 'Carla T.', 'Castaño medio (4)', 5, 'Fino, ondulado', 'Keratina (reacción alérgica previa)', 'Prefiere cortar solo puntas; evitar keratina por alergia.', TRUE),
+(3, 'CLI-0003', 'Mariana P.', 'Castaño claro (5)', 0, 'Medio, liso', NULL, 'Le gusta el esmaltado semipermanente en tonos rojos.', TRUE),
+(4, 'CLI-0004', 'Lucía F.', 'Castaño oscuro (3)', 0, 'Grueso, ondulado, poroso', 'Sensibilidad leve a PPD: hacer test de parche antes de cada coloración', 'Balayage, siempre trae foto de referencia.', TRUE),
+(5, 'CLI-0005', 'Camila R.', 'Castaño medio (4)', 10, 'Grueso, muy largo y abundante', NULL, 'Cabello muy largo, requiere turno extendido.', TRUE),
+(6, 'CLI-0006', 'Diego A.', 'Negro (1)', 15, 'Grueso, liso', NULL, 'Corte rápido, viene en su hora de almuerzo.', TRUE),
+(7, 'CLI-0007', 'Marta B.', 'Castaño medio (4)', 40, 'Fino, liso', 'Sensibilidad al amoníaco', 'Retoque de raíces mensual, sensible al amoníaco.', TRUE),
+(8, 'CLI-0008', 'Fernando C.', 'Castaño oscuro (3)', 50, 'Medio, liso', NULL, 'Cliente puntual, siempre pide el mismo estilista.', TRUE),
+(9, 'CLI-0009', 'Romina K.', 'Rubio oscuro (6)', 10, 'Poroso, con frizz', NULL, 'Tratamiento de keratina cada 4 meses.', TRUE),
+(10, 'CLI-0010', 'Gustavo M.', 'Negro (1)', 20, 'Grueso, rizado', NULL, 'Prefiere máquina, corte bajo.', TRUE),
+(11, 'CLI-0011', 'Florencia D.', 'Castaño claro (5)', 0, 'Fino, liso, sensibilizado post-decoloración', NULL, 'Primera decoloración, seguimiento de cuidado post-color.', TRUE),
+(12, 'CLI-0012', 'Silvia Q.', 'Rubio medio (7)', 35, 'Medio, ondulado', NULL, 'Le gusta charlar, conviene agendar con tiempo extra.', TRUE),
+(13, 'CLI-0013', 'Laura W.', 'Castaño claro (5)', 0, 'Medio, liso', NULL, 'Eligió color rosa pastel en su última manicura.', TRUE),
+(14, 'CLI-0014', 'Rocío E.', 'Castaño oscuro (3)', 0, 'Medio, liso', NULL, 'Diseño de cejas cada 3 semanas.', TRUE),
+(15, 'CLI-0015', 'Diana C.', 'Castaño medio (4)', 25, 'Medio, liso, seco', NULL, 'Cliente VIP, prefiere turnos por la tarde.', TRUE),
+(16, 'CLI-0016', 'Oscar V.', 'Castaño oscuro (3)', 10, 'Grueso, liso', NULL, 'Pasa rápido antes de entrar a trabajar.', TRUE),
+(17, 'CLI-0017', 'Micaela R.', 'Rubio claro (8)', 0, 'Fino, liso', NULL, 'Peinados para eventos y casamientos.', TRUE),
+(18, 'CLI-0018', 'Ana F.', 'Castaño oscuro (3)', 5, 'Grueso, ondulado', NULL, 'Servicio largo, coordinar con tiempo.', TRUE),
+(19, 'CLI-0019', 'Tomás P.', 'Castaño medio (4)', 0, 'Medio, ondulado', NULL, 'Cliente nuevo, llegó recomendado.', TRUE),
+(20, 'CLI-0020', 'Victoria M.', 'Castaño claro (5)', 0, 'Fino, liso', NULL, 'Cliente nueva, primer corte femenino.', TRUE),
+(21, 'CLI-0021', 'Julieta D.', 'Castaño medio (4)', 0, 'Medio, liso', NULL, 'Renueva su semipermanente cada 3 semanas.', TRUE),
+(22, 'CLI-0022', 'Emiliano G.', 'Negro (1)', 10, 'Grueso, liso; barba densa', NULL, 'Barba prolija, viene cada 2 semanas.', TRUE),
+(23, 'CLI-0023', 'Federico A.', 'Castaño oscuro (3)', 45, 'Medio, liso', NULL, 'A veces trae a su hijo también.', TRUE),
+(24, 'CLI-0024', 'Cristian L.', 'Castaño oscuro (3)', 20, 'Grueso, liso', NULL, 'Cliente de la zona, viene caminando.', TRUE),
+(25, 'CLI-0025', 'Gabriel O.', 'Negro (1)', 5, 'Grueso; barba gruesa', NULL, 'Prefiere toalla caliente antes del recorte de barba.', TRUE);
 
 -- =========================================================
--- 4. TURNOS (45)
+-- 3. TURNOS (45)
 -- Distribuidos en el pasado (agosto), hoy (4 de sept) y futuro.
 -- Los turnos de clientes con ficha llevan su client_id; el resto
 -- queda en NULL (cliente ocasional, solo con client_name).
@@ -131,7 +141,7 @@ INSERT INTO appointments (id, client_id, client_name, service_id, stylist, price
 (45, 25, 'Gabriel O.', 5, 'Martín', 10.00, '', 'Reservado', '2026-10-25', '18:00:00', '18:20:00');
 
 -- =========================================================
--- 5. HISTORIAL DE ESTADOS DE LOS TURNOS MÁS COMPLETO
+-- 4. HISTORIAL DE ESTADOS DE LOS TURNOS
 -- Se simulan las transiciones (Reservado -> Espera -> Atención -> Finalizado)
 -- =========================================================
 INSERT INTO appointment_history (appointment_id, status_from, status_to, changed_at) VALUES
@@ -247,3 +257,155 @@ INSERT INTO appointment_history (appointment_id, status_from, status_to, changed
 (43, NULL, 'Reservado', '2026-09-04 10:15:00'),
 (44, NULL, 'Reservado', '2026-09-04 10:20:00'),
 (45, NULL, 'Reservado', '2026-09-04 10:25:00');
+
+-- =========================================================
+-- 5. HISTORIAL TÉCNICO (16)
+-- Un registro por cada turno "Finalizado" (appointment_id es UNIQUE).
+-- technical_details es JSON y varía según el tipo de servicio.
+-- Los clientes ocasionales (Valentina, Jorge, Hugo, Carlos)
+-- llevan client_id NULL.
+-- =========================================================
+INSERT INTO service_history (id, client_id, appointment_id, service_id, service_name_snapshot, performed_at, technical_details) VALUES
+-- Corte Masculino (turno 1)
+(1, 1, 1, 1, 'Corte Masculino Clásico', '2026-08-15 10:00:00',
+ '{"tipo_corte": "Clásico", "tecnica": "Tijera", "largo_final_cm": 4, "lavado": true, "peinado_final": "Gel"}'),
+
+-- Corte Femenino (turno 2)
+(2, 2, 2, 2, 'Corte Femenino', '2026-08-15 11:00:00',
+ '{"tipo_corte": "Puntas", "tecnica": "Tijera", "largo_removido_cm": 3, "lavado": true, "secado": "Brushing"}'),
+
+-- Manicura Semipermanente (turno 3)
+(3, 3, 3, 9, 'Manicura Semipermanente', '2026-08-16 14:00:00',
+ '{"tipo": "Semipermanente", "color": "Rojo cereza", "marca": "Gelish", "base_coat": true, "top_coat": true, "curado_led_seg": 60, "duracion_estimada_dias": 21}'),
+
+-- Balayage (turno 5)
+(4, 4, 5, 4, 'Balayage / Mechas', '2026-08-17 09:00:00',
+ '{"tecnica": "Balayage", "nivel_inicial": 3, "nivel_alcanzado": 6, "decolorante": {"producto": "Polvo Decolorante", "gramos": 80}, "oxidante": {"volumen": 20, "ml": 160}, "tiempo_exposicion_min": 50, "matizador": {"producto": "Matizador Violeta", "ml": 40, "tiempo_min": 10}, "test_de_parche": true, "foto_referencia": true}'),
+
+-- Alisado Definitivo (turno 7)
+(5, 5, 7, 11, 'Alisado Definitivo', '2026-08-20 15:00:00',
+ '{"producto": "Alisador Definitivo sin Formol", "ml": 180, "tiempo_exposicion_min": 40, "temperatura_plancha_c": 210, "pasadas_plancha": 8, "largo_cabello": "Muy largo"}'),
+
+-- Corte Masculino (turno 8)
+(6, 6, 8, 1, 'Corte Masculino Clásico', '2026-08-22 10:00:00',
+ '{"tipo_corte": "Clásico", "tecnica": "Máquina y tijera", "numero_maquina": 2, "largo_superior_cm": 4, "lavado": true}'),
+
+-- Baño de Crema (turno 9) - cliente ocasional
+(7, NULL, 9, 13, 'Baño de Crema / Nutrición', '2026-08-25 11:00:00',
+ '{"producto": "Mascarilla Nutritiva Intensiva", "gramos": 60, "tiempo_exposicion_min": 15, "con_calor": true, "tipo_cabello": "Seco"}'),
+
+-- Lavado y Secado (turno 10) - cliente ocasional
+(8, NULL, 10, 12, 'Lavado y Secado', '2026-08-28 09:30:00',
+ '{"lavado": "Shampoo neutro", "masaje_capilar": true, "secado": "Secador", "peinado_final": "Natural"}'),
+
+-- Tinte Completo / Retoque de raíces (turno 11)
+(9, 7, 11, 3, 'Tinte Completo', '2026-09-01 10:00:00',
+ '{"tipo": "Retoque de raíces", "formula": [{"producto": "Tinte Sin Amoníaco 4.0 Castaño Medio", "gramos": 60}], "oxidante": {"volumen": 20, "ml": 60}, "proporcion": "1:1", "tiempo_exposicion_min": 35, "sin_amoniaco": true, "cobertura_canas": true}'),
+
+-- Corte Masculino (turno 12)
+(10, 8, 12, 1, 'Corte Masculino Clásico', '2026-09-01 10:30:00',
+ '{"tipo_corte": "Clásico", "tecnica": "Tijera", "largo_final_cm": 3, "lavado": true, "peinado_final": "Raya al costado"}'),
+
+-- Arreglo de Barba (turno 14) - cliente ocasional
+(11, NULL, 14, 5, 'Arreglo de Barba', '2026-09-02 15:00:00',
+ '{"estilo": "Perfilado", "largo_final_mm": 8, "toalla_caliente": true, "aceite_final": "Aceite para Barba"}'),
+
+-- Tratamiento de Keratina (turno 15)
+(12, 9, 15, 6, 'Tratamiento de Keratina', '2026-09-02 16:00:00',
+ '{"producto": "Keratina Alisadora", "ml": 90, "tiempo_exposicion_min": 30, "temperatura_plancha_c": 210, "pasadas_plancha": 6, "largo_cabello": "Hombros", "recomendacion_post": "No lavar durante 48 horas"}'),
+
+-- Corte Masculino (turno 17)
+(13, 10, 17, 1, 'Corte Masculino Clásico', '2026-09-03 10:00:00',
+ '{"tipo_corte": "Degradado bajo", "tecnica": "Máquina", "numero_maquina": 1, "lavado": true}'),
+
+-- Decoloración Global (turno 18)
+(14, 11, 18, 15, 'Decoloración Global', '2026-09-03 14:00:00',
+ '{"tecnica": "Decoloración global", "primera_decoloracion": true, "nivel_inicial": 5, "nivel_alcanzado": 8, "decolorante": {"producto": "Polvo Decolorante", "gramos": 100}, "oxidante": {"volumen": 20, "ml": 200}, "tiempo_exposicion_min": 60, "matizador": {"producto": "Matizador Violeta", "ml": 50, "tiempo_min": 10}, "tratamiento_post": "Mascarilla Nutritiva Intensiva"}'),
+
+-- Corte Masculino (turno 19) - cliente ocasional
+(15, NULL, 19, 1, 'Corte Masculino Clásico', '2026-09-04 09:00:00',
+ '{"tipo_corte": "Clásico", "tecnica": "Máquina y tijera", "numero_maquina": 3, "lavado": true}'),
+
+-- Corte Femenino (turno 20)
+(16, 12, 20, 2, 'Corte Femenino', '2026-09-04 09:30:00',
+ '{"tipo_corte": "Cambio de look", "tecnica": "Tijera", "largo_removido_cm": 5, "estilo": "Capas suaves", "lavado": true, "secado": "Brushing"}');
+
+-- =========================================================
+-- 6. INVENTARIO (17 productos)
+-- unit_cost = costo por cada 1 ml, g o unidad.
+-- El stock es el stock actual y no se descuenta con los consumos del seed.
+-- Incluye un producto con stock bajo (Polvo Decolorante) y uno inactivo.
+-- =========================================================
+INSERT INTO products (id, name, brand, measurement_unit, stock, unit_cost, active) VALUES
+(1, 'Tinte Permanente 6.0 Rubio Oscuro', 'Wella', 'g', 1440.00, 0.12, TRUE),
+(2, 'Tinte Sin Amoníaco 4.0 Castaño Medio', 'Wella', 'g', 1620.00, 0.14, TRUE),
+(3, 'Oxidante 20 Vol', 'Wella', 'ml', 4200.00, 0.02, TRUE),
+(4, 'Polvo Decolorante', 'Schwarzkopf', 'g', 180.00, 0.09, TRUE),
+(5, 'Matizador Violeta', 'Alfaparf', 'ml', 850.00, 0.06, TRUE),
+(6, 'Keratina Alisadora', 'Inoar', 'ml', 760.00, 0.14, TRUE),
+(7, 'Alisador Definitivo sin Formol', 'Inoar', 'ml', 1500.00, 0.11, TRUE),
+(8, 'Shampoo Neutro Profesional', 'Alfaparf', 'ml', 8500.00, 0.01, TRUE),
+(9, 'Mascarilla Nutritiva Intensiva', 'Alfaparf', 'g', 2400.00, 0.04, TRUE),
+(10, 'Esmalte Semipermanente Rojo Cereza', 'Gelish', 'ml', 110.00, 0.60, TRUE),
+(11, 'Esmalte Semipermanente Rosa Pastel', 'Gelish', 'ml', 95.00, 0.60, TRUE),
+(12, 'Esmalte Tradicional Transparente', 'Essie', 'ml', 90.00, 0.40, TRUE),
+(13, 'Crema Hidratante de Manos', 'Nivea', 'g', 900.00, 0.03, TRUE),
+(14, 'Toalla Descartable', NULL, 'unidad', 180.00, 0.30, TRUE),
+(15, 'Aceite para Barba', 'Proraso', 'ml', 300.00, 0.10, TRUE),
+(16, 'Spray Fijador', 'Schwarzkopf', 'ml', 700.00, 0.03, TRUE),
+(17, 'Crema Decolorante (discontinuada)', NULL, 'g', 0.00, 0.10, FALSE);
+
+-- =========================================================
+-- 7. CONSUMOS POR SERVICIO (Rentabilidad)
+-- cost_snapshot = quantity_used * unit_cost del producto.
+-- Las cantidades coinciden con las registradas en technical_details.
+-- =========================================================
+INSERT INTO service_consumptions (service_history_id, product_id, quantity_used, cost_snapshot) VALUES
+-- SH 1: Corte masculino (Roberto)
+(1, 8, 10.00, 0.10),
+-- SH 2: Corte femenino (Carla)
+(2, 8, 15.00, 0.15),
+-- SH 3: Semipermanente (Mariana)
+(3, 10, 2.00, 1.20),
+(3, 13, 5.00, 0.15),
+-- SH 4: Balayage (Lucía)
+(4, 4, 80.00, 7.20),
+(4, 3, 160.00, 3.20),
+(4, 5, 40.00, 2.40),
+(4, 8, 40.00, 0.40),
+(4, 9, 30.00, 1.20),
+-- SH 5: Alisado definitivo (Camila)
+(5, 7, 180.00, 19.80),
+(5, 8, 60.00, 0.60),
+(5, 9, 60.00, 2.40),
+-- SH 6: Corte masculino (Diego)
+(6, 8, 10.00, 0.10),
+-- SH 7: Baño de crema (Valentina)
+(7, 9, 60.00, 2.40),
+(7, 8, 20.00, 0.20),
+-- SH 8: Lavado y secado (Jorge)
+(8, 8, 20.00, 0.20),
+-- SH 9: Tinte / retoque de raíces (Marta)
+(9, 2, 60.00, 8.40),
+(9, 3, 60.00, 1.20),
+(9, 8, 30.00, 0.30),
+-- SH 10: Corte masculino (Fernando)
+(10, 8, 10.00, 0.10),
+-- SH 11: Arreglo de barba (Hugo)
+(11, 14, 1.00, 0.30),
+(11, 15, 3.00, 0.30),
+-- SH 12: Keratina (Romina)
+(12, 6, 90.00, 12.60),
+(12, 8, 40.00, 0.40),
+-- SH 13: Corte masculino (Gustavo)
+(13, 8, 10.00, 0.10),
+-- SH 14: Decoloración global (Florencia)
+(14, 4, 100.00, 9.00),
+(14, 3, 200.00, 4.00),
+(14, 5, 50.00, 3.00),
+(14, 8, 40.00, 0.40),
+(14, 9, 40.00, 1.60),
+-- SH 15: Corte masculino (Carlos)
+(15, 8, 10.00, 0.10),
+-- SH 16: Corte femenino (Silvia)
+(16, 8, 15.00, 0.15);

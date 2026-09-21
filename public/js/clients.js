@@ -70,7 +70,7 @@ function renderClientsList() {
       const label = active ? "Desactivar" : "Activar";
 
       return `
-      <tr>
+      <tr data-client-id="${escapeHtml(client.id)}" class="client-row">
         <td data-label="Alias">${escapeHtml(client.alias)}</td>
         <td data-label="Código">${escapeHtml(client.internal_code || "—")}</td>
         <td data-label="Notas">${escapeHtml(truncate(client.notes))}</td>
@@ -86,8 +86,9 @@ function renderClientsList() {
 }
 
 function showClientModal(client = null) {
-  const modal = document.getElementById("clientModalOverlay");
-  if (!modal) return;
+  const overlay = document.getElementById("clientModalOverlay");
+  const panel = document.getElementById("clientFormPanel");
+  if (!overlay || !panel) return;
 
   document.getElementById("managedClientId").value = client?.id || "";
   document.getElementById("clientAlias").value = client?.alias || "";
@@ -96,11 +97,17 @@ function showClientModal(client = null) {
   document.getElementById("clientModalTitle").textContent = client
     ? "Editar cliente"
     : "Nuevo cliente";
-  modal.classList.add("is-open");
+
+  overlay.classList.add("is-open");
+  panel.classList.add("is-open");
+  panel.setAttribute("aria-hidden", "false");
 }
 
 function closeClientModal() {
   document.getElementById("clientModalOverlay")?.classList.remove("is-open");
+  const panel = document.getElementById("clientFormPanel");
+  panel?.classList.remove("is-open");
+  panel?.setAttribute("aria-hidden", "true");
 }
 
 function formData() {
@@ -109,6 +116,142 @@ function formData() {
     internal_code: document.getElementById("clientCode").value.trim() || null,
     notes: document.getElementById("clientNotes").value.trim(),
   };
+}
+
+function closeClientProfile() {
+  const panel = document.getElementById("clientProfilePanel");
+  const overlay = document.getElementById("clientProfileOverlay");
+  const tableBody = document.getElementById("clientsTableBody");
+
+  panel?.classList.remove("is-open");
+  panel?.setAttribute("aria-hidden", "true");
+  overlay?.classList.remove("is-open");
+
+  if (tableBody) {
+    tableBody
+      .querySelectorAll("tr[data-client-id]")
+      .forEach((row) => row.classList.remove("client-row--selected"));
+  }
+}
+
+function openClientProfile(client) {
+  const panel = document.getElementById("clientProfilePanel");
+  const overlay = document.getElementById("clientProfileOverlay");
+  const name = document.getElementById("clientProfileName");
+  const code = document.getElementById("clientProfileCode");
+  const status = document.getElementById("clientProfileStatus");
+  const notes = document.getElementById("clientProfileNotes");
+  const avatar = document.getElementById("clientProfileAvatar");
+
+  if (!panel || !client) return;
+
+  const active = isActive(client);
+  name.textContent = client.alias || "Cliente";
+  code.textContent = client.internal_code || "Sin código";
+  status.textContent = active ? "Activo" : "Inactivo";
+  status.className = `status-badge status-badge--${active ? "activo" : "inactivo"}`;
+  notes.textContent = client.notes || "Sin notas permanentes.";
+
+  const initial = String(client.alias || "C")
+    .trim()
+    .toUpperCase()
+    .slice(0, 2);
+
+  avatar.textContent = initial;
+
+  const tableBody = document.getElementById("clientsTableBody");
+  if (tableBody) {
+    tableBody
+      .querySelectorAll("tr[data-client-id]")
+      .forEach((row) =>
+        row.classList.toggle(
+          "client-row--selected",
+          String(row.dataset.clientId) === String(client.id),
+        ),
+      );
+  }
+
+  panel.classList.add("is-open");
+  panel.setAttribute("aria-hidden", "false");
+  overlay?.classList.add("is-open");
+}
+
+// ==========================================================================
+// ESTADO Y LÓGICA DEL HISTORIAL (Timeline)
+// ==========================================================================
+
+const timelineState = {
+  records: [], // Queda vacío. Aquí se inyectará el JSON del backend.
+  filter: "todos",
+  search: "",
+};
+
+function renderTimeline() {
+  const container = document.getElementById("clientProfileHistory");
+  if (!container) return;
+
+  // Filtrado dinámico en memoria
+  const filtered = timelineState.records.filter((record) => {
+    const matchFilter =
+      timelineState.filter === "todos" ||
+      record.category === timelineState.filter;
+    const matchSearch =
+      !timelineState.search ||
+      record.serviceName
+        .toLowerCase()
+        .includes(timelineState.search.toLowerCase()) ||
+      record.notes.toLowerCase().includes(timelineState.search.toLowerCase());
+
+    return matchFilter && matchSearch;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<p class="history-empty">Sin historial.</p>';
+    return;
+  }
+
+  container.innerHTML = filtered
+    .map(
+      (record) => `
+    <div class="timeline-node">
+      <div class="timeline-header">
+        <span class="timeline-date">${escapeHtml(record.date)}</span>
+        <span class="timeline-service">${escapeHtml(record.serviceName)}</span>
+      </div>
+      <div class="timeline-details">
+        ${record.detailsHtml} <!-- HTML pre-formateado desde el parser del JSON -->
+      </div>
+    </div>
+  `,
+    )
+    .join("");
+}
+
+function initTimelineEvents() {
+  // Evento de búsqueda por texto
+  document
+    .getElementById("historySearch")
+    ?.addEventListener("input", (event) => {
+      timelineState.search = event.target.value.trim();
+      renderTimeline();
+    });
+
+  // Eventos de los filtros (Píldoras)
+  document.querySelectorAll("#historyFilters .btn-filter").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      timelineState.filter = event.target.dataset.historyFilter;
+
+      // Manejo del estado visual "activo"
+      document
+        .querySelectorAll("#historyFilters .btn-filter")
+        .forEach((btn) => {
+          btn.classList.remove("active");
+        });
+      event.target.classList.add("active");
+
+      renderTimeline();
+    });
+  });
 }
 
 async function saveClient() {
@@ -136,7 +279,17 @@ async function saveClient() {
 
 async function handleTableAction(event) {
   const button = event.target.closest("button[data-action]");
-  if (!button) return;
+  if (!button) {
+    const row = event.target.closest("tr[data-client-id]");
+    if (!row) return;
+
+    const id = row.dataset.clientId;
+    const client = clientsState.clients.find((item) => String(item.id) === id);
+    if (client) {
+      openClientProfile(client);
+    }
+    return;
+  }
 
   const id = button.dataset.id;
   const client = clientsState.clients.find((item) => String(item.id) === id);
@@ -239,8 +392,29 @@ export function initClients() {
     .getElementById("clientsTableBody")
     ?.addEventListener("click", handleTableAction);
 
-  // Los filtros se buscan solo dentro de #viewClients para no interferir
-  // con los mismos botones .btn-filter que usa el panel de servicios.
+  document
+    .getElementById("clientProfileClose")
+    ?.addEventListener("click", closeClientProfile);
+  document
+    .getElementById("clientProfileOverlay")
+    ?.addEventListener("click", closeClientProfile);
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    if (
+      document
+        .getElementById("clientProfilePanel")
+        ?.classList.contains("is-open")
+    ) {
+      closeClientProfile();
+      return;
+    }
+    if (
+      document.getElementById("clientFormPanel")?.classList.contains("is-open")
+    ) {
+      closeClientModal();
+    }
+  });
+
   document
     .querySelectorAll("#viewClients .btn-filter[data-filter]")
     .forEach((button) => {
@@ -266,7 +440,5 @@ export function initClients() {
     ?.addEventListener("click", saveClient);
   document
     .getElementById("clientModalOverlay")
-    ?.addEventListener("click", (event) => {
-      if (event.target.id === "clientModalOverlay") closeClientModal();
-    });
+    ?.addEventListener("click", closeClientModal);
 }

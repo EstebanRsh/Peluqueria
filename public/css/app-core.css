@@ -50,8 +50,6 @@
   flex-direction: column;
 }
 
-/* .calendar ocupa toda la altura que le da calendar-wrapper; el header
-   queda con su alto natural y el grid se lleva todo lo que sobra. */
 .calendar {
   display: flex;
   flex-direction: column;
@@ -110,9 +108,6 @@
 .calendar__grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  /* Fila de nombres de día = alto natural. Las 6 filas de fechas
-     reparten en partes iguales todo el alto sobrante, con un piso
-     de --cell-min-h para pantallas muy bajas. */
   grid-template-rows: auto repeat(6, minmax(var(--cell-min-h), 1fr));
   flex: 1;
   min-height: 0;
@@ -142,8 +137,12 @@
 .calendar__cell:hover:not(.calendar__cell--ghost):not(.calendar__cell--today) {
   background: var(--color-hover);
 }
+.calendar__cell--active {
+  cursor: pointer;
+}
 .calendar__cell--ghost {
   background: #faf8f5;
+  cursor: default;
 }
 .calendar__cell--ghost .cell__number {
   color: var(--color-text-muted);

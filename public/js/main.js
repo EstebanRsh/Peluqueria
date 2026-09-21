@@ -7,6 +7,7 @@ import { fetchAppointments } from "./api.js";
 import { slugify } from "./utils.js";
 import { initServices, loadServicesList } from "./services.js";
 import { initClients, loadClientsList } from "./clients.js";
+import { initQuickEntry } from "./quickEntry.js";
 
 const panel = document.getElementById("dayPanel");
 const closeBtn = document.getElementById("panelClose");
@@ -75,8 +76,6 @@ const viewServices = document.getElementById("viewServices");
 const viewClients = document.getElementById("viewClients");
 const navItems = document.querySelectorAll(".nav-item[data-view]");
 
-// Mapa de vistas disponibles. Agregar una nueva vista solo
-// requiere sumarla acá y crear su contenedor en layout.php.
 const views = {
   appointments: viewAppointments,
   services: viewServices,
@@ -171,7 +170,7 @@ if (fabToggle && fabActions) {
 initModal();
 initServices();
 initClients();
-
+initQuickEntry();
 window.addEventListener("error", (event) => {
   console.group("ERROR GLOBAL");
   console.error(event.message);

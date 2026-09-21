@@ -63,8 +63,6 @@
 
 /* ==========================================================================
    BOTÓN FLOTANTE DE ACCIONES RÁPIDAS (FAB)
-   No ocupa espacio fijo en el layout: flota sobre el contenido y se
-   despliega en abanico al tocar #fabToggle (lógica en main.js).
    ========================================================================== */
 
 .fab-actions {
@@ -127,8 +125,6 @@
   background: #2b2620;
 }
 
-/* La acción principal (Nuevo Turno) se destaca con el dorado de marca,
-   igual criterio que .calendar__cell--today. */
 .fab-actions__item--accent {
   background: var(--color-today-bg);
   border-color: var(--color-today-bg);
@@ -139,8 +135,6 @@
   background: #b6913f;
 }
 
-/* Escalonado: cada botón aparece con un pequeño delay para dar
-   sensación de abanico en vez de un salto simultáneo. */
 .fab-actions__menu .fab-actions__item:nth-child(1) {
   transition-delay: 0.03s;
 }
@@ -201,8 +195,6 @@
   transform: rotate(45deg);
 }
 
-/* Backdrop sutil para separar el menú abierto del contenido de atrás,
-   mismo criterio que .side-drawer-overlay / .modal-overlay. */
 .fab-actions-backdrop {
   position: fixed;
   inset: 0;
@@ -328,9 +320,6 @@
 
 /* ==========================================================================
    PANEL LATERAL DE PERFIL DE CLIENTE (DRAWER)
-   Reutiliza .day-panel__header / .day-panel__body / .day-panel__close y los
-   componentes de "detalle" (.detail-grid, .history-items) que ya usa el
-   resto de la app, para que el perfil se vea como cualquier otro panel.
    ========================================================================== */
 
 .side-drawer-overlay {
@@ -349,9 +338,6 @@
   pointer-events: all;
 }
 
-/* Componente base: cualquier panel que deba "abrirse hacia el lateral"
-   (perfil de cliente, alta/edición de cliente, etc.) usa esta misma clase
-   en vez de reinventar su propio contenedor y animación. */
 .side-drawer {
   position: fixed;
   top: 0;
@@ -372,16 +358,10 @@
   transform: translateX(0);
 }
 
-/* Variante ancha: paneles con contenido de fila densa (ej. turnos del día)
-   necesitan más espacio horizontal que un formulario o una ficha de detalle.
-   Mismo componente, mismo comportamiento, solo cambia el ancho. */
 .side-drawer--wide {
   width: min(760px, 100vw);
 }
 
-/* El cuerpo reutiliza .day-panel__body, pero necesita ocupar todo el alto
-   disponible del drawer en vez del max-height pensado para el layout
-   apilado calendario/panel-día. */
 .side-drawer .day-panel__body {
   flex: 1;
   max-height: none;
@@ -828,8 +808,6 @@
    ========================================================================== */
 
 @media (max-width: 768px) {
-  /* La tabla de servicios se convierte en tarjetas apiladas,
-   sin anidar componentes .card: son <tr> con borde propio. */
   .data-table thead {
     display: none;
   }
@@ -875,7 +853,7 @@
     justify-content: flex-start;
     flex-wrap: wrap;
   }
-  /* Objetivo táctil mínimo de 44px en toda acción primaria */
+
   .btn {
     min-height: 44px;
   }
@@ -887,14 +865,11 @@
     padding: 0.4rem 0.9rem;
   }
 
-  /* Inputs apilados a ancho completo: dos columnas en celular castigan el dedo */
   .form-row {
     flex-direction: column;
     gap: 0.85rem;
   }
 
-  /* font-size 16px es obligatorio: por debajo de eso, iOS Safari hace zoom
-     automático al enfocar el input y rompe el flujo de carga del formulario. */
   .form-group input,
   .form-group textarea,
   .form-select {
@@ -902,8 +877,6 @@
     padding: 0.8rem 0.85rem;
   }
 
-  /* El modal de turno nuevo pasa a Full Screen Overlay, coherente con el
-     resto de la app: nada de cajas flotantes ni bottom sheets en móvil. */
   .modal-overlay {
     padding: 0;
     background: var(--color-surface);
@@ -967,5 +940,258 @@
 
   .detail-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   FICHA RÁPIDA DE SERVICIO (QUICK ENTRY)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   BARRA DE PESTAÑAS DE CATEGORÍA
+   -------------------------------------------------------------------------- */
+
+.quick-categories {
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  overflow-x: visible;
+}
+
+.quick-cat-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  user-select: none;
+}
+
+.quick-cat-btn:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
+.quick-cat-btn.is-active {
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+/* --------------------------------------------------------------------------
+   PANELES DINÁMICOS
+   -------------------------------------------------------------------------- */
+
+.dynamic-panel {
+  display: none;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--color-border);
+}
+
+.dynamic-panel.is-active {
+  display: block;
+  animation: quick-panel-in var(--t-base) var(--ease-out);
+}
+
+.dynamic-panel:focus {
+  outline: none;
+}
+
+@keyframes quick-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.dynamic-panel::before {
+  content: attr(data-panel-title);
+  display: block;
+  margin-bottom: 0.9rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.dynamic-panel > * + * {
+  margin-top: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dynamic-panel.is-active {
+    animation: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   SLIDERS + CAMPO NUMÉRICO
+   -------------------------------------------------------------------------- */
+
+.label-with-val {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.label-with-val > span {
+  flex-shrink: 0;
+  min-width: 3.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.range-value-input {
+  flex: 0 0 5rem;
+  width: 5rem;
+}
+
+.range-value-input input {
+  text-align: center;
+  padding: 0.5rem 0.35rem;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Las flechas del spinner sobran: el slider ya cubre el ajuste fino. */
+.range-value-input input::-webkit-outer-spin-button,
+.range-value-input input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.form-group input[type="range"],
+.slider-base {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.form-group input[type="range"]:focus,
+.slider-base:focus {
+  border: none;
+  box-shadow: none;
+}
+
+.slider-base::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-border);
+}
+
+.slider-base::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -7px;
+  border-radius: 50%;
+  background: var(--color-today-bg);
+  border: 2px solid var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--t-fast) var(--ease-out);
+}
+
+.slider-base:active::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+
+.slider-base::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-border);
+}
+
+.slider-base::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-today-bg);
+}
+
+.slider-base::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-today-bg);
+  border: 2px solid var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+/* --------------------------------------------------------------------------
+   AUTOCOMPLETADO DE CLIENTE
+   -------------------------------------------------------------------------- */
+
+.form-group:has(.autocomplete-list) {
+  position: relative;
+}
+
+.autocomplete-list {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 0.25rem;
+  list-style: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+}
+
+.autocomplete-list li {
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.autocomplete-list li:hover,
+.autocomplete-list li.is-active {
+  background: var(--color-hover);
+}
+
+/* --------------------------------------------------------------------------
+   ALIAS DE COMPATIBILIDAD
+   -------------------------------------------------------------------------- */
+
+.side-drawer-overlay.is-visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+@media (max-width: 768px) {
+  .label-with-val {
+    gap: 0.5rem;
+  }
+
+  .label-with-val > span {
+    min-width: 2.8rem;
+  }
+
+  .range-value-input {
+    flex: 0 0 4.5rem;
+    width: 4.5rem;
+  }
+
+  .form-group input[type="range"] {
+    padding: 0;
   }
 }

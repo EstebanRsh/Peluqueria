@@ -72,7 +72,6 @@ $today      = date('Y-m-d');
                         <?php if ($hasEvent): ?>
                             <div class="cell__events">
                                 <?php foreach ($events[$dateKey] as $st):
-                                    // Normalizamos el nombre del estado para la clase CSS de manera segura
                                     $lowerStatus = mb_strtolower($st['status'], 'UTF-8');
                                     $statusSlug  = str_replace(
                                         [' ', 'á', 'é', 'í', 'ó', 'ú', 'ñ'],
@@ -109,8 +108,6 @@ $today      = date('Y-m-d');
 
 <!-- =====================================================
      PANEL LATERAL — TURNOS DEL DÍA
-     Mismo drawer que el resto de paneles: overlay + aside
-     con day-panel__header / day-panel__body.
 ====================================================== -->
 
 <div class="side-drawer-overlay" id="dayPanelOverlay"></div>
@@ -132,7 +129,7 @@ $today      = date('Y-m-d');
 
 <div class="fab-actions" id="fabActions">
     <div class="fab-actions__menu" id="fabMenu">
-        <button class="fab-actions__item" id="btnNewAppointment" type="button" tabindex="-1">
+        <button class="fab-actions__item fab-actions__item--accent" id="btnNewAppointment" type="button" tabindex="-1">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="4" width="18" height="17" rx="2" />
                 <line x1="16" y1="2" x2="16" y2="6" />
@@ -176,5 +173,5 @@ $today      = date('Y-m-d');
         <span class="fab-actions__toggle-icon">+</span>
     </button>
 </div>
-
+<?php require __DIR__ . '/service_sheet.php'; ?>
 <?php require __DIR__ . '/modal_appointment.php'; ?>
