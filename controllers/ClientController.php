@@ -1,311 +1,222 @@
 <?php
 
+require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../models/ClientModel.php';
 
-class ClientController
+class ClientController extends BaseController
 {
     private ClientModel $model;
+
+    private const POST_ACTIONS = [
+        'client_create',
+        'client_update',
+        'client_activate',
+        'client_deactivate',
+        'client_delete',
+    ];
 
     public function __construct()
     {
         $this->model = new ClientModel();
     }
 
-
     // ============================================================
     // MANEJO DE PETICIONES
     // ============================================================
 
+    // Punto de entrada: index.php llama a este método para cualquier
+    // ?action= de clientes. Acá se decide qué hacer según la acción.
     public function handleRequest(): void
     {
         ob_start();
 
         $action = $_GET['action'] ?? '';
 
-
-        // ========================================================
-        // LISTAR CLIENTES ACTIVOS
-        // ========================================================
-
-        if ($action === 'clients') {
-            $this->json($this->model->getActive());
+        // Las acciones que modifican datos (crear, editar, borrar, etc.)
+        // solo se pueden pedir por POST, nunca por GET.
+        if (in_array($action, self::POST_ACTIONS, true)) {
+            $this->requirePost();
         }
 
+        switch ($action) {
 
-        // ========================================================
-        // LISTAR TODOS LOS CLIENTES (ACTIVOS E INACTIVOS)
-        // ========================================================
+            // Listado paginado: ?page=1&per_page=25&filter=todos|activos|inactivos&q=texto
+            case 'clients_all':
+                [$page, $perPage] = $this->pagination();
+                $this->json($this->model->paginate(
+                    $this->str($_GET['q'] ?? ''),
+                    $this->statusFilter(),
+                    $page,
+                    $perPage
+                ));
+                break;
 
-        if ($action === 'clients_all') {
-            $this->json($this->model->getAll());
+            // Trae un cliente puntual (para abrir el formulario de edición).
+            case 'client_get':
+                $id = $this->validId($_GET['id'] ?? 0, 'cliente');
+                $client = $this->model->getById($id);
+
+                if (!$client) {
+                    $this->error('El registro del cliente no existe.', 404);
+                }
+
+                $this->json($client);
+                break;
+
+            // Autocompletado por alias (máximo 15 resultados)
+            case 'client_search':
+                $q = $this->str($_GET['q'] ?? '');
+                $this->json($q === '' ? [] : $this->model->search($q));
+                break;
+
+            // Crea un cliente nuevo.
+            case 'client_create':
+                $data = $this->buildClientData($this->readInput());
+                $error = $this->validateClientData($data);
+
+                if ($error !== true) {
+                    $this->error($error);
+                }
+
+                $success = $this->model->create($data);
+
+                $this->json([
+                    'success' => $success,
+                    'error'   => $success ? null : 'No se pudo crear el registro en la base de datos.'
+                ]);
+                break;
+
+            // Edita un cliente existente. Primero se busca el registro actual
+            // para poder conservar los campos que no vengan en el body.
+            case 'client_update':
+                $input = $this->readInput();
+                $id = $this->validId($input['id'] ?? 0, 'cliente');
+                $existing = $this->model->getById($id);
+
+                if (!$existing) {
+                    $this->error('El registro del cliente no existe.', 404);
+                }
+
+                $data = $this->buildClientData($input, $existing);
+                $error = $this->validateClientData($data, $id);
+
+                if ($error !== true) {
+                    $this->error($error);
+                }
+
+                $success = $this->model->update($id, $data);
+
+                $this->json([
+                    'success' => $success,
+                    'error'   => $success ? null : 'No se pudo actualizar el registro.'
+                ]);
+                break;
+
+            // Activar / desactivar comparten la misma lógica (ver más abajo).
+            case 'client_activate':
+                $this->handleToggleActive(true);
+                break;
+
+            case 'client_deactivate':
+                $this->handleToggleActive(false);
+                break;
+
+            // Borra un cliente definitivamente. Solo si no tiene turnos ni
+            // fichas técnicas asociadas (si tiene, se rechaza el borrado).
+            case 'client_delete':
+                $input = $this->readInput();
+                $id = $this->validId($input['id'] ?? 0, 'cliente');
+
+                if ($this->model->hasRelatedRecords($id)) {
+                    $this->error('No se puede eliminar el cliente porque tiene turnos o fichas técnicas asociadas. Podés desactivarlo.');
+                }
+
+                $success = $this->model->delete($id);
+
+                $this->json([
+                    'success' => $success,
+                    'error'   => $success ? null : 'No se pudo eliminar el registro.'
+                ]);
+                break;
         }
 
-
-        // ========================================================
-        // OBTENER CLIENTE POR ID
-        // ========================================================
-
-        if ($action === 'client_get') {
-            $id = filter_var($_GET['id'] ?? 0, FILTER_VALIDATE_INT);
-
-            if ($id === false || $id <= 0) {
-                $this->json([
-                    'success' => false,
-                    'error' => 'ID de cliente inválido.'
-                ], 400);
-            }
-
-            $client = $this->model->getById($id);
-
-            if (!$client) {
-                $this->json([
-                    'success' => false,
-                    'error' => 'El registro del cliente no existe.'
-                ], 404);
-            }
-
-            $this->json($client);
-        }
-
-
-        // ========================================================
-        // BUSCAR CLIENTES (POR ALIAS O CÓDIGO)
-        // ========================================================
-
-        if ($action === 'client_search') {
-            $q = trim($_GET['q'] ?? '');
-
-            if ($q === '') {
-                $this->json([]);
-            }
-
-            $this->json($this->model->search($q));
-        }
-
-
-        // ========================================================
-        // CREAR CLIENTE
-        // ========================================================
-
-        if ($action === 'client_create' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-            $input = json_decode(file_get_contents('php://input'), true);
-
-            if (!is_array($input)) {
-                $this->json([
-                    'success' => false,
-                    'error' => 'El cuerpo de la solicitud no contiene un JSON válido.'
-                ], 400);
-            }
-
-            $data = $this->buildClientData($input);
-            $validationError = $this->validateClientData($data);
-
-            if ($validationError !== true) {
-                $this->json([
-                    'success' => false,
-                    'error' => $validationError
-                ], 400);
-            }
-
-            $success = $this->model->create(
-                $data['alias'],
-                $data['internal_code'],
-                $data['notes']
-            );
-
-            $this->json([
-                'success' => $success,
-                'error' => $success ? null : 'No se pudo crear el registro en la base de datos.'
-            ]);
-        }
-
-
-        // ========================================================
-        // ACTUALIZAR CLIENTE
-        // ========================================================
-
-        if ($action === 'client_update' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-            $input = json_decode(file_get_contents('php://input'), true);
-
-            if (!is_array($input)) {
-                $this->json([
-                    'success' => false,
-                    'error' => 'El cuerpo de la solicitud no contiene un JSON válido.'
-                ], 400);
-            }
-
-            $id = filter_var($input['id'] ?? 0, FILTER_VALIDATE_INT);
-
-            if ($id === false || $id <= 0) {
-                $this->json([
-                    'success' => false,
-                    'error' => 'ID de cliente inválido.'
-                ], 400);
-            }
-
-            $existing = $this->model->getById($id);
-
-            if (!$existing) {
-                $this->json([
-                    'success' => false,
-                    'error' => 'El registro del cliente no existe.'
-                ], 404);
-            }
-
-            $data = $this->buildClientData($input);
-            $validationError = $this->validateClientData($data, $id);
-
-            if ($validationError !== true) {
-                $this->json([
-                    'success' => false,
-                    'error' => $validationError
-                ], 400);
-            }
-
-            $success = $this->model->update(
-                $id,
-                $data['alias'],
-                $data['internal_code'],
-                $data['notes']
-            );
-
-            $this->json([
-                'success' => $success,
-                'error' => $success ? null : 'No se pudo actualizar el registro.'
-            ]);
-        }
-
-
-        // ========================================================
-        // ACTIVAR CLIENTE
-        // ========================================================
-
-        if ($action === 'client_activate' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->handleToggleActive(true);
-        }
-
-
-        // ========================================================
-        // DESACTIVAR CLIENTE
-        // ========================================================
-
-        if ($action === 'client_deactivate' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->handleToggleActive(false);
-        }
-
-
-        // ========================================================
-        // ELIMINAR CLIENTE
-        // ========================================================
-
-        if ($action === 'client_delete' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-            $input = json_decode(file_get_contents('php://input'), true);
-
-            if (!is_array($input)) {
-                $this->json([
-                    'success' => false,
-                    'error' => 'El cuerpo de la solicitud no contiene un JSON válido.'
-                ], 400);
-            }
-
-            $id = filter_var($input['id'] ?? 0, FILTER_VALIDATE_INT);
-
-            if ($id === false || $id <= 0) {
-                $this->json([
-                    'success' => false,
-                    'error' => 'ID de cliente inválido.'
-                ], 400);
-            }
-
-            if ($this->model->hasAppointments($id)) {
-                $this->json([
-                    'success' => false,
-                    'error' => 'No se puede eliminar el cliente porque tiene turnos asociados en el historial.'
-                ], 400);
-            }
-
-            $success = $this->model->delete($id);
-
-            $this->json([
-                'success' => $success,
-                'error' => $success ? null : 'No se pudo eliminar el registro.'
-            ]);
-        }
-
-
-        // ========================================================
-        // ACCIÓN NO ENCONTRADA
-        // ========================================================
-
-        $this->json([
-            'success' => false,
-            'error' => 'Acción no válida.'
-        ], 404);
+        // Si el switch no encontró ningún case (acción desconocida), llega acá.
+        $this->error('Acción no válida.', 404);
     }
-
 
     // ============================================================
     // ACTIVAR / DESACTIVAR (LÓGICA COMPARTIDA)
     // ============================================================
 
+    // Lógica compartida por client_activate y client_deactivate:
+    // solo cambia la columna "active" del cliente.
     private function handleToggleActive(bool $active): void
     {
-        $input = json_decode(file_get_contents('php://input'), true);
+        $input = $this->readInput();
+        $id = $this->validId($input['id'] ?? 0, 'cliente');
 
-        if (!is_array($input)) {
-            $this->json([
-                'success' => false,
-                'error' => 'El cuerpo de la solicitud no contiene un JSON válido.'
-            ], 400);
-        }
-
-        $id = filter_var($input['id'] ?? 0, FILTER_VALIDATE_INT);
-
-        if ($id === false || $id <= 0) {
-            $this->json([
-                'success' => false,
-                'error' => 'ID de cliente inválido.'
-            ], 400);
-        }
-
-        $existing = $this->model->getById($id);
-
-        if (!$existing) {
-            $this->json([
-                'success' => false,
-                'error' => 'El registro no existe.'
-            ], 404);
+        if (!$this->model->getById($id)) {
+            $this->error('El registro no existe.', 404);
         }
 
         $success = $active ? $this->model->activate($id) : $this->model->deactivate($id);
 
         $this->json([
             'success' => $success,
-            'error' => $success ? null : 'No se pudo actualizar el estado del registro.'
+            'error'   => $success ? null : 'No se pudo actualizar el estado del registro.'
         ]);
     }
-
 
     // ============================================================
     // CONSTRUIR DATOS DEL CLIENTE (NORMALIZACIÓN INCLUIDA)
     // ============================================================
 
-    private function buildClientData(array $input): array
+    // Si es una edición ($existing), los campos de diagnóstico y el código
+    // que no vengan en el JSON conservan su valor actual (no se borran).
+    private function buildClientData(array $input, ?array $existing = null): array
     {
-        $rawCode = trim($input['internal_code'] ?? '');
+        $keep = fn(string $key) => $existing !== null && !array_key_exists($key, $input);
+
+        // Normaliza el código interno (ej: "1" -> "CLI-0001").
+        // Si no vino código y es una edición, se conserva el que ya tenía.
+        $code = $this->formatInternalCode($this->str($input['internal_code'] ?? null));
+        if ($code === null && $existing !== null) {
+            $code = $existing['internal_code'];
+        }
+
+        // Igual que arriba, pero para el porcentaje de canas.
+        if ($keep('grey_hair')) {
+            $grey = $existing['grey_hair'] !== null ? (int)$existing['grey_hair'] : null;
+        } else {
+            $rawGrey = $input['grey_hair'] ?? null;
+            $grey = ($rawGrey === null || $rawGrey === '')
+                ? null
+                : filter_var($rawGrey, FILTER_VALIDATE_INT);
+        }
 
         return [
-            'alias' => trim($input['alias'] ?? ''),
-            'internal_code' => $this->formatInternalCode($rawCode),
-            'notes' => trim($input['notes'] ?? '') ?: null,
+            'alias'             => $this->str($input['alias'] ?? null),
+            'internal_code'     => $code,
+            'natural_base_tone' => $keep('natural_base_tone')
+                ? $existing['natural_base_tone']
+                : ($this->str($input['natural_base_tone'] ?? null) ?: null),
+            'grey_hair'         => $grey,
+            'hair_type'         => $keep('hair_type')
+                ? $existing['hair_type']
+                : ($this->str($input['hair_type'] ?? null) ?: null),
+            'allergies'         => $keep('allergies')
+                ? $existing['allergies']
+                : ($this->str($input['allergies'] ?? null) ?: null),
+            'notes'             => $this->str($input['notes'] ?? null) ?: null,
         ];
     }
-
 
     // ============================================================
     // VALIDAR DATOS DEL CLIENTE
     // ============================================================
 
+    // Revisa que los datos del cliente sean válidos antes de guardar.
+    // Devuelve "true" si está todo OK, o un mensaje de error (string) si no.
     private function validateClientData(array $data, int $currentId = 0)
     {
         if ($data['alias'] === '') {
@@ -326,53 +237,44 @@ class ClientController
             }
         }
 
+        if (
+            $data['grey_hair'] !== null &&
+            ($data['grey_hair'] === false || $data['grey_hair'] < 0 || $data['grey_hair'] > 100)
+        ) {
+            return 'El porcentaje de canas debe ser un número entero entre 0 y 100.';
+        }
+
+        if (mb_strlen($data['natural_base_tone'] ?? '') > 30) {
+            return 'El tono natural no puede superar los 30 caracteres.';
+        }
+
+        if (mb_strlen($data['hair_type'] ?? '') > 100) {
+            return 'El tipo de cabello no puede superar los 100 caracteres.';
+        }
+
         return true;
     }
-
 
     // ============================================================
     // FORMATEAR CÓDIGO INTERNO (Ej: "1" -> "CLI-0001")
     // ============================================================
 
-    private function formatInternalCode(?string $code): ?string
+    private function formatInternalCode(string $code): ?string
     {
-        if ($code === null || trim($code) === '') {
+        if ($code === '') {
             return null;
         }
 
-        $clean = trim($code);
-
-        // Convierte números puros ("26" -> "CLI-0026")
-        if (ctype_digit($clean)) {
-            return sprintf('CLI-%04d', (int)$clean);
+        // Números puros ("26" -> "CLI-0026")
+        if (ctype_digit($code)) {
+            return sprintf('CLI-%04d', (int)$code);
         }
 
-        // Normaliza formatos incompletos ("CLI-1" -> "CLI-0001")
-        if (preg_match('/^CLI-(\d+)$/i', $clean, $matches)) {
+        // Formatos incompletos ("CLI-1" -> "CLI-0001")
+        if (preg_match('/^CLI-(\d+)$/i', $code, $matches)) {
             return sprintf('CLI-%04d', (int)$matches[1]);
         }
 
-        return strtoupper($clean);
-    }
-
-
-    // ============================================================
-    // RESPUESTAS JSON
-    // ============================================================
-
-    private function json(mixed $data, int $status = 200): void
-    {
-        ob_end_clean();
-
-        http_response_code($status);
-
-        header('Content-Type: application/json; charset=utf-8');
-
-        echo json_encode(
-            $data,
-            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-        );
-
-        exit;
+        return strtoupper($code);
     }
 }

@@ -1,21 +1,32 @@
 <?php
 
+require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../models/ProductModel.php';
 
-class ProductController
+class ProductController extends BaseController
 {
     private ProductModel $model;
 
+    // Unidades de medida válidas para los insumos de la peluquería
     private const UNITS = ['ml', 'g', 'unidad'];
 
-    // Límite de DECIMAL(10,2)
-    private const MAX_DECIMAL = 99999999.99;
+    // Límites de las columnas SQL: stock DECIMAL(10,2) y unit_cost DECIMAL(10,4)
+    private const MAX_STOCK = 99999999.99;
+    private const MAX_COST = 999999.9999;
+
+    // Acciones que requieren estrictamente un método POST
+    private const POST_ACTIONS = [
+        'product_create',
+        'product_update',
+        'product_activate',
+        'product_deactivate',
+        'product_delete',
+    ];
 
     public function __construct()
     {
         $this->model = new ProductModel();
     }
-
 
     // ============================================================
     // MANEJO DE PETICIONES
@@ -27,216 +38,131 @@ class ProductController
 
         $action = $_GET['action'] ?? '';
 
-
-        // ========================================================
-        // LISTAR PRODUCTOS ACTIVOS
-        // ========================================================
-
-        if ($action === 'products') {
-            $this->json($this->model->getActive());
+        // Si la acción modifica datos, exige POST
+        if (in_array($action, self::POST_ACTIONS, true)) {
+            $this->requirePost();
         }
 
+        switch ($action) {
 
-        // ========================================================
-        // LISTAR TODOS LOS PRODUCTOS (ACTIVOS E INACTIVOS)
-        // ========================================================
+            // Productos activos (tope 500). Para selectores rápidos usar product_search.
+            case 'products':
+                $this->json($this->model->getActive());
+                break;
 
-        if ($action === 'products_all') {
-            $this->json($this->model->getAll());
+            // Listado paginado para abm: ?page=1&per_page=25&filter=todos|activos|inactivos&q=texto
+            case 'products_all':
+                [$page, $perPage] = $this->pagination();
+                $this->json($this->model->paginate(
+                    $this->str($_GET['q'] ?? ''),
+                    $this->statusFilter(),
+                    $page,
+                    $perPage
+                ));
+                break;
+
+            // Obtiene los datos completos de un producto por ID para edición
+            case 'product_get':
+                $id = $this->validId($_GET['id'] ?? 0, 'producto');
+                $product = $this->model->getById($id);
+
+                if (!$product) {
+                    $this->error('El producto no existe.', 404);
+                }
+
+                $this->json($product);
+                break;
+
+            // Autocompletado rápido al armar ficha de servicio (máximo 15 resultados)
+            case 'product_search':
+                $q = $this->str($_GET['q'] ?? '');
+                $this->json($q === '' ? [] : $this->model->search($q));
+                break;
+
+            // Alta de nuevo producto
+            case 'product_create':
+                $data = $this->buildProductData($this->readInput());
+                $error = $this->validateProductData($data);
+
+                if ($error !== true) {
+                    $this->error($error);
+                }
+
+                $success = $this->model->create(
+                    $data['name'],
+                    $data['brand'],
+                    $data['measurement_unit'],
+                    $data['stock'],
+                    $data['unit_cost']
+                );
+
+                $this->json([
+                    'success' => $success,
+                    'error'   => $success ? null : 'No se pudo crear el producto en la base de datos.'
+                ]);
+                break;
+
+            // Modificación o ajuste manual de stock de un producto
+            case 'product_update':
+                $input = $this->readInput();
+                $id = $this->validId($input['id'] ?? 0, 'producto');
+
+                if (!$this->model->getById($id)) {
+                    $this->error('El producto no existe.', 404);
+                }
+
+                $data = $this->buildProductData($input);
+                $error = $this->validateProductData($data);
+
+                if ($error !== true) {
+                    $this->error($error);
+                }
+
+                $success = $this->model->update(
+                    $id,
+                    $data['name'],
+                    $data['brand'],
+                    $data['measurement_unit'],
+                    $data['stock'],
+                    $data['unit_cost']
+                );
+
+                $this->json([
+                    'success' => $success,
+                    'error'   => $success ? null : 'No se pudo actualizar el producto.'
+                ]);
+                break;
+
+            // Activa un producto previamente dado de baja
+            case 'product_activate':
+                $this->handleToggleActive(true);
+                break;
+
+            // Desactiva un producto para ocultarlo en las búsquedas
+            case 'product_deactivate':
+                $this->handleToggleActive(false);
+                break;
+
+            // Eliminación física (solo si nunca fue utilizado en un consumo de servicio)
+            case 'product_delete':
+                $input = $this->readInput();
+                $id = $this->validId($input['id'] ?? 0, 'producto');
+
+                if ($this->model->hasConsumptions($id)) {
+                    $this->error('No se puede eliminar el producto porque ya fue usado en servicios. Podés desactivarlo.');
+                }
+
+                $success = $this->model->delete($id);
+
+                $this->json([
+                    'success' => $success,
+                    'error'   => $success ? null : 'No se pudo eliminar el producto.'
+                ]);
+                break;
         }
 
-
-        // ========================================================
-        // OBTENER PRODUCTO POR ID
-        // ========================================================
-
-        if ($action === 'product_get') {
-            $id = filter_var($_GET['id'] ?? 0, FILTER_VALIDATE_INT);
-
-            if ($id === false || $id <= 0) {
-                $this->json([
-                    'success' => false,
-                    'error' => 'ID de producto inválido.'
-                ], 400);
-            }
-
-            $product = $this->model->getById($id);
-
-            if (!$product) {
-                $this->json([
-                    'success' => false,
-                    'error' => 'El producto no existe.'
-                ], 404);
-            }
-
-            $this->json($product);
-        }
-
-
-        // ========================================================
-        // CREAR PRODUCTO
-        // ========================================================
-
-        if ($action === 'product_create' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-            $input = json_decode(file_get_contents('php://input'), true);
-
-            if (!is_array($input)) {
-                $this->json([
-                    'success' => false,
-                    'error' => 'El cuerpo de la solicitud no contiene un JSON válido.'
-                ], 400);
-            }
-
-            $data = $this->buildProductData($input);
-            $validationError = $this->validateProductData($data);
-
-            if ($validationError !== true) {
-                $this->json([
-                    'success' => false,
-                    'error' => $validationError
-                ], 400);
-            }
-
-            $success = $this->model->create(
-                $data['name'],
-                $data['brand'],
-                $data['measurement_unit'],
-                $data['stock'],
-                $data['unit_cost']
-            );
-
-            $this->json([
-                'success' => $success,
-                'error' => $success ? null : 'No se pudo crear el producto en la base de datos.'
-            ]);
-        }
-
-
-        // ========================================================
-        // ACTUALIZAR PRODUCTO
-        // ========================================================
-
-        if ($action === 'product_update' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-            $input = json_decode(file_get_contents('php://input'), true);
-
-            if (!is_array($input)) {
-                $this->json([
-                    'success' => false,
-                    'error' => 'El cuerpo de la solicitud no contiene un JSON válido.'
-                ], 400);
-            }
-
-            $id = filter_var($input['id'] ?? 0, FILTER_VALIDATE_INT);
-
-            if ($id === false || $id <= 0) {
-                $this->json([
-                    'success' => false,
-                    'error' => 'ID de producto inválido.'
-                ], 400);
-            }
-
-            $existing = $this->model->getById($id);
-
-            if (!$existing) {
-                $this->json([
-                    'success' => false,
-                    'error' => 'El producto no existe.'
-                ], 404);
-            }
-
-            $data = $this->buildProductData($input);
-            $validationError = $this->validateProductData($data);
-
-            if ($validationError !== true) {
-                $this->json([
-                    'success' => false,
-                    'error' => $validationError
-                ], 400);
-            }
-
-            $success = $this->model->update(
-                $id,
-                $data['name'],
-                $data['brand'],
-                $data['measurement_unit'],
-                $data['stock'],
-                $data['unit_cost']
-            );
-
-            $this->json([
-                'success' => $success,
-                'error' => $success ? null : 'No se pudo actualizar el producto.'
-            ]);
-        }
-
-
-        // ========================================================
-        // ACTIVAR PRODUCTO
-        // ========================================================
-
-        if ($action === 'product_activate' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->handleToggleActive(true);
-        }
-
-
-        // ========================================================
-        // DESACTIVAR PRODUCTO
-        // ========================================================
-
-        if ($action === 'product_deactivate' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->handleToggleActive(false);
-        }
-
-
-        // ========================================================
-        // ELIMINAR PRODUCTO
-        // ========================================================
-
-        if ($action === 'product_delete' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-            $input = json_decode(file_get_contents('php://input'), true);
-
-            if (!is_array($input)) {
-                $this->json([
-                    'success' => false,
-                    'error' => 'El cuerpo de la solicitud no contiene un JSON válido.'
-                ], 400);
-            }
-
-            $id = filter_var($input['id'] ?? 0, FILTER_VALIDATE_INT);
-
-            if ($id === false || $id <= 0) {
-                $this->json([
-                    'success' => false,
-                    'error' => 'ID de producto inválido.'
-                ], 400);
-            }
-
-            if ($this->model->hasConsumptions($id)) {
-                $this->json([
-                    'success' => false,
-                    'error' => 'No se puede eliminar el producto porque ya fue usado en servicios. Podés desactivarlo.'
-                ], 400);
-            }
-
-            $success = $this->model->delete($id);
-
-            $this->json([
-                'success' => $success,
-                'error' => $success ? null : 'No se pudo eliminar el producto.'
-            ]);
-        }
-
-
-        // ========================================================
-        // ACCIÓN NO ENCONTRADA
-        // ========================================================
-
-        $this->json([
-            'success' => false,
-            'error' => 'Acción no válida.'
-        ], 404);
+        $this->error('Acción no válida.', 404);
     }
-
 
     // ============================================================
     // ACTIVAR / DESACTIVAR (LÓGICA COMPARTIDA)
@@ -244,41 +170,20 @@ class ProductController
 
     private function handleToggleActive(bool $active): void
     {
-        $input = json_decode(file_get_contents('php://input'), true);
+        $input = $this->readInput();
+        $id = $this->validId($input['id'] ?? 0, 'producto');
 
-        if (!is_array($input)) {
-            $this->json([
-                'success' => false,
-                'error' => 'El cuerpo de la solicitud no contiene un JSON válido.'
-            ], 400);
-        }
-
-        $id = filter_var($input['id'] ?? 0, FILTER_VALIDATE_INT);
-
-        if ($id === false || $id <= 0) {
-            $this->json([
-                'success' => false,
-                'error' => 'ID de producto inválido.'
-            ], 400);
-        }
-
-        $existing = $this->model->getById($id);
-
-        if (!$existing) {
-            $this->json([
-                'success' => false,
-                'error' => 'El producto no existe.'
-            ], 404);
+        if (!$this->model->getById($id)) {
+            $this->error('El producto no existe.', 404);
         }
 
         $success = $active ? $this->model->activate($id) : $this->model->deactivate($id);
 
         $this->json([
             'success' => $success,
-            'error' => $success ? null : 'No se pudo actualizar el estado del producto.'
+            'error'   => $success ? null : 'No se pudo actualizar el estado del producto.'
         ]);
     }
-
 
     // ============================================================
     // CONSTRUIR DATOS DEL PRODUCTO (NORMALIZACIÓN INCLUIDA)
@@ -290,16 +195,14 @@ class ProductController
         $unitCost = $input['unit_cost'] ?? 0;
 
         return [
-            'name' => trim((string)($input['name'] ?? '')),
-            'brand' => trim((string)($input['brand'] ?? '')) ?: null,
-            'measurement_unit' => trim((string)($input['measurement_unit'] ?? 'ml')),
-            // Se deja el valor original si no es numérico para que la
-            // validación lo detecte (un string vacío cuenta como 0).
-            'stock' => $stock === '' ? 0 : $stock,
-            'unit_cost' => $unitCost === '' ? 0 : $unitCost,
+            'name'             => $this->str($input['name'] ?? null),
+            'brand'            => $this->str($input['brand'] ?? null) ?: null,
+            'measurement_unit' => $this->str($input['measurement_unit'] ?? 'ml'),
+            // Un string vacío cuenta como 0; si no es numérico la validación lo rechaza.
+            'stock'            => $stock === '' ? 0 : $stock,
+            'unit_cost'        => $unitCost === '' ? 0 : $unitCost,
         ];
     }
-
 
     // ============================================================
     // VALIDAR DATOS DEL PRODUCTO
@@ -331,34 +234,18 @@ class ProductController
             return 'El costo unitario debe ser un número mayor o igual a 0.';
         }
 
+        // Redondeo de precisión según columnas en BD
         $data['stock'] = round((float)$data['stock'], 2);
-        $data['unit_cost'] = round((float)$data['unit_cost'], 2);
+        $data['unit_cost'] = round((float)$data['unit_cost'], 4);
 
-        if ($data['stock'] > self::MAX_DECIMAL || $data['unit_cost'] > self::MAX_DECIMAL) {
-            return 'El stock o el costo unitario superan el valor máximo permitido.';
+        if ($data['stock'] > self::MAX_STOCK) {
+            return 'El stock supera el valor máximo permitido.';
+        }
+
+        if ($data['unit_cost'] > self::MAX_COST) {
+            return 'El costo unitario supera el valor máximo permitido.';
         }
 
         return true;
-    }
-
-
-    // ============================================================
-    // RESPUESTAS JSON
-    // ============================================================
-
-    private function json(mixed $data, int $status = 200): void
-    {
-        ob_end_clean();
-
-        http_response_code($status);
-
-        header('Content-Type: application/json; charset=utf-8');
-
-        echo json_encode(
-            $data,
-            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-        );
-
-        exit;
     }
 }

@@ -6,172 +6,148 @@ class ClientModel
 {
     private mysqli $conn;
 
+    private const COLUMNS = "
+        id, internal_code, alias, natural_base_tone, grey_hair,
+        hair_type, allergies, notes, active, created_at, updated_at
+    ";
+
     public function __construct()
     {
         $this->conn = getConnection();
     }
 
-    public function getActive(): array
+    // Escapa % y _ para que se busquen como texto literal en un LIKE.
+    private function escapeLike(string $text): string
     {
-        $stmt = $this->conn->prepare("
-            SELECT
-                id,
-                internal_code,
-                alias,
-                notes,
-                active,
-                created_at,
-                updated_at
-            FROM clients
-            WHERE active = 1
-            ORDER BY id ASC
-        ");
-
-        if (!$stmt) {
-            return [];
-        }
-
-        $stmt->execute();
-
-        return $stmt
-            ->get_result()
-            ->fetch_all(MYSQLI_ASSOC);
+        return addcslashes($text, '%_\\');
     }
 
-    public function getAll(): array
+    // Listado paginado para el panel de administración.
+    // Busca solo por alias (empieza con el texto ingresado).
+    public function paginate(string $query, string $filter, int $page, int $perPage): array
     {
+        $where = ['1=1'];
+        $types = '';
+        $params = [];
+
+        if ($filter === 'activos') {
+            $where[] = 'active = 1';
+        } elseif ($filter === 'inactivos') {
+            $where[] = 'active = 0';
+        }
+
+        $query = trim($query);
+        if ($query !== '') {
+            $where[] = 'alias LIKE ?';
+            $types .= 's';
+            $params[] = $this->escapeLike($query) . '%';
+        }
+
+        $whereSql = implode(' AND ', $where);
+
+        // Total de registros que cumplen el filtro
+        $stmt = $this->conn->prepare("SELECT COUNT(*) AS total FROM clients WHERE {$whereSql}");
+        if ($types !== '') {
+            $stmt->bind_param($types, ...$params);
+        }
+        $stmt->execute();
+        $total = (int)$stmt->get_result()->fetch_assoc()['total'];
+
+        // Página solicitada
         $stmt = $this->conn->prepare("
-            SELECT
-                id,
-                internal_code,
-                alias,
-                notes,
-                active,
-                created_at,
-                updated_at
+            SELECT " . self::COLUMNS . "
             FROM clients
+            WHERE {$whereSql}
             ORDER BY active DESC, alias ASC
+            LIMIT ? OFFSET ?
         ");
-
-        if (!$stmt) {
-            return [];
-        }
-
+        $offset = ($page - 1) * $perPage;
+        $stmt->bind_param($types . 'ii', ...[...$params, $perPage, $offset]);
         $stmt->execute();
 
-        return $stmt
-            ->get_result()
-            ->fetch_all(MYSQLI_ASSOC);
+        return [
+            'data'     => $stmt->get_result()->fetch_all(MYSQLI_ASSOC),
+            'total'    => $total,
+            'page'     => $page,
+            'per_page' => $perPage,
+        ];
     }
 
+    // Trae un solo cliente por su ID, o null si no existe.
     public function getById(int $id): ?array
     {
         $stmt = $this->conn->prepare("
-            SELECT
-                id,
-                internal_code,
-                alias,
-                notes,
-                active,
-                created_at,
-                updated_at
+            SELECT " . self::COLUMNS . "
             FROM clients
             WHERE id = ?
             LIMIT 1
         ");
 
-        if (!$stmt) {
-            return null;
-        }
-
         $stmt->bind_param('i', $id);
         $stmt->execute();
 
-        $client = $stmt
-            ->get_result()
-            ->fetch_assoc();
-
-        return $client ?: null;
+        return $stmt->get_result()->fetch_assoc() ?: null;
     }
 
+    // Autocompletado: solo por alias, clientes activos, máximo 15.
     public function search(string $query): array
     {
-        $stmt = $this->conn->prepare("
-            SELECT
-                id,
-                internal_code,
-                alias,
-                notes,
-                active,
-                created_at,
-                updated_at
-            FROM clients
-            WHERE active = 1
-              AND (
-                  alias LIKE ?
-                  OR internal_code LIKE ?
-              )
-            ORDER BY alias ASC
-        ");
+        $query = trim($query);
 
-        if (!$stmt) {
+        if ($query === '') {
             return [];
         }
 
-        $search = "%{$query}%";
+        $stmt = $this->conn->prepare("
+            SELECT id, alias, internal_code
+            FROM clients
+            WHERE active = 1
+              AND alias LIKE ?
+            ORDER BY alias ASC
+            LIMIT 15
+        ");
 
-        $stmt->bind_param(
-            'ss',
-            $search,
-            $search
-        );
-
+        $aliasStart = $this->escapeLike($query) . '%';
+        $stmt->bind_param('s', $aliasStart);
         $stmt->execute();
 
-        return $stmt
-            ->get_result()
-            ->fetch_all(MYSQLI_ASSOC);
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
-    public function create(
-        string $alias,
-        ?string $internalCode,
-        ?string $notes
-    ): bool {
+    // Inserta un cliente nuevo.
+    // $d: alias, internal_code, natural_base_tone, grey_hair, hair_type, allergies, notes
+    public function create(array $d): bool
+    {
+        // Transacción porque a veces hace 2 pasos: insertar y, si no vino
+        // código interno, actualizarlo con uno generado a partir del ID.
         $this->conn->begin_transaction();
 
         try {
             $stmt = $this->conn->prepare("
-                INSERT INTO clients (alias, notes, internal_code)
-                VALUES (?, ?, ?)
+                INSERT INTO clients
+                    (alias, internal_code, natural_base_tone, grey_hair, hair_type, allergies, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             ");
 
-            if (!$stmt) {
-                throw new Exception("Error al preparar la consulta de inserción.");
-            }
-
-            $normalizedCode = $internalCode !== null && trim($internalCode) !== ''
-                ? strtoupper(trim($internalCode))
-                : null;
-
-            $stmt->bind_param('sss', $alias, $notes, $normalizedCode);
+            $stmt->bind_param(
+                'sssisss',
+                $d['alias'],
+                $d['internal_code'],
+                $d['natural_base_tone'],
+                $d['grey_hair'],
+                $d['hair_type'],
+                $d['allergies'],
+                $d['notes']
+            );
             $stmt->execute();
 
             $newId = $this->conn->insert_id;
 
-            if ($normalizedCode === null || trim($normalizedCode) === '') {
+            // Sin código interno: se genera uno a partir del ID (CLI-0001)
+            if ($d['internal_code'] === null) {
                 $finalCode = sprintf('CLI-%04d', $newId);
 
-                $stmtUpdate = $this->conn->prepare("
-                    UPDATE clients
-                    SET internal_code = ?
-                    WHERE id = ?
-                ");
-
-                if (!$stmtUpdate) {
-                    throw new Exception("Error al asignar código interno.");
-                }
-
+                $stmtUpdate = $this->conn->prepare("UPDATE clients SET internal_code = ? WHERE id = ?");
                 $stmtUpdate->bind_param('si', $finalCode, $newId);
                 $stmtUpdate->execute();
             }
@@ -180,139 +156,101 @@ class ClientModel
             return true;
         } catch (Throwable $e) {
             $this->conn->rollback();
-            error_log("Error al crear cliente: " . $e->getMessage());
+            error_log('Error al crear cliente: ' . $e->getMessage());
             return false;
         }
     }
 
-    public function update(
-        int $id,
-        string $alias,
-        ?string $internalCode,
-        ?string $notes
-    ): bool {
+    // Actualiza todos los campos de un cliente existente.
+    public function update(int $id, array $d): bool
+    {
         $stmt = $this->conn->prepare("
             UPDATE clients
-            SET
-                alias = ?,
+            SET alias = ?,
                 internal_code = ?,
+                natural_base_tone = ?,
+                grey_hair = ?,
+                hair_type = ?,
+                allergies = ?,
                 notes = ?
             WHERE id = ?
         ");
 
-        if (!$stmt) {
-            return false;
-        }
-
         $stmt->bind_param(
-            'sssi',
-            $alias,
-            $internalCode,
-            $notes,
+            'sssisssi',
+            $d['alias'],
+            $d['internal_code'],
+            $d['natural_base_tone'],
+            $d['grey_hair'],
+            $d['hair_type'],
+            $d['allergies'],
+            $d['notes'],
             $id
         );
 
         return $stmt->execute();
     }
 
+    // Activa / desactiva un cliente (solo cambia la columna "active").
     public function activate(int $id): bool
     {
-        $stmt = $this->conn->prepare("
-            UPDATE clients
-            SET active = 1
-            WHERE id = ?
-        ");
-
-        if (!$stmt) {
-            return false;
-        }
-
-        $stmt->bind_param('i', $id);
-
-        return $stmt->execute();
+        return $this->setActive($id, 1);
     }
 
     public function deactivate(int $id): bool
     {
-        $stmt = $this->conn->prepare("
-            UPDATE clients
-            SET active = 0
-            WHERE id = ?
-        ");
+        return $this->setActive($id, 0);
+    }
 
-        if (!$stmt) {
-            return false;
-        }
-
-        $stmt->bind_param('i', $id);
+    private function setActive(int $id, int $active): bool
+    {
+        $stmt = $this->conn->prepare("UPDATE clients SET active = ? WHERE id = ?");
+        $stmt->bind_param('ii', $active, $id);
 
         return $stmt->execute();
     }
 
-    // ============================================================
-    // VERIFICACIÓN DE RELACIONES CON TURNOS
-    // ============================================================
-
-    public function hasAppointments(int $id): bool
+    // ¿Tiene turnos o fichas técnicas asociadas? Si sí, no se puede eliminar.
+    public function hasRelatedRecords(int $id): bool
     {
         $stmt = $this->conn->prepare("
-            SELECT COUNT(*) as total
-            FROM appointments
-            WHERE client_id = ?
+            SELECT (
+                EXISTS(SELECT 1 FROM appointments WHERE client_id = ?)
+                OR EXISTS(SELECT 1 FROM service_history WHERE client_id = ?)
+            ) AS used
         ");
 
-        if (!$stmt) {
-            return false;
-        }
-
-        $stmt->bind_param('i', $id);
+        $stmt->bind_param('ii', $id, $id);
         $stmt->execute();
 
-        $result = $stmt->get_result()->fetch_assoc();
-
-        return ($result['total'] ?? 0) > 0;
+        return (bool)$stmt->get_result()->fetch_assoc()['used'];
     }
 
-    // ============================================================
-    // ELIMINAR CLIENTE
-    // ============================================================
-
+    // Borra el cliente definitivamente. Vuelve a chequear que no tenga
+    // turnos ni fichas asociadas, como respaldo extra (el controller ya
+    // lo valida antes de llamar a este método).
     public function delete(int $id): bool
     {
-        if ($this->hasAppointments($id)) {
+        if ($this->hasRelatedRecords($id)) {
             return false;
         }
 
-        $stmt = $this->conn->prepare("
-            DELETE FROM clients
-            WHERE id = ?
-        ");
-
-        if (!$stmt) {
-            return false;
-        }
-
+        $stmt = $this->conn->prepare("DELETE FROM clients WHERE id = ?");
         $stmt->bind_param('i', $id);
 
         return $stmt->execute();
     }
 
-    // ============================================================
-    // COMPROBAR UNICIDAD DE CÓDIGO INTERNO
-    // ============================================================
-
+    // ¿Ya existe otro cliente con este código interno? (excluyendo $excludeId,
+    // útil al editar para no chocar con el propio registro).
     public function existsInternalCode(string $code, int $excludeId = 0): bool
     {
         $stmt = $this->conn->prepare("
-            SELECT id 
-            FROM clients 
-            WHERE internal_code = ? AND id != ? 
+            SELECT id
+            FROM clients
+            WHERE internal_code = ? AND id != ?
             LIMIT 1
         ");
-
-        if (!$stmt) {
-            return false;
-        }
 
         $stmt->bind_param('si', $code, $excludeId);
         $stmt->execute();

@@ -10,32 +10,38 @@ class CalendarModel
         $this->conn = getConnection();
     }
 
+    // Retorna el resumen mensual agrupado por fecha y estado de turno.
+    // Permite al calendario pintar los marcadores/contadores numéricos de cada día.
     public function getEventsByMonth(int $year, int $month): array
     {
-        $start = "$year-" . str_pad($month, 2, '0', STR_PAD_LEFT) . "-01";
-        $end   = date('Y-m-t', strtotime($start));
-        // Consultamos la tabla appointments agrupando por fecha y estado
-        $query = "
-            SELECT date, status, COUNT(*) as total 
-            FROM appointments 
-            WHERE date BETWEEN ? AND ? 
-            GROUP BY date, status
-            ORDER BY date ASC, FIELD(status, 'Reservado', 'En sala de espera', 'En atención', 'Finalizado', 'Ausente', 'Cancelado') ASC
-            ";
+        // Primer y último día del mes solicitado
+        $firstDay = mktime(0, 0, 0, $month, 1, $year);
+        $start = date('Y-m-01', $firstDay);
+        $end   = date('Y-m-t', $firstDay);
 
-        $stmt = $this->conn->prepare($query);
+        // Agrupa por fecha y estado respetando el orden de flujo del negocio
+        $stmt = $this->conn->prepare("
+            SELECT date, status, COUNT(*) AS total
+            FROM appointments
+            WHERE date BETWEEN ? AND ?
+            GROUP BY date, status
+            ORDER BY date ASC,
+                FIELD(status, 'Reservado', 'En sala de espera', 'En atención', 'Finalizado', 'Ausente', 'Cancelado') ASC
+        ");
+
         $stmt->bind_param('ss', $start, $end);
         $stmt->execute();
-        $result = $stmt->get_result();
 
         $summary = [];
-        while ($row = $result->fetch_assoc()) {
-            // Estructuramos el array indexado por fecha
+
+        // Modela la respuesta indexando por fecha (ej: $summary['2026-09-25'])
+        foreach ($stmt->get_result() as $row) {
             $summary[$row['date']][] = [
                 'status' => $row['status'],
-                'total'  => (int)$row['total']
+                'total'  => (int)$row['total'],
             ];
         }
+
         return $summary;
     }
 }
