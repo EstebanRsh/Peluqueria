@@ -9,8 +9,9 @@
   align-items: stretch;
   width: 100%;
   height: 100%;
+  min-height: 0;
   gap: 0;
-  margin-top: 0;
+  padding: 1rem;
 }
 
 /* ==========================================================================
@@ -40,11 +41,10 @@
 .calendar-wrapper {
   width: 100%;
   background-color: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.03);
-  border-radius: 0;
-  box-shadow:
-    0 12px 36px rgba(197, 160, 89, 0.06),
-    0 1px 3px rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-float);
+  overflow: hidden;
   position: relative;
   z-index: var(--z-surface);
   display: flex;
@@ -67,13 +67,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 1.25rem 1.5rem;
-  border-bottom: 2px solid var(--color-text);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .calendar__title {
   font-size: 1.4rem;
   font-weight: 700;
   line-height: 1;
+  letter-spacing: 0;
 }
 .calendar__month {
   margin-right: 0.4rem;
@@ -82,16 +83,34 @@
   font-weight: 400;
   color: var(--color-text-muted);
 }
+/*
+   Resumen mensual de alto contraste para dar contexto sin ocupar demasiado
+   espacio visual. Se usa como encabezado de la vista principal del calendario.
+*/
 .calendar__summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
-  padding: 0.65rem 1.5rem;
+  gap: 0.75rem 1.75rem;
+  padding: 0.8rem 1.5rem;
+  background: #faf9f6;
   border-bottom: 1px solid var(--color-border);
 }
 .summary__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   color: var(--color-text-muted);
   font-size: 0.8rem;
+}
+.summary__item::before {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--color-today-bg);
+  content: "";
+}
+.summary__item:nth-child(2)::before {
+  background: var(--color-finalizado-text);
 }
 .summary__num {
   color: var(--color-text);
@@ -131,16 +150,18 @@
 .calendar__grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  grid-template-rows: auto repeat(6, minmax(var(--cell-min-h), 1fr));
+  grid-template-rows: auto;
+  grid-auto-rows: minmax(max-content, 1fr);
   flex: 1;
   min-height: 0;
 }
 .calendar__day-name {
-  padding: 0.6rem 0;
+  padding: 0.65rem 0;
   text-align: center;
   font-size: 0.7rem;
   font-weight: 600;
   color: var(--color-text-muted);
+  background: #faf9f6;
   border-bottom: 1px solid var(--color-border);
 }
 .calendar__day-name--weekend {
@@ -149,19 +170,28 @@
 
 .calendar__cell {
   min-height: var(--cell-min-h);
-  padding: 0.5rem 0.6rem;
+  padding: 0.6rem 0.65rem;
   border-right: 1px solid var(--color-border);
   border-bottom: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  transition: background 0.12s;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  background: var(--color-surface);
+  transition:
+    background var(--t-fast) var(--ease-out),
+    box-shadow var(--t-fast) var(--ease-out);
 }
 .calendar__cell:nth-child(7n) {
   border-right: none;
 }
 .calendar__cell:hover:not(.calendar__cell--ghost):not(.calendar__cell--today) {
   background: var(--color-hover);
+}
+.calendar__cell--active:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline-offset: -3px;
 }
 .calendar__cell--active {
   cursor: pointer;
@@ -174,10 +204,18 @@
   color: var(--color-text-muted);
 }
 .calendar__cell--today {
-  background: var(--color-today-bg);
+  background: #fbf7ed;
+  box-shadow: inset 0 0 0 2px var(--color-today-bg);
 }
 .calendar__cell--today .cell__number {
   color: var(--color-today-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 50%;
+  background: var(--color-today-bg);
 }
 .calendar__cell--selected {
   outline: 2px solid var(--color-text);
@@ -195,29 +233,16 @@
   gap: 0.35rem;
   width: 100%;
 }
-.cell__total {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.35rem;
-  height: 1.35rem;
-  padding: 0 0.25rem;
-  border-radius: 999px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-size: 0.68rem;
-  font-weight: 700;
-}
-.calendar__cell--today .cell__total {
-  background: var(--color-text);
-  color: var(--color-surface);
-}
+/*
+   Las barritas por estado se apilan verticalmente y mantienen el número de
+   turnos centrado dentro de cada uno. Esto evita la franja lateral ruidosa y
+   permite que el calendario se vea más limpio sin perder el dato clave.
+*/
 .cell__events {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  flex-direction: column; /* Apila las barritas verticalmente */
+  gap: 0.25rem;
   margin-top: auto;
-  padding-top: 4px;
   width: 100%;
 }
 .calendar__legend {
@@ -226,6 +251,7 @@
   gap: 0.5rem 1rem;
   padding: 0.75rem 1.5rem;
   list-style: none;
+  background: #faf9f6;
   border-top: 1px solid var(--color-border);
 }
 .legend__item {
@@ -236,10 +262,12 @@
   font-size: 0.7rem;
 }
 .legend__swatch {
+  display: inline-block;
   width: 0.65rem;
   height: 0.65rem;
   border-radius: 50%;
   flex-shrink: 0;
+  border: 1px solid currentColor;
 }
 
 /* ==========================================================================
@@ -409,11 +437,31 @@
   }
 
   .calendar__title {
-    font-size: 1.1rem;
+    font-size: 0.95rem;
+    white-space: nowrap;
+  }
+
+  .calendar__header {
+    gap: 0.5rem;
+    padding: 0.8rem 0.75rem;
+  }
+
+  .calendar__month {
+    margin-right: 0.2rem;
   }
 
   .calendar__nav {
-    transform: scale(0.9);
+    flex-shrink: 0;
+    gap: 0.15rem;
+  }
+
+  .nav-btn {
+    width: 2.15rem;
+    height: 2.15rem;
+  }
+
+  .nav-btn--today {
+    padding: 0 0.45rem;
   }
 
   .calendar__day-name {
@@ -422,18 +470,69 @@
   }
 
   .calendar__cell {
-    padding: 0.4rem 0.3rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    box-shadow: var(--shadow-xs);
+    padding: 0.35rem 0.18rem;
+    align-items: stretch;
+    gap: 0.3rem;
+  }
+
+  .calendar__cell:nth-child(7n) {
+    border-right: 1px solid var(--color-border);
+  }
+
+  .calendar__cell--ghost {
+    border-color: transparent;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .calendar__day-name {
+    padding: 0.4rem 0;
+    border: 0;
+    background: transparent;
+  }
+
+  /*
+     En móvil se reduce la densidad del calendario para mantener la legibilidad
+     sin forzar un alto vertical excesivo. El grid conserva separación mínima,
+     el número del día sigue siendo legible y las barras quedan compactas.
+  */
+  .calendar__grid {
+    gap: 0.25rem 0.15rem;
+    padding: 0.45rem 0.3rem 0.6rem;
+    background: #faf9f6;
+  }
+
+  .cell__head {
     justify-content: center;
-    align-items: center;
-    gap: 0;
   }
 
   .cell__number {
-    font-size: 0.95rem;
+    font-size: 0.82rem;
+  }
+
+  .calendar__cell--today .cell__number {
+    width: 1.4rem;
+    height: 1.4rem;
   }
 
   .cell__events {
-    display: none;
+    display: flex;
+    gap: 0.15rem;
+    margin-top: 0.1rem;
+  }
+
+  .cell__status-badge {
+    height: 0.8rem;
+    font-size: 0.58rem;
+  }
+
+  .calendar__summary,
+  .calendar__legend {
+    padding-right: 1rem;
+    padding-left: 1rem;
   }
 
   .day-panel__header {
@@ -450,7 +549,7 @@
     max-width: 100%;
     width: 100%;
     margin: 0;
-    border-radius: 0;
+    border-radius: var(--radius-sm);
   }
 
   /* Tarjetas Operativas a Doble Línea */

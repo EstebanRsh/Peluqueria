@@ -29,29 +29,26 @@ $monthNames = [
 $dayNames   = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
 $today      = date('Y-m-d');
 
-/* --- Solo presentación (lectura de $events, no altera datos) --- */
 $monthTotal = 0;
-$busyDays   = 0;
+$busyDays = 0;
 foreach ($events as $dayEvents) {
     $busyDays++;
-    foreach ($dayEvents as $st) {
-        $monthTotal += (int)$st['total'];
+    foreach ($dayEvents as $dayEvent) {
+        $monthTotal += (int)$dayEvent['total'];
     }
 }
 $legend = [
-    'reservado'         => 'Reservado',
+    'reservado' => 'Reservado',
     'en-sala-de-espera' => 'Espera',
-    'en-atencion'       => 'Atención',
-    'finalizado'        => 'Finalizado',
-    'cancelado'         => 'Cancelado',
-    'ausente'           => 'Ausente',
+    'en-atencion' => 'Atención',
+    'finalizado' => 'Finalizado',
+    'cancelado' => 'Cancelado',
+    'ausente' => 'Ausente',
 ];
 ?>
 <div class="app-layout">
     <main class="calendar-wrapper">
         <div class="calendar">
-
-            <!-- ===== CABECERA ===== -->
             <div class="calendar__header">
                 <h2 class="calendar__title">
                     <span class="calendar__month"><?= $monthNames[$month] ?></span>
@@ -63,14 +60,6 @@ $legend = [
                     <a href="?month=<?= $nextMonth ?>&year=<?= $nextYear ?>" class="nav-btn" aria-label="Mes siguiente">&#8250;</a>
                 </div>
             </div>
-
-            <!-- ===== RESUMEN DEL MES ===== -->
-            <div class="calendar__summary" aria-label="Resumen del mes">
-                <span class="summary__item"><b class="summary__num"><?= $monthTotal ?></b> turnos</span>
-                <span class="summary__item"><b class="summary__num"><?= $busyDays ?></b> días con agenda</span>
-            </div>
-
-            <!-- ===== GRILLA ===== -->
             <div class="calendar__grid">
                 <?php foreach ($dayNames as $i => $day): ?>
                     <div class="calendar__day-name<?= $i >= 5 ? ' calendar__day-name--weekend' : '' ?>"><?= $day ?></div>
@@ -88,7 +77,7 @@ $legend = [
                 <?php endfor; ?>
 
                 <?php for ($d = 1; $d <= $daysInMonth; $d++):
-                    $dateKey  = sprintf('%04d-%02d-%02d', $year, $month, $d);
+                    $dateKey = sprintf('%04d-%02d-%02d', $year, $month, $d);
                     $isToday  = $dateKey === $today;
                     $hasEvent = isset($events[$dateKey]);
                     $classes  = 'calendar__cell calendar__cell--active';
@@ -96,21 +85,16 @@ $legend = [
                     if ($hasEvent) $classes .= ' calendar__cell--has-event';
                     $dayTotal = 0;
                     if ($hasEvent) {
-                        foreach ($events[$dateKey] as $st) {
-                            $dayTotal += (int)$st['total'];
+                        foreach ($events[$dateKey] as $dayEvent) {
+                            $dayTotal += (int)$dayEvent['total'];
                         }
                     }
                 ?>
                     <div class="<?= $classes ?>" data-date="<?= $dateKey ?>"
                         role="button" tabindex="0"
                         <?= $isToday ? 'aria-current="date"' : '' ?>
-                        aria-label="<?= $d ?> de <?= $monthNames[$month] ?><?= $hasEvent ? ', ' . $dayTotal . ' turnos' : '' ?>">
-                        <div class="cell__head">
-                            <span class="cell__number"><?= $d ?></span>
-                            <?php if ($hasEvent): ?>
-                                <span class="cell__total"><?= $dayTotal ?></span>
-                            <?php endif; ?>
-                        </div>
+                        aria-label="<?= $d ?> de <?= $monthNames[$month] ?><?= $hasEvent ? ', ' . $dayTotal . ($dayTotal === 1 ? ' turno' : ' turnos') : '' ?>">
+                        <span class="cell__number"><?= $d ?></span>
                         <?php if ($hasEvent): ?>
                             <div class="cell__events">
                                 <?php foreach ($events[$dateKey] as $st):
@@ -135,7 +119,8 @@ $legend = [
 
                 <?php
                 $totalCells = $offset + $daysInMonth;
-                $remaining  = 42 - $totalCells;
+                $visibleCells = (int)ceil($totalCells / 7) * 7;
+                $remaining = $visibleCells - $totalCells;
                 for ($i = 1; $i <= $remaining; $i++):
                 ?>
                     <div class="calendar__cell calendar__cell--ghost" aria-hidden="true">
@@ -144,16 +129,25 @@ $legend = [
                 <?php endfor; ?>
             </div>
 
-            <!-- ===== LEYENDA DE ESTADOS ===== -->
+            <!--
+                Resumen compacto del mes: se mantiene visible sin saturar la vista y
+                funciona como "headline" del calendario. La intención es dar contexto
+                rápido antes de entrar en los detalles por día.
+            -->
+            <div class="calendar__summary" aria-label="Resumen del mes">
+                <span class="summary__item"><b class="summary__num"><?= $monthTotal ?></b> turnos</span>
+                <span class="summary__item"><b class="summary__num"><?= $busyDays ?></b> días con agenda</span>
+            </div>
             <ul class="calendar__legend" aria-label="Leyenda de estados">
                 <?php foreach ($legend as $slug => $label): ?>
                     <li class="legend__item">
                         <span class="legend__swatch cell__status-badge--<?= $slug ?>"></span><?= $label ?>
                     </li>
-                <?php endforeach; ?>
+                    <?php endforeach; ?>
             </ul>
         </div>
     </main>
+
 </div>
 
 <!-- =====================================================
@@ -164,28 +158,24 @@ $legend = [
 
 <aside class="side-drawer side-drawer--wide" id="dayPanel" aria-hidden="true">
     <div class="day-panel__header">
-        <div class="day-panel__title">
-            <span class="day-panel__kicker">Agenda del día</span>
-            <span class="day-panel__date" id="panelDate"></span>
-        </div>
+        <span class="day-panel__date" id="panelDate"></span>
         <div class="day-panel__actions">
-            <button class="btn btn--primary btn--sm" id="btnAddAppointment" type="button">+ Turno</button>
-            <button class="day-panel__close" id="panelClose" type="button" aria-label="Cerrar">×</button>
+            <button class="btn btn--primary btn--sm" id="btnAddAppointment">+ Turno</button>
+            <button class="day-panel__close" id="panelClose" aria-label="Cerrar">×</button>
         </div>
     </div>
     <div class="day-panel__body" id="panelBody"></div>
 </aside>
-
 <!-- ============================================================
-     ACCIONES RÁPIDAS (FAB) — rectangular, anclado sobre la bottom bar
+     BOTÓN FLOTANTE DE ACCIONES RÁPIDAS (FAB)
 ============================================================= -->
 <div class="fab-actions-backdrop" id="fabBackdrop"></div>
 
 <div class="fab-actions" id="fabActions">
     <div class="fab-actions__menu" id="fabMenu">
         <button class="fab-actions__item fab-actions__item--accent" id="btnNewAppointment" type="button" tabindex="-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter">
-                <rect x="3" y="4" width="18" height="17" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="17" rx="2" />
                 <line x1="16" y1="2" x2="16" y2="6" />
                 <line x1="8" y1="2" x2="8" y2="6" />
                 <line x1="3" y1="10" x2="21" y2="10" />
@@ -195,63 +185,37 @@ $legend = [
             <span>Nuevo Turno</span>
         </button>
         <button class="fab-actions__item" id="btnNewHistory" type="button" tabindex="-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter">
-                <path d="M9 3h6v2h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2z" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 3h6a1 1 0 0 1 1 1v1h1a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h1V4a1 1 0 0 1 1-1z" />
                 <line x1="8" y1="11" x2="16" y2="11" />
                 <line x1="8" y1="15" x2="16" y2="15" />
             </svg>
             <span>Nueva Historia</span>
         </button>
+
         <button class="fab-actions__item" id="btnNewProduct" type="button" tabindex="-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter">
-                <path d="M21 8v8l-9 5-9-5V8" />
-                <path d="M3 8l9 5 9-5-9-5z" />
-                <path d="M12 22V13" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 8v8a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 16V8" />
+                <path d="M3.27 6.96 12 12l8.73-5.04" />
+                <path d="M12 22V12" />
+                <path d="M8.5 4.27L16 8.5" />
             </svg>
             <span>Nuevo Producto</span>
         </button>
+
         <button class="fab-actions__item" id="btnNewCustomer" type="button" tabindex="-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter">
-                <rect x="8" y="3" width="8" height="8" />
-                <path d="M4 21v-3a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v3" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="7.5" r="4" />
+                <path d="M4.5 21a7.5 7.5 0 0 1 15 0" />
             </svg>
             <span>Nuevo Cliente</span>
         </button>
+
     </div>
 
     <button class="fab-actions__toggle" id="fabToggle" type="button" aria-label="Abrir acciones rápidas" aria-expanded="false" aria-controls="fabMenu">
         <span class="fab-actions__toggle-icon">+</span>
     </button>
 </div>
-
 <?php require __DIR__ . '/service_sheet.php'; ?>
 <?php require __DIR__ . '/modal_appointment.php'; ?>
-
-<!-- Microinteracción mecánica: feedback de pulsado + vibración corta.
-     Autónomo: no toca la lógica de la app. Mover luego a public/js/ui-feel.js -->
-<script>
-(function () {
-  if (window.__uiFeel) return;
-  window.__uiFeel = true;
-  var SEL = '.btn, .nav-btn, .btn-filter, .fab-actions__item, .fab-actions__toggle, .calendar__cell--active, .day-panel__close';
-  var held = null;
-  document.addEventListener('pointerdown', function (e) {
-    var el = e.target.closest(SEL);
-    if (!el) return;
-    held = el;
-    el.classList.add('is-pressed');
-    if (navigator.vibrate) navigator.vibrate(8);
-  }, { passive: true });
-  function release() {
-    if (held) { held.classList.remove('is-pressed'); held = null; }
-  }
-  ['pointerup', 'pointercancel', 'pointerleave', 'blur'].forEach(function (t) {
-    document.addEventListener(t, release, true);
-  });
-  /* Teclado: Enter/Espacio sobre celdas role="button" disparan click */
-  document.addEventListener('keydown', function (e) {
-    var c = e.target.closest && e.target.closest('.calendar__cell--active');
-    if (c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); c.click(); }
-  });
-})();
-</script>
