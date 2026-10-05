@@ -37,7 +37,7 @@ export function formatDate(dateStr) {
 }
 
 // ============================================================
-// NORMALIZACIÓN DE TEXTOS
+// NORMALIZACIÓN DE TEXTOS Y BÚSQUEDA
 // ============================================================
 
 // Convierte un texto en una versión simplificada
@@ -56,4 +56,32 @@ export function slugify(text) {
     .replace(/\s+/g, "-")
     .replace(/[^\w\-]+/g, "")
     .replace(/\-\-+/g, "-");
+}
+
+/**
+ * Quita tildes/diacríticos y convierte a minúsculas
+ */
+export function normalizeText(text) {
+  return String(text ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+/**
+ * Verifica si alguna palabra del texto empieza con cada uno de los términos ingresados
+ */
+export function matchesSearch(haystack, search) {
+  const normalizedSearch = normalizeText(search);
+  if (!normalizedSearch) return true;
+
+  const normalizedHaystack = normalizeText(haystack);
+  const searchTerms = normalizedSearch.split(/\s+/);
+  const words = normalizedHaystack.split(/\s+/);
+
+  // Cada término escrito por el usuario debe coincidir con el inicio de alguna palabra del texto
+  return searchTerms.every((term) =>
+    words.some((word) => word.startsWith(term)),
+  );
 }

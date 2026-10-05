@@ -658,7 +658,7 @@ function setupFilterListeners() {
   // FILTROS DE ESTADO
   // ----------------------------------------------------------
 
-  document.querySelectorAll(".btn-filter").forEach((button) => {
+  panelBody.querySelectorAll(".btn-filter[data-status]").forEach((button) => {
     button.addEventListener("click", () => {
       appointmentFilterStatus = button.dataset.status;
       loadAppointments(appState.activeDay);

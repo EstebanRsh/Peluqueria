@@ -131,8 +131,6 @@ function initUnitSelect() {
       event.preventDefault();
       options[options.length - 1]?.focus();
     } else if (event.key === "Escape") {
-      // No dejamos que el Escape siga subiendo al listener del modal:
-      // primero cierra la lista, no el panel completo.
       event.preventDefault();
       event.stopPropagation();
       closeUnitList({ refocusTrigger: true });
@@ -161,37 +159,20 @@ function isActive(product) {
   return product.active === true || Number(product.active) === 1;
 }
 
-// Muestra el stock con su unidad. Ej: 250 ml, 3 unidad
 function formatStock(product) {
   return `${Number(product.stock)} ${product.measurement_unit}`;
 }
 
-// Muestra el costo por unidad de medida. Ej: $12.50 / ml
 function formatCost(product) {
   return `$${Number(product.unit_cost).toFixed(2)} / ${product.measurement_unit}`;
-}
-
-function visibleProducts() {
-  const search = String(productsState.search ?? "")
-    .trim()
-    .toLowerCase();
-
-  return productsState.products.filter((product) => {
-    const matchesFilter =
-      productsState.filter === "todos" ||
-      (productsState.filter === "activos" && isActive(product)) ||
-      (productsState.filter === "inactivos" && !isActive(product));
-    const text = `${product.name || ""} ${product.brand || ""}`.toLowerCase();
-
-    return matchesFilter && (!search || text.includes(search));
-  });
 }
 
 function renderProductsList() {
   const body = document.querySelector("#viewProducts #adminProductsTableBody");
   if (!body) return;
 
-  const products = visibleProducts();
+  const products = productsState.products;
+
   if (!products.length) {
     body.innerHTML =
       '<tr><td colspan="6" class="panel-empty">No se encontraron productos.</td></tr>';
@@ -325,18 +306,46 @@ async function handleTableAction(event) {
   }
 }
 
-export async function loadProducts() {
-  const products = await fetchAllProducts();
-  productsState.products = Array.isArray(products) ? products : [];
+async function loadProducts(signal = null) {
+  const firstPage = await fetchAllProducts(
+    productsState.search,
+    productsState.filter,
+    signal,
+  );
+
+  if (!Array.isArray(firstPage?.data)) {
+    throw new TypeError("La respuesta de productos no contiene una lista válida.");
+  }
+
+  const products = [...firstPage.data];
+  const perPage = Number(firstPage.per_page);
+  const totalPages = Math.ceil(Number(firstPage.total) / perPage);
+
+  for (let page = 2; page <= totalPages; page += 1) {
+    const result = await fetchAllProducts(
+      productsState.search,
+      productsState.filter,
+      signal,
+      page,
+      perPage,
+    );
+    if (!Array.isArray(result?.data)) {
+      throw new TypeError("La respuesta de productos no contiene una lista válida.");
+    }
+    products.push(...result.data);
+  }
+
+  productsState.products = products;
   return productsState.products;
 }
 
-export async function loadProductsList() {
+export async function loadProductsList(signal = null) {
   const body = document.querySelector("#viewProducts #adminProductsTableBody");
   try {
-    await loadProducts();
+    await loadProducts(signal);
     renderProductsList();
   } catch (error) {
+    if (error.name === "AbortError") return;
     console.error("Error al cargar productos:", error);
     if (body)
       body.innerHTML =
@@ -344,31 +353,31 @@ export async function loadProductsList() {
   }
 }
 
-export async function handleCreateProduct(data) {
+async function handleCreateProduct(data) {
   const result = await createProduct(data);
   await loadProducts();
   return result;
 }
 
-export async function handleUpdateProduct(id, data) {
+async function handleUpdateProduct(id, data) {
   const result = await updateProduct(id, data);
   await loadProducts();
   return result;
 }
 
-export async function handleActivateProduct(id) {
+async function handleActivateProduct(id) {
   const result = await activateProduct(id);
   await loadProducts();
   return result;
 }
 
-export async function handleDeactivateProduct(id) {
+async function handleDeactivateProduct(id) {
   const result = await deactivateProduct(id);
   await loadProducts();
   return result;
 }
 
-export async function handleDeleteProduct(id) {
+async function handleDeleteProduct(id) {
   const result = await deleteProduct(id);
   await loadProducts();
   return result;
@@ -395,12 +404,29 @@ export function initProducts() {
   document
     .querySelector("#viewProducts #btnAddProduct")
     ?.addEventListener("click", () => showProductModal());
+
+  // Variables para la cancelación de peticiones
+  let adminSearchDebounce = null;
+  let adminSearchController = null;
+
+  // Listener para el input de búsqueda (remota)
   document
     .querySelector("#viewProducts #adminProductSearch")
     ?.addEventListener("input", (event) => {
       productsState.search = String(event.target.value ?? "").trim();
-      renderProductsList();
+
+      clearTimeout(adminSearchDebounce);
+
+      if (adminSearchController) {
+        adminSearchController.abort();
+      }
+      adminSearchController = new AbortController();
+
+      adminSearchDebounce = setTimeout(async () => {
+        await loadProductsList(adminSearchController.signal);
+      }, 150);
     });
+
   document
     .querySelector("#viewProducts #adminProductsTableBody")
     ?.addEventListener("click", handleTableAction);
@@ -414,17 +440,20 @@ export function initProducts() {
     }
   });
 
+  // Listener para los botones de estado (dispara carga remota)
   document
     .querySelectorAll("#viewProducts .btn-filter[data-filter]")
     .forEach((button) => {
-      button.addEventListener("click", () => {
+      button.addEventListener("click", async () => {
         productsState.filter = button.dataset.filter;
+
         document
           .querySelectorAll("#viewProducts .btn-filter[data-filter]")
           .forEach((item) => {
             item.classList.toggle("active", item === button);
           });
-        renderProductsList();
+
+        await loadProductsList();
       });
     });
 

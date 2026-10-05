@@ -7,6 +7,7 @@ import { fetchAppointments } from "./api.js";
 import { slugify } from "./utils.js";
 import { initServices, loadServicesList } from "./services.js";
 import { initClients, loadClientsList } from "./clients.js";
+import { initProducts, loadProductsList } from "./products.js";
 import { initQuickEntry } from "./quickEntry.js";
 
 const panel = document.getElementById("dayPanel");
@@ -74,12 +75,14 @@ if (closeBtn) {
 const viewAppointments = document.getElementById("viewAppointments");
 const viewServices = document.getElementById("viewServices");
 const viewClients = document.getElementById("viewClients");
+const viewProducts = document.getElementById("viewProducts");
 const navItems = document.querySelectorAll(".nav-item[data-view]");
 
 const views = {
   appointments: viewAppointments,
   services: viewServices,
   clients: viewClients,
+  products: viewProducts,
 };
 
 navItems.forEach((item) => {
@@ -100,6 +103,8 @@ navItems.forEach((item) => {
       loadServicesList();
     } else if (view === "clients") {
       loadClientsList();
+    } else if (view === "products") {
+      loadProductsList();
     }
   });
 });
@@ -160,6 +165,40 @@ if (fabToggle && fabActions) {
     item.addEventListener("click", closeFab);
   });
 
+  const openExistingForm = (viewName, triggerId) => {
+    const navItem = Array.from(navItems).find(
+      (item) => item.dataset.view === viewName,
+    );
+    if (navItem && !navItem.classList.contains("is-active")) {
+      navItem.click();
+    }
+    document.getElementById(triggerId)?.click();
+  };
+
+  document
+    .getElementById("btnNewAppointment")
+    ?.addEventListener("click", () => {
+      const today = new Date();
+      appState.activeDay ??= [
+        today.getFullYear(),
+        String(today.getMonth() + 1).padStart(2, "0"),
+        String(today.getDate()).padStart(2, "0"),
+      ].join("-");
+      document.getElementById("btnAddAppointment")?.click();
+    });
+
+  document
+    .getElementById("btnNewProduct")
+    ?.addEventListener("click", () =>
+      openExistingForm("products", "btnAddProduct"),
+    );
+
+  document
+    .getElementById("btnNewCustomer")
+    ?.addEventListener("click", () =>
+      openExistingForm("clients", "btnAddClient"),
+    );
+
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && fabActions.classList.contains("is-open")) {
       closeFab();
@@ -170,6 +209,7 @@ if (fabToggle && fabActions) {
 initModal();
 initServices();
 initClients();
+initProducts();
 initQuickEntry();
 window.addEventListener("error", (event) => {
   console.group("ERROR GLOBAL");

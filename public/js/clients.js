@@ -1,11 +1,14 @@
 import {
+  fetchAppointments,
   fetchAllClients,
+  fetchClientTimeline,
   createClient,
   updateClient,
   activateClient,
   deactivateClient,
   deleteClient,
 } from "./api.js";
+import { matchesSearch } from "./utils.js";
 
 const clientsState = {
   clients: [],
@@ -14,6 +17,8 @@ const clientsState = {
 };
 
 let initialized = false;
+let profileRequestId = 0;
+let profileAppointments = [];
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -38,17 +43,18 @@ function truncate(text, maxLength = 40) {
 }
 
 function visibleClients() {
-  const search = clientsState.search.toLowerCase();
-
   return clientsState.clients.filter((client) => {
     const matchesFilter =
       clientsState.filter === "todos" ||
       (clientsState.filter === "activos" && isActive(client)) ||
       (clientsState.filter === "inactivos" && !isActive(client));
-    const text =
-      `${client.alias} ${client.internal_code || ""} ${client.notes || ""}`.toLowerCase();
 
-    return matchesFilter && (!search || text.includes(search));
+    // Se busca por alias y código, no por notas: las notas son texto
+    // libre y con una sola letra terminarían trayendo clientes sin
+    // ninguna relación real con lo buscado.
+    const text = `${client.alias} ${client.internal_code || ""}`;
+
+    return matchesFilter && matchesSearch(text, clientsState.search);
   });
 }
 
@@ -119,6 +125,7 @@ function formData() {
 }
 
 function closeClientProfile() {
+  profileRequestId += 1;
   const panel = document.getElementById("clientProfilePanel");
   const overlay = document.getElementById("clientProfileOverlay");
   const tableBody = document.getElementById("clientsTableBody");
@@ -151,6 +158,16 @@ function openClientProfile(client) {
   status.textContent = active ? "Activo" : "Inactivo";
   status.className = `status-badge status-badge--${active ? "activo" : "inactivo"}`;
   notes.textContent = client.notes || "Sin notas permanentes.";
+  document.getElementById("clientProfileBase").textContent =
+    client.natural_base_tone || "—";
+  document.getElementById("clientProfileHair").textContent =
+    client.hair_type || "—";
+  document.getElementById("clientProfileGrey").textContent =
+    client.grey_hair === null || client.grey_hair === ""
+      ? "—"
+      : `${client.grey_hair}%`;
+  document.getElementById("clientProfileAllergies").textContent =
+    client.allergies || "—";
 
   const initial = String(client.alias || "C")
     .trim()
@@ -174,6 +191,24 @@ function openClientProfile(client) {
   panel.classList.add("is-open");
   panel.setAttribute("aria-hidden", "false");
   overlay?.classList.add("is-open");
+
+  timelineState.records = [];
+  timelineState.filter = "todos";
+  timelineState.search = "";
+  profileAppointments = [];
+  document.getElementById("historySearch").value = "";
+  document
+    .querySelectorAll("#historyFilters .btn-filter")
+    .forEach((button) =>
+      button.classList.toggle("active", button.dataset.historyFilter === "todos"),
+    );
+  document.getElementById("clientProfileHistory").innerHTML =
+    '<p class="history-placeholder">Cargando historial técnico...</p>';
+  document.getElementById("clientProfileAppointments").innerHTML =
+    '<p class="history-placeholder">Cargando turnos...</p>';
+
+  profileRequestId += 1;
+  void loadClientProfileData(client, profileRequestId);
 }
 
 // ==========================================================================
@@ -181,26 +216,157 @@ function openClientProfile(client) {
 // ==========================================================================
 
 const timelineState = {
-  records: [], // Queda vacío. Aquí se inyectará el JSON del backend.
+  records: [],
   filter: "todos",
   search: "",
 };
+
+const TIMELINE_CATEGORIES = {
+  general: "General",
+  color: "Color",
+  treatment: "Tratamiento",
+  cut: "Corte",
+};
+
+function technicalEntries(category) {
+  if (!category || typeof category !== "object" || Array.isArray(category)) {
+    return [];
+  }
+
+  return Object.entries(category).filter(([, value]) => {
+    if (value === null || value === "") return false;
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === "object") return Object.keys(value).length > 0;
+    return true;
+  });
+}
+
+function timelineGroups(details, serviceName = "") {
+  const categoryKeys = Object.keys(TIMELINE_CATEGORIES);
+  const nestedKeys = categoryKeys.filter(
+    (key) =>
+      details[key] &&
+      typeof details[key] === "object" &&
+      !Array.isArray(details[key]),
+  );
+
+  if (nestedKeys.length) {
+    const groups = nestedKeys
+      .map((key) => ({
+        key,
+        label: TIMELINE_CATEGORIES[key],
+        entries: technicalEntries(details[key]),
+      }))
+      .filter((group) => group.entries.length);
+    const additionalEntries = Object.entries(details).filter(
+      ([key]) => !categoryKeys.includes(key),
+    );
+    if (additionalEntries.length) {
+      groups.push({
+        key: "general",
+        label: "Otros datos",
+        entries: additionalEntries,
+      });
+    }
+    return groups;
+  }
+
+  const entries = technicalEntries(details);
+  if (!entries.length) return [];
+
+  const searchable = `${serviceName} ${entries.map(([key]) => key).join(" ")}`
+    .toLocaleLowerCase("es")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  let category = "general";
+  if (/\b(corte|tijera|maquina|capas|bob|pixie)\b/.test(searchable)) {
+    category = "cut";
+  } else if (/\b(color|tinte|oxidante|decoloracion|matizador|formula|tono)\b/.test(searchable)) {
+    category = "color";
+  } else if (/\b(tratamiento|alisado|hidratacion|reconstruccion)\b/.test(searchable)) {
+    category = "treatment";
+  }
+
+  return [
+    {
+      key: category,
+      label: TIMELINE_CATEGORIES[category] || "Datos técnicos",
+      entries,
+    },
+  ];
+}
+
+function formatTechnicalValue(key, value) {
+  if (key === "cart_items" && Array.isArray(value)) {
+    return value
+      .map((item) => {
+        const name = item.name || `Producto ${item.product_id}`;
+        const unit = item.unit ? ` ${item.unit}` : "";
+        return `${name} × ${item.quantity}${unit}`;
+      })
+      .join(", ");
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map((item) =>
+        item && typeof item === "object"
+          ? formatTechnicalValue("", item)
+          : String(item),
+      )
+      .join(", ");
+  }
+  if (typeof value === "object" && value !== null) {
+    return Object.entries(value)
+      .map(
+        ([field, child]) =>
+          `${field.replace(/_/g, " ")}: ${formatTechnicalValue(field, child)}`,
+      )
+      .join(", ");
+  }
+  return String(value);
+}
+
+function formatProfileDate(value, includeTime = true) {
+  const [date, time] = String(value ?? "").split(" ");
+  const [year, month, day] = date.split("-");
+  if (!year || !month || !day) return value || "Fecha no disponible";
+  const formattedDate = `${day}/${month}/${year}`;
+  return includeTime && time
+    ? `${formattedDate} · ${time.slice(0, 5)}`
+    : formattedDate;
+}
 
 function renderTimeline() {
   const container = document.getElementById("clientProfileHistory");
   if (!container) return;
 
-  // Filtrado dinámico en memoria
   const filtered = timelineState.records.filter((record) => {
+    const details = record.technical_details || {};
+    const groups = timelineGroups(details, record.service_name_snapshot);
+    const filterCategory =
+      timelineState.filter === "tratamiento"
+        ? "treatment"
+        : timelineState.filter === "corte"
+          ? "cut"
+          : timelineState.filter;
     const matchFilter =
       timelineState.filter === "todos" ||
-      record.category === timelineState.filter;
+      groups.some((group) => group.key === filterCategory);
+    const searchableDetails = groups
+      .flatMap((group) =>
+        group.entries.flatMap(([key, value]) => [
+          group.label,
+          key,
+          formatTechnicalValue(key, value),
+        ]),
+      )
+      .join(" ")
+      .toLowerCase();
     const matchSearch =
       !timelineState.search ||
-      record.serviceName
-        .toLowerCase()
-        .includes(timelineState.search.toLowerCase()) ||
-      record.notes.toLowerCase().includes(timelineState.search.toLowerCase());
+      `${record.service_name_snapshot || ""} ${searchableDetails}`.includes(
+        timelineState.search.toLowerCase(),
+      );
 
     return matchFilter && matchSearch;
   });
@@ -211,24 +377,138 @@ function renderTimeline() {
   }
 
   container.innerHTML = filtered
+    .map((record) => {
+      const details = record.technical_details || {};
+      const groups = timelineGroups(details, record.service_name_snapshot)
+        .map((group) => {
+          return `
+            <section class="timeline-category">
+              <h4>${escapeHtml(group.label)}</h4>
+              <dl>
+                ${group.entries
+                  .map(
+                    ([field, value]) => `
+                      <div class="timeline-field">
+                        <dt>${escapeHtml(field.replace(/_/g, " "))}</dt>
+                        <dd>${escapeHtml(formatTechnicalValue(field, value))}</dd>
+                      </div>`,
+                  )
+                  .join("")}
+              </dl>
+            </section>`;
+        })
+        .join("");
+
+      return `
+        <article class="timeline-node">
+          <header class="timeline-header">
+            <time class="timeline-date">${escapeHtml(formatProfileDate(record.performed_at))}</time>
+            <strong class="timeline-service">${escapeHtml(record.service_name_snapshot || "Ficha técnica")}</strong>
+          </header>
+          <div class="timeline-details">${groups || '<p class="history-empty">Sin datos técnicos.</p>'}</div>
+        </article>`;
+    })
+    .join("");
+}
+
+function renderClientAppointments() {
+  const container = document.getElementById("clientProfileAppointments");
+  if (!container) return;
+
+  if (!profileAppointments.length) {
+    container.innerHTML = '<p class="history-empty">Sin turnos asociados.</p>';
+    return;
+  }
+
+  container.innerHTML = profileAppointments
     .map(
-      (record) => `
-    <div class="timeline-node">
-      <div class="timeline-header">
-        <span class="timeline-date">${escapeHtml(record.date)}</span>
-        <span class="timeline-service">${escapeHtml(record.serviceName)}</span>
-      </div>
-      <div class="timeline-details">
-        ${record.detailsHtml} <!-- HTML pre-formateado desde el parser del JSON -->
-      </div>
-    </div>
-  `,
+      (appointment) => `
+        <article class="profile-appointment">
+          <div class="profile-appointment__header">
+            <strong>${escapeHtml(appointment.service_name || "Servicio")}</strong>
+            <span class="status-badge">${escapeHtml(appointment.status || "Sin estado")}</span>
+          </div>
+          <div class="profile-appointment__meta">
+            <time>${escapeHtml(formatProfileDate(appointment.date, false))} · ${escapeHtml(String(appointment.time_start || "").slice(0, 5))}${appointment.time_end ? `–${escapeHtml(String(appointment.time_end).slice(0, 5))}` : ""}</time>
+            <span>${escapeHtml(appointment.stylist || "Profesional sin asignar")}</span>
+          </div>
+        </article>`,
     )
     .join("");
 }
 
+async function loadClientProfileData(client, requestId) {
+  const historyContainer = document.getElementById("clientProfileHistory");
+  const appointmentsContainer = document.getElementById(
+    "clientProfileAppointments",
+  );
+
+  let records;
+  try {
+    const response = await fetchClientTimeline(client.id);
+    if (!response?.success || !Array.isArray(response.data)) {
+      throw new TypeError("La respuesta del historial no tiene un formato válido.");
+    }
+    if (requestId !== profileRequestId) return;
+    records = response.data;
+    timelineState.records = records;
+    renderTimeline();
+  } catch (error) {
+    if (requestId !== profileRequestId) return;
+    console.error("Error al cargar historial técnico:", error);
+    if (historyContainer) {
+      historyContainer.innerHTML =
+        '<p class="history-error">No se pudo cargar el historial técnico.</p>';
+    }
+    if (appointmentsContainer) {
+      appointmentsContainer.innerHTML =
+        '<p class="history-error">No se pudieron cargar los turnos asociados.</p>';
+    }
+    return;
+  }
+
+  const appointmentIds = new Set(
+    records
+      .map((record) => Number(record.appointment_id))
+      .filter((id) => Number.isSafeInteger(id) && id > 0),
+  );
+  const dates = [
+    ...new Set(
+      records
+        .filter((record) => appointmentIds.has(Number(record.appointment_id)))
+        .map((record) => String(record.performed_at || "").slice(0, 10))
+        .filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)),
+    ),
+  ];
+
+  try {
+    const appointmentsByDate = await Promise.all(
+      dates.map((date) => fetchAppointments(date)),
+    );
+    if (requestId !== profileRequestId) return;
+
+    profileAppointments = appointmentsByDate
+      .flat()
+      .filter(
+        (appointment) =>
+          appointmentIds.has(Number(appointment.id)) &&
+          String(appointment.client_id) === String(client.id),
+      )
+      .sort((a, b) =>
+        `${b.date} ${b.time_start}`.localeCompare(`${a.date} ${a.time_start}`),
+      );
+    renderClientAppointments();
+  } catch (error) {
+    if (requestId !== profileRequestId) return;
+    console.error("Error al cargar turnos del cliente:", error);
+    if (appointmentsContainer) {
+      appointmentsContainer.innerHTML =
+        '<p class="history-error">No se pudieron cargar los turnos asociados.</p>';
+    }
+  }
+}
+
 function initTimelineEvents() {
-  // Evento de búsqueda por texto
   document
     .getElementById("historySearch")
     ?.addEventListener("input", (event) => {
@@ -238,17 +518,13 @@ function initTimelineEvents() {
 
   // Eventos de los filtros (Píldoras)
   document.querySelectorAll("#historyFilters .btn-filter").forEach((button) => {
-    button.addEventListener("click", (event) => {
-      timelineState.filter = event.target.dataset.historyFilter;
-
-      // Manejo del estado visual "activo"
+    button.addEventListener("click", () => {
+      timelineState.filter = button.dataset.historyFilter;
       document
         .querySelectorAll("#historyFilters .btn-filter")
         .forEach((btn) => {
-          btn.classList.remove("active");
+          btn.classList.toggle("active", btn === button);
         });
-      event.target.classList.add("active");
-
       renderTimeline();
     });
   });
@@ -326,9 +602,25 @@ async function handleTableAction(event) {
   }
 }
 
-export async function loadClients() {
-  const clients = await fetchAllClients();
-  clientsState.clients = Array.isArray(clients) ? clients : [];
+async function loadClients() {
+  const firstPage = await fetchAllClients();
+  if (!Array.isArray(firstPage?.data)) {
+    throw new TypeError("La respuesta de clientes no contiene una lista válida.");
+  }
+
+  const clients = [...firstPage.data];
+  const perPage = Number(firstPage.per_page);
+  const totalPages = Math.ceil(Number(firstPage.total) / perPage);
+
+  for (let page = 2; page <= totalPages; page += 1) {
+    const result = await fetchAllClients(page, perPage);
+    if (!Array.isArray(result?.data)) {
+      throw new TypeError("La respuesta de clientes no contiene una lista válida.");
+    }
+    clients.push(...result.data);
+  }
+
+  clientsState.clients = clients;
   return clientsState.clients;
 }
 
@@ -345,31 +637,31 @@ export async function loadClientsList() {
   }
 }
 
-export async function handleCreateClient(data) {
+async function handleCreateClient(data) {
   const result = await createClient(data);
   await loadClients();
   return result;
 }
 
-export async function handleUpdateClient(id, data) {
+async function handleUpdateClient(id, data) {
   const result = await updateClient(id, data);
   await loadClients();
   return result;
 }
 
-export async function handleActivateClient(id) {
+async function handleActivateClient(id) {
   const result = await activateClient(id);
   await loadClients();
   return result;
 }
 
-export async function handleDeactivateClient(id) {
+async function handleDeactivateClient(id) {
   const result = await deactivateClient(id);
   await loadClients();
   return result;
 }
 
-export async function handleDeleteClient(id) {
+async function handleDeleteClient(id) {
   const result = await deleteClient(id);
   await loadClients();
   return result;
@@ -378,12 +670,13 @@ export async function handleDeleteClient(id) {
 export function initClients() {
   if (initialized) return;
   initialized = true;
+  initTimelineEvents();
 
   document
     .getElementById("btnAddClient")
     ?.addEventListener("click", () => showClientModal());
   document
-    .getElementById("clientSearch")
+    .getElementById("clientListSearch")
     ?.addEventListener("input", (event) => {
       clientsState.search = event.target.value;
       renderClientsList();

@@ -19,7 +19,8 @@
 
 #viewAppointments,
 #viewServices,
-#viewClients {
+#viewClients,
+#viewProducts {
   width: 100%;
   height: 100%;
 }

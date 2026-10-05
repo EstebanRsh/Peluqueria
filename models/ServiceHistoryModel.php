@@ -220,7 +220,7 @@ class ServiceHistoryModel
     }
 
     // ============================================================
-    // OBTENER FICHA TÉCNICA POR ID
+    // OBTENER FICHA TÉCNICA Y LECTURA
     // ============================================================
 
     // Trae una ficha individual por su ID de historial
@@ -249,5 +249,46 @@ class ServiceHistoryModel
             : null;
 
         return $record;
+    }
+
+    // Obtiene el "feed" cronológico para el perfil del cliente
+    public function getTimelineByClient(int $clientId): array
+    {
+        $stmt = $this->conn->prepare("
+            SELECT 
+                id, appointment_id, service_name_snapshot, performed_at, technical_details
+            FROM service_history
+            WHERE client_id = ?
+            ORDER BY performed_at DESC
+        ");
+
+        $stmt->bind_param('i', $clientId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $timeline = [];
+        while ($row = $result->fetch_assoc()) {
+            // Decodificamos el JSON para que el frontend lo consuma como objeto nativo
+            $row['technical_details'] = $row['technical_details'] ? json_decode($row['technical_details'], true) : null;
+            $timeline[] = $row;
+        }
+
+        return $timeline;
+    }
+
+    // Obtiene los consumos asociados a una ficha específica
+    public function getConsumptions(int $historyId): array
+    {
+        $stmt = $this->conn->prepare("
+            SELECT 
+                sc.quantity_used, sc.cost_snapshot, p.name, p.measurement_unit 
+            FROM service_consumptions sc
+            INNER JOIN products p ON sc.product_id = p.id
+            WHERE sc.service_history_id = ?
+        ");
+
+        $stmt->bind_param('i', $historyId);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 }

@@ -17,10 +17,10 @@
         <!-- CLIENT SEARCH -->
         <div class="form-row">
             <div class="form-group form-group--full">
-                <label for="clientSearch">Cliente</label>
-                <input type="text" id="clientSearch" class="input-base" placeholder="Buscar por nombre o alias..." autocomplete="off">
+                <label for="quickEntryClientSearch">Cliente</label>
+                <input type="text" id="quickEntryClientSearch" class="input-base" placeholder="Buscar por nombre o alias..." autocomplete="off">
                 <ul class="autocomplete-list" id="clientSuggestions" style="display: none;"></ul>
-                <input type="hidden" id="clientId">
+                <input type="hidden" id="quickEntryClientId">
             </div>
         </div>
         <div class="form-group">
@@ -224,27 +224,28 @@
         <div id="panelGeneral" class="dynamic-panel" data-panel-title="General / Productos"
             data-category="general" role="tabpanel" tabindex="-1">
             <div class="form-group">
-                <div class="panel-controls">
-                    <label for="productSearch" class="is-hidden">Buscar Producto</label>
+                <div class="panel-controls" style="position: relative;">
+                    <label for="quickEntryProductSearch" class="is-hidden">Buscar Producto</label>
                     <input
                         class="panel-search"
                         type="text"
-                        id="productSearch"
-                        placeholder="Buscar por nombre o código..."
+                        id="quickEntryProductSearch"
+                        placeholder="Buscar por nombre o marca..."
                         autocomplete="off">
+                    <ul class="autocomplete-list" id="quickEntryProductSuggestions" style="display: none;"></ul>
                 </div>
-                <table class="data-table" id="productsTable">
+                <table class="data-table" id="quickEntryProductsTable">
                     <thead>
                         <tr>
                             <th>Cantidad</th>
                             <th>Unidad</th>
                             <th>Nombre</th>
-                            <th>Código</th>
+                            <th>Marca</th>
                             <th>Estado</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
-                    <tbody id="productsTableBody">
+                    <tbody id="quickEntryProductsTableBody">
                         <tr>
                             <td colspan="6" class="panel-loading">
                                 Por favor, cargue productos...
@@ -278,3 +279,88 @@
     </div>
 
 </aside>
+
+<!-- =====================================================
+    CONFIRMACIÓN: GUARDAR FICHA SIN CLIENTE REGISTRADO
+    Se muestra solo cuando se intenta guardar sin haber
+    seleccionado un cliente de la búsqueda (clientId vacío).
+====================================================== -->
+<div class="side-drawer-overlay" id="noClientOverlay"></div>
+
+<div class="confirm-dialog" id="noClientDialog" role="alertdialog" aria-modal="true"
+    aria-labelledby="noClientTitle" aria-describedby="noClientDesc" aria-hidden="true">
+
+    <div class="confirm-dialog__icon" aria-hidden="true">⚠️</div>
+
+    <h3 class="confirm-dialog__title" id="noClientTitle">Cliente no seleccionado</h3>
+
+    <p class="confirm-dialog__desc" id="noClientDesc">
+        No seleccionaste un cliente registrado para esta ficha. Si continuás,
+        el registro va a quedar guardado sin vínculo con un cliente de la base,
+        lo que puede dificultar encontrarlo más adelante.
+    </p>
+
+    <div class="confirm-dialog__actions">
+        <button type="button" class="btn btn--ghost" id="noClientBack">
+            Volver a buscar cliente
+        </button>
+        <button type="button" class="btn btn--primary" id="noClientConfirm">
+            Guardar sin cliente
+        </button>
+    </div>
+</div>
+
+<style>
+    /* ============================================================
+       CONFIRM DIALOG GENÉRICO (tarjeta centrada sobre el overlay)
+       Bloque autocontenido: si tenés una hoja de estilos principal,
+       lo ideal es mover esto ahí y borrar este <style>.
+       ============================================================ */
+    .confirm-dialog {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: var(--z-modal);
+        width: min(420px, 90vw);
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+        padding: 1.75rem;
+        text-align: center;
+    }
+
+    .confirm-dialog.is-open {
+        display: block;
+    }
+
+    #noClientOverlay.is-open {
+        z-index: calc(var(--z-modal) - 1);
+    }
+
+    .confirm-dialog__icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        line-height: 1;
+    }
+
+    .confirm-dialog__title {
+        margin: 0 0 0.5rem;
+        font-size: 1.1rem;
+    }
+
+    .confirm-dialog__desc {
+        margin: 0 0 1.5rem;
+        color: #555;
+        font-size: 0.95rem;
+        line-height: 1.4;
+    }
+
+    .confirm-dialog__actions {
+        display: flex;
+        justify-content: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+</style>

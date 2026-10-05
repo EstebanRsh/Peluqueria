@@ -6,6 +6,7 @@ import {
   deactivateService,
   deleteService,
 } from "./api.js";
+import { matchesSearch } from "./utils.js";
 
 const servicesState = {
   services: [],
@@ -29,16 +30,15 @@ function isActive(service) {
 }
 
 function visibleServices() {
-  const search = servicesState.search.toLowerCase();
-
   return servicesState.services.filter((service) => {
     const matchesFilter =
       servicesState.filter === "todos" ||
       (servicesState.filter === "activos" && isActive(service)) ||
       (servicesState.filter === "inactivos" && !isActive(service));
-    const text = `${service.name} ${service.description || ""}`.toLowerCase();
 
-    return matchesFilter && (!search || text.includes(search));
+    const text = `${service.name} ${service.description || ""}`;
+
+    return matchesFilter && matchesSearch(text, servicesState.search);
   });
 }
 
@@ -173,9 +173,25 @@ async function handleTableAction(event) {
   }
 }
 
-export async function loadServices() {
-  const services = await fetchAllServices();
-  servicesState.services = Array.isArray(services) ? services : [];
+async function loadServices() {
+  const firstPage = await fetchAllServices();
+  if (!Array.isArray(firstPage?.data)) {
+    throw new TypeError("La respuesta de servicios no contiene una lista válida.");
+  }
+
+  const services = [...firstPage.data];
+  const perPage = Number(firstPage.per_page);
+  const totalPages = Math.ceil(Number(firstPage.total) / perPage);
+
+  for (let page = 2; page <= totalPages; page += 1) {
+    const result = await fetchAllServices(page, perPage);
+    if (!Array.isArray(result?.data)) {
+      throw new TypeError("La respuesta de servicios no contiene una lista válida.");
+    }
+    services.push(...result.data);
+  }
+
+  servicesState.services = services;
   return servicesState.services;
 }
 
@@ -192,31 +208,31 @@ export async function loadServicesList() {
   }
 }
 
-export async function handleCreateService(data) {
+async function handleCreateService(data) {
   const result = await createService(data);
   await loadServices();
   return result;
 }
 
-export async function handleUpdateService(id, data) {
+async function handleUpdateService(id, data) {
   const result = await updateService(id, data);
   await loadServices();
   return result;
 }
 
-export async function handleActivateService(id) {
+async function handleActivateService(id) {
   const result = await activateService(id);
   await loadServices();
   return result;
 }
 
-export async function handleDeactivateService(id) {
+async function handleDeactivateService(id) {
   const result = await deactivateService(id);
   await loadServices();
   return result;
 }
 
-export async function handleDeleteService(id) {
+async function handleDeleteService(id) {
   const result = await deleteService(id);
   await loadServices();
   return result;

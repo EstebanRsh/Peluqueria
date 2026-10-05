@@ -48,9 +48,41 @@ class ServiceHistoryController extends BaseController
                 $newId = $this->model->save($data, $consumptions);
             } catch (ServiceHistoryException $e) {
                 $this->error($e->getMessage(), $e->getCode() ?: 400);
+                return;
             }
 
             $this->json(['success' => true, 'id' => $newId, 'error' => null]);
+        }
+
+        // Obtener historial completo de un cliente (para el perfil tipo feed)
+        if ($action === 'client_timeline') {
+            $clientId = filter_var($_GET['client_id'] ?? null, FILTER_VALIDATE_INT);
+
+            if (!$clientId || $clientId <= 0) {
+                $this->error('ID de cliente inválido.', 400);
+            }
+
+            $timeline = $this->model->getTimelineByClient($clientId);
+            $this->json(['success' => true, 'data' => $timeline]);
+        }
+
+        // Obtener detalle completo de una ficha individual (incluyendo consumos)
+        if ($action === 'service_history_detail') {
+            $historyId = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
+
+            if (!$historyId || $historyId <= 0) {
+                $this->error('ID de ficha inválido.', 400);
+            }
+
+            $record = $this->model->getById($historyId);
+
+            if (!$record) {
+                $this->error('Ficha no encontrada.', 404);
+            }
+
+            $record['consumptions'] = $this->model->getConsumptions($historyId);
+
+            $this->json(['success' => true, 'data' => $record]);
         }
 
         $this->error('Acción no válida.', 404);
@@ -215,16 +247,28 @@ class ServiceHistoryController extends BaseController
     {
         foreach ($technicalDetails as $category) {
             foreach ($category as $value) {
-                if (is_array($value)) {
-                    if (count($value) > 0) {
-                        return true;
-                    }
-                    continue;
-                }
-
-                if ($value !== null && $value !== '') {
+                if ($this->hasMeaningfulValue($value)) {
                     return true;
                 }
+            }
+        }
+
+        return false;
+    }
+
+    private function hasMeaningfulValue(mixed $value): bool
+    {
+        if ($value === null || $value === '') {
+            return false;
+        }
+
+        if (!is_array($value)) {
+            return true;
+        }
+
+        foreach ($value as $nestedValue) {
+            if ($this->hasMeaningfulValue($nestedValue)) {
+                return true;
             }
         }
 

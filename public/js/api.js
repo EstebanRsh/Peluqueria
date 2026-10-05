@@ -42,6 +42,7 @@ async function handleJsonResponse(response) {
 
   return await response.json();
 }
+
 // ============================================================
 // TURNOS
 // ============================================================
@@ -140,17 +141,13 @@ export async function fetchServices() {
   const res = await fetch(`${BASE_URL}/?action=services`);
   return await handleJsonResponse(res);
 }
+
 // Obtiene todos los servicios, activos e inactivos.
 // Se utiliza en el panel administrativo.
-export async function fetchAllServices() {
-  const res = await fetch(`${BASE_URL}/?action=services_all`);
-  return await handleJsonResponse(res);
-}
-
-// Obtiene un servicio puntual por su ID.
-export async function fetchServiceById(id) {
-  const res = await fetch(`${BASE_URL}/?action=service_get&id=${id}`);
-
+export async function fetchAllServices(page = 1, perPage = 100) {
+  const res = await fetch(
+    `${BASE_URL}/?action=services_all&page=${page}&per_page=${perPage}`,
+  );
   return await handleJsonResponse(res);
 }
 
@@ -234,30 +231,50 @@ export async function deleteService(id) {
 // CLIENTES
 // ============================================================
 
-// Obtiene los clientes activos.
+// Obtiene todos los clientes activos para el selector de turnos.
 export async function fetchClients() {
-  const res = await fetch(`${BASE_URL}/?action=clients`);
-  return await handleJsonResponse(res);
+  const firstPage = await fetchAllClients(1, 100, "activos");
+  if (!Array.isArray(firstPage?.data)) {
+    throw new TypeError("La respuesta de clientes no contiene una lista válida.");
+  }
+
+  const clients = [...firstPage.data];
+  const perPage = Number(firstPage.per_page);
+  const totalPages = Math.ceil(Number(firstPage.total) / perPage);
+
+  for (let page = 2; page <= totalPages; page += 1) {
+    const result = await fetchAllClients(page, perPage, "activos");
+    if (!Array.isArray(result?.data)) {
+      throw new TypeError("La respuesta de clientes no contiene una lista válida.");
+    }
+    clients.push(...result.data);
+  }
+
+  return clients;
 }
 
 // Obtiene todos los clientes, activos e inactivos.
 // Se utiliza en el panel administrativo.
-export async function fetchAllClients() {
-  const res = await fetch(`${BASE_URL}/?action=clients_all`);
+export async function fetchAllClients(page = 1, perPage = 100, filter = "todos") {
+  const res = await fetch(
+    `${BASE_URL}/?action=clients_all&page=${page}&per_page=${perPage}&filter=${encodeURIComponent(filter)}`,
+  );
   return await handleJsonResponse(res);
 }
 
-// Obtiene un cliente puntual por su ID.
-export async function fetchClientById(id) {
-  const res = await fetch(`${BASE_URL}/?action=client_get&id=${id}`);
+export async function fetchClientTimeline(clientId) {
+  const res = await fetch(
+    `${BASE_URL}/?action=client_timeline&client_id=${encodeURIComponent(clientId)}`,
+  );
 
   return await handleJsonResponse(res);
 }
 
-// Busca clientes por alias o código interno.
-export async function searchClients(query) {
+// Busca clientes por alias con soporte para cancelaciones (AbortSignal).
+export async function searchClients(query, signal = null) {
   const res = await fetch(
     `${BASE_URL}/?action=client_search&q=${encodeURIComponent(query)}`,
+    { signal },
   );
 
   return await handleJsonResponse(res);
@@ -334,6 +351,133 @@ export async function deleteClient(id) {
     body: JSON.stringify({
       id: Number(id),
     }),
+  });
+
+  return await handleJsonResponse(res);
+}
+
+// ============================================================
+// PRODUCTOS
+// ============================================================
+
+// Obtiene los productos para el panel administrativo (con filtros, búsqueda y abort signal)
+export async function fetchAllProducts(
+  search = "",
+  filter = "todos",
+  signal = null,
+  page = 1,
+  perPage = 100,
+) {
+  const url =
+    `${BASE_URL}/?action=products_all` +
+    `&q=${encodeURIComponent(search)}` +
+    `&filter=${encodeURIComponent(filter)}` +
+    `&page=${page}&per_page=${perPage}`;
+
+  const res = await fetch(url, { signal });
+  return await handleJsonResponse(res);
+}
+
+// Busca productos por nombre con soporte para cancelaciones (AbortSignal).
+export async function searchProducts(query, signal = null) {
+  const res = await fetch(
+    `${BASE_URL}/?action=product_search&q=${encodeURIComponent(query)}`,
+    { signal },
+  );
+
+  return await handleJsonResponse(res);
+}
+
+// Crea un nuevo producto.
+export async function createProduct(data) {
+  const res = await fetch(`${BASE_URL}/?action=product_create`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  return await handleJsonResponse(res);
+}
+
+// Actualiza un producto existente.
+export async function updateProduct(id, data) {
+  const res = await fetch(`${BASE_URL}/?action=product_update`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: Number(id),
+      ...data,
+    }),
+  });
+
+  return await handleJsonResponse(res);
+}
+
+// Activa un producto.
+export async function activateProduct(id) {
+  const res = await fetch(`${BASE_URL}/?action=product_activate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: Number(id),
+    }),
+  });
+
+  return await handleJsonResponse(res);
+}
+
+// Desactiva un producto.
+export async function deactivateProduct(id) {
+  const res = await fetch(`${BASE_URL}/?action=product_deactivate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: Number(id),
+    }),
+  });
+
+  return await handleJsonResponse(res);
+}
+
+// Elimina un producto.
+// El backend impide eliminar productos que ya fueron
+// usados en servicios (consumos).
+export async function deleteProduct(id) {
+  const res = await fetch(`${BASE_URL}/?action=product_delete`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: Number(id),
+    }),
+  });
+
+  return await handleJsonResponse(res);
+}
+
+// ============================================================
+// FICHAS DE SERVICIO (HISTORIAL TÉCNICO)
+// ============================================================
+
+// Guarda una nueva ficha de servicio (color, tratamiento, corte,
+// general/productos) para un cliente registrado o uno sin registrar
+// (client_name suelto).
+export async function saveServiceHistory(data) {
+  const res = await fetch(`${BASE_URL}/?action=service_history_save`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
   });
 
   return await handleJsonResponse(res);

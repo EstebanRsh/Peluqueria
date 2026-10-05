@@ -136,6 +136,7 @@ class AppointmentController extends BaseController
         }
 
         $this->error('El filtro de estado no es válido.');
+        return 'todos';
     }
 
     // ============================================================

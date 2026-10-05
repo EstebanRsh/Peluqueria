@@ -89,12 +89,24 @@ if (in_array($action, [
     exit;
 }
 
-// Ficha Rápida de servicio (historial técnico)
+// Ficha Rápida de servicio (historial técnico y timeline)
 if (in_array($action, [
-    'service_history_save'
+    'service_history_save',
+    'client_timeline',
+    'service_history_detail'
 ], true)) {
     $controller = new ServiceHistoryController();
     $controller->handleRequest();
+    exit;
+}
+
+if ($action !== '') {
+    http_response_code(404);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(
+        ['success' => false, 'error' => 'Acción no válida.'],
+        JSON_UNESCAPED_UNICODE
+    );
     exit;
 }
 

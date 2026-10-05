@@ -535,6 +535,26 @@
   box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.14);
 }
 
+/* El <select> nativo conserva el "chrome" del sistema operativo (fondo,
+   flecha, a veces hasta el border-radius) si no se le resetea la
+   apariencia explícitamente. Sin esto, en Safari/Chrome el control se ve
+   sin el estilo de la app aunque las reglas de arriba estén definidas. */
+select.form-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a6f61' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  background-size: 14px;
+}
+
+select.form-select:focus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c5a059' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;
@@ -727,6 +747,88 @@
   padding-right: 0.5rem;
 }
 
+.timeline-container {
+  display: grid;
+  gap: 0.85rem;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.timeline-node,
+.profile-appointment {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.timeline-header,
+.profile-appointment__header,
+.profile-appointment__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.timeline-header,
+.profile-appointment__meta {
+  flex-wrap: wrap;
+}
+
+.timeline-date,
+.profile-appointment__meta {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+.timeline-service,
+.profile-appointment__header strong {
+  color: var(--color-text);
+  font-size: 0.92rem;
+}
+
+.timeline-details {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.timeline-category h4 {
+  margin: 0 0 0.3rem;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.timeline-category dl {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+}
+
+.timeline-field {
+  display: grid;
+  grid-template-columns: minmax(105px, 0.4fr) minmax(0, 1fr);
+  gap: 0.6rem;
+  font-size: 0.84rem;
+}
+
+.timeline-field dt {
+  color: var(--color-text-muted);
+  text-transform: capitalize;
+}
+
+.timeline-field dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.profile-appointment__meta {
+  justify-content: flex-start;
+}
+
 .history-items::-webkit-scrollbar {
   width: 8px;
 }
@@ -863,6 +965,13 @@
   .btn-filter {
     min-height: 38px;
     padding: 0.4rem 0.9rem;
+  }
+
+  .custom-select__trigger {
+    min-height: 44px;
+  }
+  .custom-select__option {
+    min-height: 44px;
   }
 
   .form-row {
@@ -1166,6 +1275,124 @@
 .autocomplete-list li:hover,
 .autocomplete-list li.is-active {
   background: var(--color-hover);
+}
+
+/* --------------------------------------------------------------------------
+   SELECT PROPIO (BOTÓN + LISTA)
+   No usa <select>: la caja y la lista desplegada son elementos nuestros,
+   así que todo el aspecto (colores, radios, la lista al abrir) sale de
+   este CSS y no del render nativo del navegador/sistema operativo.
+   -------------------------------------------------------------------------- */
+
+.custom-select {
+  position: relative;
+}
+
+.custom-select__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  font-family: var(--font);
+  font-size: 0.9rem;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.85rem;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease-out);
+}
+
+.custom-select__trigger:hover {
+  border-color: var(--color-text-muted);
+}
+
+.custom-select__trigger:focus-visible {
+  outline: none;
+  border-color: var(--color-today-bg);
+  box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.14);
+}
+
+.custom-select.is-open .custom-select__trigger {
+  border-color: var(--color-today-bg);
+  box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.14);
+}
+
+.custom-select__arrow {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-muted);
+  transition: transform var(--t-fast) var(--ease-out);
+}
+
+.custom-select.is-open .custom-select__arrow {
+  transform: rotate(180deg);
+  color: var(--color-today-bg);
+}
+
+.custom-select__list {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition:
+    opacity var(--t-fast) var(--ease-out),
+    transform var(--t-fast) var(--ease-out);
+}
+
+.custom-select.is-open .custom-select__list {
+  opacity: 1;
+  transform: none;
+  pointer-events: all;
+}
+
+.custom-select__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.custom-select__option:hover,
+.custom-select__option:focus-visible {
+  background: var(--color-hover);
+  outline: none;
+}
+
+.custom-select__option.is-selected {
+  font-weight: 700;
+}
+
+.custom-select__check {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--color-today-bg);
+  visibility: hidden;
+}
+
+.custom-select__option.is-selected .custom-select__check {
+  visibility: visible;
 }
 
 /* --------------------------------------------------------------------------

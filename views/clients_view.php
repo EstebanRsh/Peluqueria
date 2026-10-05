@@ -28,7 +28,7 @@
             <input
                 class="panel-search"
                 type="text"
-                id="clientSearch"
+                id="clientListSearch"
                 placeholder="Buscar por alias o código..."
                 autocomplete="off">
 

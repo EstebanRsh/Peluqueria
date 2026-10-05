@@ -2,6 +2,8 @@
 // FICHA RÁPIDA DE SERVICIO
 // ============================================================
 
+import { saveServiceHistory, searchClients, searchProducts } from "./api.js";
+
 export function initQuickEntry() {
   // REFERENCIAS AL DOM
   const panel = document.getElementById("quickEntryPanel");
@@ -10,6 +12,12 @@ export function initQuickEntry() {
   const btnCancel = document.getElementById("quickEntryCancel");
   const btnSave = document.getElementById("quickEntrySave");
   const btnNewHistory = document.getElementById("btnNewHistory");
+
+  // Confirmación: guardar ficha sin cliente registrado
+  const noClientOverlay = document.getElementById("noClientOverlay");
+  const noClientDialog = document.getElementById("noClientDialog");
+  const noClientBack = document.getElementById("noClientBack");
+  const noClientConfirm = document.getElementById("noClientConfirm");
 
   let cartItems = [];
 
@@ -32,7 +40,126 @@ export function initQuickEntry() {
   if (btnCancel) btnCancel.addEventListener("click", closeDrawer);
   if (overlay) overlay.addEventListener("click", closeDrawer);
 
+  const escapeHtml = (value) =>
+    String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+
+  // ============================================================
+  // BÚSQUEDA DE CLIENTE (AUTOCOMPLETE CON CACHE Y ABORTCONTROLLER)
+  // ============================================================
+
+  const clientSearchInput = document.getElementById("quickEntryClientSearch");
+  const clientSuggestionsList = document.getElementById("clientSuggestions");
+  const clientIdInput = document.getElementById("quickEntryClientId");
+
+  let clientSearchDebounce = null;
+  let clientSearchController = null;
+  const clientSearchCache = new Map();
+
+  const renderClientSuggestions = (clients) => {
+    if (!clientSuggestionsList) return;
+
+    if (!clients.length) {
+      clientSuggestionsList.style.display = "none";
+      clientSuggestionsList.innerHTML = "";
+      return;
+    }
+
+    clientSuggestionsList.innerHTML = clients
+      .map(
+        (client) => `
+        <li data-id="${escapeHtml(client.id)}" data-alias="${escapeHtml(client.alias)}">
+          ${escapeHtml(client.alias)}${client.internal_code ? ` (${escapeHtml(client.internal_code)})` : ""}
+        </li>`,
+      )
+      .join("");
+    clientSuggestionsList.style.display = "block";
+  };
+
+  const clearClientSelection = () => {
+    if (clientIdInput) clientIdInput.value = "";
+    renderClientSuggestions([]);
+  };
+
+  if (clientSearchInput && clientSuggestionsList && clientIdInput) {
+    clientSearchInput.addEventListener("input", () => {
+      clientIdInput.value = "";
+      const query = clientSearchInput.value.trim();
+
+      clearTimeout(clientSearchDebounce);
+
+      if (!query) {
+        renderClientSuggestions([]);
+        return;
+      }
+
+      const cacheKey = query.toLowerCase();
+
+      if (clientSearchCache.has(cacheKey)) {
+        renderClientSuggestions(clientSearchCache.get(cacheKey));
+        return;
+      }
+
+      if (clientSearchController) {
+        clientSearchController.abort();
+      }
+      clientSearchController = new AbortController();
+
+      clientSearchDebounce = setTimeout(async () => {
+        try {
+          const results = await searchClients(
+            query,
+            clientSearchController.signal,
+          );
+          const validResults = Array.isArray(results) ? results : [];
+
+          clientSearchCache.set(cacheKey, validResults);
+          renderClientSuggestions(validResults);
+        } catch (error) {
+          if (error.name !== "AbortError") {
+            console.error("Error al buscar clientes:", error);
+            renderClientSuggestions([]);
+          }
+        }
+      }, 150);
+    });
+
+    clientSuggestionsList.addEventListener("click", (event) => {
+      const item = event.target.closest("li[data-id]");
+      if (!item) return;
+
+      clientIdInput.value = item.dataset.id;
+      clientSearchInput.value = item.dataset.alias;
+      renderClientSuggestions([]);
+
+      if (clientSearchController) {
+        clientSearchController.abort();
+      }
+    });
+
+    document.addEventListener("click", (event) => {
+      if (
+        !clientSuggestionsList.contains(event.target) &&
+        event.target !== clientSearchInput
+      ) {
+        clientSuggestionsList.style.display = "none";
+      }
+    });
+
+    clientSearchInput.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        clientSuggestionsList.style.display = "none";
+      }
+    });
+  }
+
+  // ============================================================
   // NAVEGACIÓN POR PESTAÑAS
+  // ============================================================
 
   const tabs = Array.from(document.querySelectorAll(".quick-cat-btn"));
   const allDynamicPanels = Array.from(
@@ -64,7 +191,6 @@ export function initQuickEntry() {
     tab.addEventListener("click", () => setActive(tab.dataset.category));
   });
 
-  // Navegación con flechas entre pestañas.
   const tablist = document.getElementById("quickCategories");
 
   if (tablist) {
@@ -96,35 +222,166 @@ export function initQuickEntry() {
 
   render();
 
+  // ============================================================
   // SINCRONIZACIÓN DE SLIDERS
+  // ============================================================
+
   document.querySelectorAll(".label-with-val").forEach((group) => {
     const range = group.querySelector('input[type="range"]');
     const number = group.querySelector('input[type="number"]');
 
     if (range && number) {
-      range.addEventListener("input", () => (number.value = range.value));
-      number.addEventListener("input", () => (range.value = number.value));
+      range.addEventListener("input", () => {
+        number.value = range.value;
+        number.dataset.edited = "true";
+      });
+      number.addEventListener("input", () => {
+        range.value = number.value;
+        number.dataset.edited = "true";
+      });
     }
   });
 
-  //  MINI POS: BÚSQUEDA Y CARRITO
-  const productSearch = document.getElementById("productSearch");
-  const productsTableBody = document.getElementById("productsTableBody");
+  // ============================================================
+  // MINI POS: BÚSQUEDA DE PRODUCTOS (SERVIDOR + CACHE + ABORTCONTROLLER)
+  // ============================================================
 
-  if (productSearch) {
-    productSearch.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && e.target.value.trim() !== "") {
-        e.preventDefault();
-        const mockProduct = {
+  const quickEntryRoot = document.getElementById("panelGeneral");
+  const productSearch = quickEntryRoot?.querySelector(
+    "#quickEntryProductSearch",
+  );
+  const productSuggestionsList = quickEntryRoot?.querySelector(
+    "#quickEntryProductSuggestions",
+  );
+  const productsTableBody = quickEntryRoot?.querySelector(
+    "#quickEntryProductsTableBody",
+  );
+
+  const UNIT_LABELS = { ml: "ml", g: "g", unidad: "unid." };
+
+  let productSearchDebounce = null;
+  let productSearchController = null;
+  const productSearchCache = new Map();
+  let lastFetchedProducts = [];
+
+  const hideProductSuggestions = () => {
+    if (!productSuggestionsList) return;
+    productSuggestionsList.style.display = "none";
+    productSuggestionsList.innerHTML = "";
+  };
+
+  const renderProductSuggestions = (products) => {
+    if (!productSuggestionsList) return;
+
+    if (!products.length) {
+      productSuggestionsList.innerHTML = `<li class="autocomplete-hint" aria-disabled="true">No se encontraron productos.</li>`;
+      productSuggestionsList.style.display = "block";
+      return;
+    }
+
+    productSuggestionsList.innerHTML = products
+      .map(
+        (product) => `
+        <li data-id="${escapeHtml(product.id)}">
+          ${escapeHtml(product.name)}${product.brand ? ` — ${escapeHtml(product.brand)}` : ""}
+        </li>`,
+      )
+      .join("");
+    productSuggestionsList.style.display = "block";
+  };
+
+  if (productSearch && productSuggestionsList) {
+    productSearch.addEventListener("input", () => {
+      const query = productSearch.value.trim();
+
+      clearTimeout(productSearchDebounce);
+
+      if (!query) {
+        hideProductSuggestions();
+        return;
+      }
+
+      const cacheKey = query.toLowerCase();
+
+      if (productSearchCache.has(cacheKey)) {
+        const cached = productSearchCache.get(cacheKey);
+        lastFetchedProducts = cached;
+        renderProductSuggestions(cached);
+        return;
+      }
+
+      if (productSearchController) {
+        productSearchController.abort();
+      }
+      productSearchController = new AbortController();
+
+      productSearchDebounce = setTimeout(async () => {
+        try {
+          const results = await searchProducts(
+            query,
+            productSearchController.signal,
+          );
+          const validResults = Array.isArray(results) ? results : [];
+
+          productSearchCache.set(cacheKey, validResults);
+          lastFetchedProducts = validResults;
+          renderProductSuggestions(validResults);
+        } catch (error) {
+          if (error.name !== "AbortError") {
+            console.error("Error al buscar productos:", error);
+            hideProductSuggestions();
+          }
+        }
+      }, 150);
+    });
+
+    productSuggestionsList.addEventListener("click", (event) => {
+      const item = event.target.closest("li[data-id]");
+      if (!item) return;
+
+      const product = lastFetchedProducts.find(
+        (p) => String(p.id) === item.dataset.id,
+      );
+      if (!product) return;
+
+      const existing = cartItems.find(
+        (entry) => entry.product_id === product.id,
+      );
+
+      if (existing) {
+        existing.quantity += 1;
+      } else {
+        cartItems.push({
           item_id: Date.now(),
-          sku: "PROD-01",
-          name: e.target.value,
+          product_id: product.id,
+          name: product.name,
+          brand: product.brand || null,
+          unit: product.measurement_unit,
           quantity: 1,
-          type: "product",
-        };
-        cartItems.push(mockProduct);
-        renderCart();
-        e.target.value = "";
+        });
+      }
+
+      renderCart();
+      productSearch.value = "";
+      hideProductSuggestions();
+
+      if (productSearchController) {
+        productSearchController.abort();
+      }
+    });
+
+    document.addEventListener("click", (event) => {
+      if (
+        !productSuggestionsList.contains(event.target) &&
+        event.target !== productSearch
+      ) {
+        hideProductSuggestions();
+      }
+    });
+
+    productSearch.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        hideProductSuggestions();
       }
     });
   }
@@ -144,9 +401,9 @@ export function initQuickEntry() {
                     <input type="number" min="1" class="input-base" style="width:60px; padding:0.2rem;" 
                            value="${item.quantity}" onchange="window.updateCartQty(${index}, this.value)">
                 </td>
-                <td>Unid.</td>
-                <td>${item.name}</td>
-                <td>${item.sku}</td>
+                <td>${escapeHtml(UNIT_LABELS[item.unit] || item.unit || "—")}</td>
+                <td>${escapeHtml(item.name)}</td>
+                <td>${escapeHtml(item.brand || "—")}</td>
                 <td>-</td>
                 <td>
                     <button class="btn btn--ghost" style="color:red; padding:0.2rem;" onclick="window.removeCartItem(${index})">X</button>
@@ -164,24 +421,22 @@ export function initQuickEntry() {
     cartItems.splice(index, 1);
     renderCart();
   };
-  // RECOLECCIÓN DE DATOS
-  //
-  // Ya no hay una lista de categorías "seleccionadas": las cuatro secciones
-  // viajan siempre. Lo que decide si un campo llega con datos o en null es
-  // si la peluquera escribió algo en él, no si pasó por esa pestaña.
 
-  // Devuelve el valor recortado de un input/textarea, o null si está vacío.
+  // ============================================================
+  // RECOLECCIÓN DE DATOS
+  // ============================================================
+
   const textOrNull = (id) => {
     const value = document.getElementById(id)?.value.trim() || "";
     return value === "" ? null : value;
   };
 
-  // Los campos numéricos están atados a un slider, así que siempre traen un
-  // valor (el del slider). Se guardan como número; solo dan null si el
-  // elemento no existiera.
   const numberOrNull = (id) => {
-    const raw = document.getElementById(id)?.value;
-    if (raw === undefined || raw === "") return null;
+    const input = document.getElementById(id);
+    const raw = input?.value;
+    if (raw === undefined || raw === "" || input.dataset.edited !== "true") {
+      return null;
+    }
     const parsed = parseInt(raw, 10);
     return Number.isFinite(parsed) ? parsed : null;
   };
@@ -222,21 +477,28 @@ export function initQuickEntry() {
     finish: textOrNull("cutFinish"),
   });
 
-  const buildJSON = () => ({
-    record_id: null,
-    client_id: document.getElementById("clientId").value || null,
-    date: new Date().toISOString().split("T")[0],
-    details: {
-      general: buildGeneral(),
-      color: buildColor(),
-      treatment: buildTreatment(),
-      cut: buildCut(),
-    },
-  });
+  const buildJSON = () => {
+    const clientId = document.getElementById("quickEntryClientId").value || null;
+    const clientNameTyped = document
+      .getElementById("quickEntryClientSearch")
+      .value.trim();
 
-  // Un objeto de categoría "vacío" es aquel donde todos los campos son null
-  // (el carrito cuenta como dato si tiene productos). Se usa solo para el
-  // aviso al guardar, no cambia lo que se envía.
+    return {
+      client_id: clientId,
+      client_name: clientId ? null : clientNameTyped || null,
+      consumptions: cartItems.map((item) => ({
+        product_id: Number(item.product_id),
+        quantity: Number(item.quantity),
+      })),
+      details: {
+        general: buildGeneral(),
+        color: buildColor(),
+        treatment: buildTreatment(),
+        cut: buildCut(),
+      },
+    };
+  };
+
   const hasData = (payload) => {
     const { general, color, treatment, cut } = payload.details;
 
@@ -248,37 +510,105 @@ export function initQuickEntry() {
     return [general, color, treatment, cut].some(categoryHasData);
   };
 
+  // ============================================================
+  // CONFIRMACIÓN: GUARDAR SIN CLIENTE
+  // ============================================================
+
+  let resolveNoClientDialog = null;
+
+  const openNoClientDialog = () => {
+    if (!noClientOverlay || !noClientDialog) return;
+    noClientOverlay.classList.add("is-open");
+    noClientDialog.classList.add("is-open");
+    noClientDialog.setAttribute("aria-hidden", "false");
+  };
+
+  const closeNoClientDialog = () => {
+    if (!noClientOverlay || !noClientDialog) return;
+    noClientOverlay.classList.remove("is-open");
+    noClientDialog.classList.remove("is-open");
+    noClientDialog.setAttribute("aria-hidden", "true");
+  };
+
+  const askConfirmSaveWithoutClient = () => {
+    if (!noClientDialog) return Promise.resolve(false);
+
+    return new Promise((resolve) => {
+      resolveNoClientDialog = resolve;
+      openNoClientDialog();
+    });
+  };
+
+  const settleNoClientDialog = (result) => {
+    closeNoClientDialog();
+    if (resolveNoClientDialog) {
+      resolveNoClientDialog(result);
+      resolveNoClientDialog = null;
+    }
+  };
+
+  if (noClientConfirm) {
+    noClientConfirm.addEventListener("click", () => settleNoClientDialog(true));
+  }
+  if (noClientBack) {
+    noClientBack.addEventListener("click", () => settleNoClientDialog(false));
+  }
+  if (noClientOverlay) {
+    noClientOverlay.addEventListener("click", () =>
+      settleNoClientDialog(false),
+    );
+  }
+  document.addEventListener("keydown", (event) => {
+    if (
+      event.key === "Escape" &&
+      noClientDialog &&
+      noClientDialog.classList.contains("is-open")
+    ) {
+      settleNoClientDialog(false);
+    }
+  });
+
+  // ============================================================
   // GUARDAR
+  // ============================================================
+
   if (btnSave) {
     btnSave.addEventListener("click", async () => {
       const data = buildJSON();
 
-      if (!data.client_id && !document.getElementById("clientSearch").value) {
-        alert("Por favor, seleccione un cliente.");
+      if (!data.client_id && !data.client_name) {
+        alert("Por favor, seleccione un cliente o ingrese al menos su nombre.");
         return;
       }
+
+      if (!data.client_id) {
+        const wantsToSaveAnyway = await askConfirmSaveWithoutClient();
+        if (!wantsToSaveAnyway) {
+          document.getElementById("quickEntryClientSearch").focus();
+          return;
+        }
+      }
+
       if (!hasData(data)) {
         alert("Complete al menos un campo de algún servicio antes de guardar.");
         return;
       }
 
-      console.log(
-        "JSON empaquetado para el Backend:",
-        JSON.stringify(data, null, 2),
-      );
-
       try {
         btnSave.disabled = true;
         btnSave.textContent = "Guardando...";
 
-        // const response = await fetch('/api/services/record', { method: 'POST', body: JSON.stringify(data) });
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        const result = await saveServiceHistory(data);
+
+        if (!result.success) {
+          throw new Error(result.error || "No se pudo guardar la ficha.");
+        }
 
         alert("Ficha guardada con éxito.");
         closeDrawer();
       } catch (error) {
         console.error("Error al guardar ficha:", error);
-        alert("Ocurrió un error al guardar.");
+        alert(error.message || "Ocurrió un error al guardar.");
       } finally {
         btnSave.disabled = false;
         btnSave.textContent = "Guardar Ficha";
@@ -286,20 +616,27 @@ export function initQuickEntry() {
     });
   }
 
+  // ============================================================
   // RESETEO DE FORMULARIO
+  // ============================================================
+
   const resetForm = () => {
     document
       .querySelectorAll(
         '#quickEntryPanel input[type="text"], #quickEntryPanel textarea',
       )
       .forEach((input) => (input.value = ""));
-    document.getElementById("clientId").value = "";
+    document.getElementById("quickEntryClientId").value = "";
+    clearClientSelection();
 
     document.querySelectorAll('input[type="range"]').forEach((range) => {
       const defVal = range.getAttribute("value") || range.min;
       range.value = defVal;
       const num = range.parentElement.querySelector('input[type="number"]');
-      if (num) num.value = defVal;
+      if (num) {
+        num.value = defVal;
+        delete num.dataset.edited;
+      }
     });
 
     activeCategory = DEFAULT_CATEGORY;
@@ -307,5 +644,6 @@ export function initQuickEntry() {
 
     cartItems = [];
     renderCart();
+    hideProductSuggestions();
   };
 }
