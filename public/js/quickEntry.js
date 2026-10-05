@@ -398,7 +398,7 @@ export function initQuickEntry() {
         (item, index) => `
             <tr>
                 <td>
-                    <input type="number" min="1" class="input-base" style="width:60px; padding:0.2rem;" 
+                          <input type="number" min="1" class="cart-quantity"
                            value="${item.quantity}" onchange="window.updateCartQty(${index}, this.value)">
                 </td>
                 <td>${escapeHtml(UNIT_LABELS[item.unit] || item.unit || "—")}</td>
@@ -406,7 +406,7 @@ export function initQuickEntry() {
                 <td>${escapeHtml(item.brand || "—")}</td>
                 <td>-</td>
                 <td>
-                    <button class="btn btn--ghost" style="color:red; padding:0.2rem;" onclick="window.removeCartItem(${index})">X</button>
+                    <button class="btn btn--ghost cart-remove" onclick="window.removeCartItem(${index})">X</button>
                 </td>
             </tr>
         `,

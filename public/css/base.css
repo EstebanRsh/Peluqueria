@@ -17,7 +17,6 @@
   /* Radios */
   --radius: 12px;
   --radius-sm: 8px;
-  --radius-lg: 16px;
 
   /* Tipografía: stack moderno con caída a sistema, sin depender de fuentes externas */
   --font:
@@ -49,7 +48,6 @@
   --z-burger: 1025;
   --z-drawer: 1500;
   --z-modal: 2000;
-  --z-modal-fullscreen: 3000;
   --z-fab: 900;
 
   /* Sidebar */

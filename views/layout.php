@@ -24,7 +24,7 @@ $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
             <span></span>
         </button>
         <div class="mobile-header__brand">Mi Peluquería</div>
-        <div style="width: 28px;"></div>
+        <div class="mobile-header__spacer" aria-hidden="true"></div>
     </header>
 
     <div class="app-viewport-container">

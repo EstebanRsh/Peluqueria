@@ -56,7 +56,7 @@
             <div class="form-group form-group--full">
                 <label for="productUnit">Unidad de medida</label>
 
-                <select id="productUnit">
+                <select id="productUnit" class="form-select">
                     <option value="ml">Mililitros (ml)</option>
                     <option value="g">Gramos (g)</option>
                     <option value="unidad">Unidad</option>

@@ -46,7 +46,7 @@
     0 12px 36px rgba(197, 160, 89, 0.06),
     0 1px 3px rgba(0, 0, 0, 0.02);
   position: relative;
-  z-index: 10;
+  z-index: var(--z-surface);
   display: flex;
   flex-direction: column;
 }
@@ -82,6 +82,22 @@
   font-weight: 400;
   color: var(--color-text-muted);
 }
+.calendar__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  padding: 0.65rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.summary__item {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+.summary__num {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
 .calendar__nav {
   display: flex;
   gap: 0.25rem;
@@ -105,6 +121,12 @@
   background: var(--color-hover);
   border-color: #ccc;
 }
+.nav-btn--today {
+  width: auto;
+  padding: 0 0.65rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
 
 .calendar__grid {
   display: grid;
@@ -120,6 +142,9 @@
   font-weight: 600;
   color: var(--color-text-muted);
   border-bottom: 1px solid var(--color-border);
+}
+.calendar__day-name--weekend {
+  color: var(--color-text);
 }
 
 .calendar__cell {
@@ -163,6 +188,30 @@
   font-size: 0.9rem;
   font-weight: 600;
 }
+.cell__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  width: 100%;
+}
+.cell__total {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+.calendar__cell--today .cell__total {
+  background: var(--color-text);
+  color: var(--color-surface);
+}
 .cell__events {
   display: flex;
   flex-wrap: wrap;
@@ -170,6 +219,27 @@
   margin-top: auto;
   padding-top: 4px;
   width: 100%;
+}
+.calendar__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 0.75rem 1.5rem;
+  list-style: none;
+  border-top: 1px solid var(--color-border);
+}
+.legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+}
+.legend__swatch {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 /* ==========================================================================
@@ -186,6 +256,16 @@
 .day-panel__date {
   font-size: 1rem;
   font-weight: 600;
+}
+.day-panel__title {
+  display: flex;
+  flex-direction: column;
+}
+.day-panel__kicker {
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 .day-panel__actions {
   display: flex;
@@ -264,11 +344,10 @@
   font-weight: 600;
   color: var(--color-text);
 }
-.appointment-card__doctor {
+.appointment-card__stylist {
   font-size: 0.85rem;
   color: var(--color-text-muted);
 }
-
 /* ==========================================================================
    SELECTORES DE FLUJO DINÁMICOS
    ========================================================================== */
@@ -399,7 +478,7 @@
     text-overflow: ellipsis;
     flex: 1;
   }
-  .appointment-card__doctor {
+  .appointment-card__stylist {
     font-size: 0.8rem;
   }
 }

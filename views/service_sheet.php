@@ -19,7 +19,7 @@
             <div class="form-group form-group--full">
                 <label for="quickEntryClientSearch">Cliente</label>
                 <input type="text" id="quickEntryClientSearch" class="input-base" placeholder="Buscar por nombre o alias..." autocomplete="off">
-                <ul class="autocomplete-list" id="clientSuggestions" style="display: none;"></ul>
+                <ul class="autocomplete-list" id="clientSuggestions"></ul>
                 <input type="hidden" id="quickEntryClientId">
             </div>
         </div>
@@ -224,7 +224,7 @@
         <div id="panelGeneral" class="dynamic-panel" data-panel-title="General / Productos"
             data-category="general" role="tabpanel" tabindex="-1">
             <div class="form-group">
-                <div class="panel-controls" style="position: relative;">
+                <div class="panel-controls panel-controls--autocomplete">
                     <label for="quickEntryProductSearch" class="is-hidden">Buscar Producto</label>
                     <input
                         class="panel-search"
@@ -232,7 +232,7 @@
                         id="quickEntryProductSearch"
                         placeholder="Buscar por nombre o marca..."
                         autocomplete="off">
-                    <ul class="autocomplete-list" id="quickEntryProductSuggestions" style="display: none;"></ul>
+                    <ul class="autocomplete-list" id="quickEntryProductSuggestions"></ul>
                 </div>
                 <table class="data-table" id="quickEntryProductsTable">
                     <thead>
@@ -309,58 +309,3 @@
         </button>
     </div>
 </div>
-
-<style>
-    /* ============================================================
-       CONFIRM DIALOG GENÉRICO (tarjeta centrada sobre el overlay)
-       Bloque autocontenido: si tenés una hoja de estilos principal,
-       lo ideal es mover esto ahí y borrar este <style>.
-       ============================================================ */
-    .confirm-dialog {
-        display: none;
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: var(--z-modal);
-        width: min(420px, 90vw);
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
-        padding: 1.75rem;
-        text-align: center;
-    }
-
-    .confirm-dialog.is-open {
-        display: block;
-    }
-
-    #noClientOverlay.is-open {
-        z-index: calc(var(--z-modal) - 1);
-    }
-
-    .confirm-dialog__icon {
-        font-size: 2rem;
-        margin-bottom: 0.5rem;
-        line-height: 1;
-    }
-
-    .confirm-dialog__title {
-        margin: 0 0 0.5rem;
-        font-size: 1.1rem;
-    }
-
-    .confirm-dialog__desc {
-        margin: 0 0 1.5rem;
-        color: #555;
-        font-size: 0.95rem;
-        line-height: 1.4;
-    }
-
-    .confirm-dialog__actions {
-        display: flex;
-        justify-content: center;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-    }
-</style>

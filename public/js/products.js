@@ -21,129 +21,11 @@ const UNIT_LABELS = {
   unidad: "Unidad",
 };
 
-// ==========================================================================
-// SELECT PROPIO DE UNIDAD DE MEDIDA (BOTÓN + LISTA)
-// ==========================================================================
-
-function getUnitSelectEls() {
-  return {
-    wrapper: document.getElementById("productUnitSelect"),
-    hiddenInput: document.getElementById("productUnit"),
-    trigger: document.getElementById("productUnitTrigger"),
-    valueLabel: document.querySelector(
-      "#productUnitTrigger .custom-select__value",
-    ),
-    list: document.getElementById("productUnitList"),
-    options: Array.from(
-      document.querySelectorAll("#productUnitList .custom-select__option"),
-    ),
-  };
-}
-
-function isUnitListOpen() {
-  return Boolean(
-    document.getElementById("productUnitSelect")?.classList.contains("is-open"),
-  );
-}
-
-// Sincroniza el input oculto (lo que lee formData()), el texto visible
-// del botón y el estado "seleccionado" de cada opción de la lista.
 function setUnitValue(value) {
-  const { hiddenInput, valueLabel, options } = getUnitSelectEls();
-  if (!hiddenInput) return;
-
-  const unit = UNIT_LABELS[value] ? value : "ml";
-
-  hiddenInput.value = unit;
-  if (valueLabel) valueLabel.textContent = UNIT_LABELS[unit];
-
-  options.forEach((option) => {
-    const isSelected = option.dataset.value === unit;
-    option.classList.toggle("is-selected", isSelected);
-    option.setAttribute("aria-selected", String(isSelected));
-  });
-}
-
-function openUnitList() {
-  const { wrapper, trigger, options } = getUnitSelectEls();
-  if (!wrapper) return;
-
-  wrapper.classList.add("is-open");
-  trigger?.setAttribute("aria-expanded", "true");
-
-  const selected = options.find((option) =>
-    option.classList.contains("is-selected"),
-  );
-  (selected || options[0])?.focus();
-}
-
-function closeUnitList({ refocusTrigger = false } = {}) {
-  const { wrapper, trigger } = getUnitSelectEls();
-  if (!wrapper) return;
-
-  wrapper.classList.remove("is-open");
-  trigger?.setAttribute("aria-expanded", "false");
-
-  if (refocusTrigger) trigger?.focus();
-}
-
-function initUnitSelect() {
-  const { hiddenInput, trigger, list, options } = getUnitSelectEls();
-  if (!trigger || !list) return;
-
-  setUnitValue(hiddenInput?.value);
-
-  trigger.addEventListener("click", () => {
-    if (isUnitListOpen()) {
-      closeUnitList();
-    } else {
-      openUnitList();
-    }
-  });
-
-  options.forEach((option) => {
-    option.addEventListener("click", () => {
-      setUnitValue(option.dataset.value);
-      closeUnitList({ refocusTrigger: true });
-    });
-  });
-
-  list.addEventListener("keydown", (event) => {
-    const currentIndex = options.indexOf(document.activeElement);
-
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      (options[currentIndex + 1] || options[0]).focus();
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      (options[currentIndex - 1] || options[options.length - 1]).focus();
-    } else if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      const focused = options[currentIndex];
-      if (focused) {
-        setUnitValue(focused.dataset.value);
-        closeUnitList({ refocusTrigger: true });
-      }
-    } else if (event.key === "Home") {
-      event.preventDefault();
-      options[0]?.focus();
-    } else if (event.key === "End") {
-      event.preventDefault();
-      options[options.length - 1]?.focus();
-    } else if (event.key === "Escape") {
-      event.preventDefault();
-      event.stopPropagation();
-      closeUnitList({ refocusTrigger: true });
-    }
-  });
-
-  document.addEventListener("click", (event) => {
-    if (!isUnitListOpen()) return;
-    const { wrapper } = getUnitSelectEls();
-    if (wrapper && !wrapper.contains(event.target)) {
-      closeUnitList();
-    }
-  });
+  const unitSelect = document.getElementById("productUnit");
+  if (unitSelect) {
+    unitSelect.value = UNIT_LABELS[value] ? value : "ml";
+  }
 }
 
 function escapeHtml(value) {
@@ -231,7 +113,6 @@ function closeProductModal() {
   const panel = document.getElementById("productFormPanel");
   panel?.classList.remove("is-open");
   panel?.setAttribute("aria-hidden", "true");
-  closeUnitList();
 }
 
 function formData() {
@@ -386,8 +267,6 @@ async function handleDeleteProduct(id) {
 export function initProducts() {
   if (initialized) return;
   initialized = true;
-
-  initUnitSelect();
 
   const refreshProducts = () => {
     void loadProductsList();
