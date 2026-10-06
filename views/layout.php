@@ -1,5 +1,6 @@
 <?php
 $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
+$currentUser = Auth::currentUser();
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -59,8 +60,9 @@ $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
             </nav>
 
             <div class="premium-sidebar__footer">
-                <span class="premium-sidebar__user">Recepción / Admin</span>
-                <span>En línea • Conectado</span>
+                <span class="premium-sidebar__user"><?= htmlspecialchars($currentUser['username'] ?? '', ENT_QUOTES, 'UTF-8') ?></span>
+                <button type="button" id="logoutButton">Salir</button>
+                <p id="logoutMessage" role="status" aria-live="polite"></p>
             </div>
         </aside>
 
@@ -83,9 +85,7 @@ $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
         </main>
     </div>
 
-    <script>
-        window.BASE_URL = '<?= $base ?>';
-    </script>
+    <script>window.BASE_URL = <?= json_encode($base, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;</script>
     <script src="<?= $base ?>/public/js/main.js" type="module"></script>
 </body>
 

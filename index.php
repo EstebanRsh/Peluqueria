@@ -1,7 +1,10 @@
 <?php
 date_default_timezone_set('America/Argentina/Buenos_Aires');
 
-// Cualquier error no controlado (SQL, TypeError, etc.) responde JSON, nunca HTML.
+// Registra los errores no controlados y responde con JSON.
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+
 set_exception_handler(function (Throwable $e) {
     error_log($e);
     while (ob_get_level() > 0) {
@@ -15,6 +18,12 @@ set_exception_handler(function (Throwable $e) {
     );
 });
 
+require_once __DIR__ . '/config/auth.php';
+
+// Valida la petición antes de despachar la acción.
+Auth::guard($_GET['action'] ?? '');
+
+require_once __DIR__ . '/controllers/AuthController.php';
 require_once __DIR__ . '/controllers/CalendarController.php';
 require_once __DIR__ . '/controllers/AppointmentController.php';
 require_once __DIR__ . '/controllers/ServiceController.php';
@@ -26,6 +35,19 @@ require_once __DIR__ . '/controllers/ServiceHistoryController.php';
 // se hace cargo del pedido. Cada bloque de abajo agrupa las acciones
 // (?action=...) que le corresponden a un mismo controlador.
 $action = $_GET['action'] ?? '';
+
+// Acciones de autenticación
+if (in_array($action, [
+    'login',
+    'register',
+    'logout',
+    'session',
+    'change_password'
+], true)) {
+    $controller = new AuthController();
+    $controller->handleRequest();
+    exit;
+}
 
 // Acciones relacionadas con turnos
 if (in_array($action, [

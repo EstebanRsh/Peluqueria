@@ -9,6 +9,7 @@ import { initServices, loadServicesList } from "./services.js";
 import { initClients, loadClientsList } from "./clients.js";
 import { initProducts, loadProductsList } from "./products.js";
 import { initQuickEntry } from "./quickEntry.js";
+import { initLogout } from "./auth.js";
 
 const panel = document.getElementById("dayPanel");
 const closeBtn = document.getElementById("panelClose");
@@ -211,6 +212,7 @@ initServices();
 initClients();
 initProducts();
 initQuickEntry();
+initLogout();
 window.addEventListener("error", (event) => {
   console.group("ERROR GLOBAL");
   console.error(event.message);

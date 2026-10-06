@@ -99,17 +99,34 @@ Ninguno de estos puntos debe presentarse en materiales de producto, capturas o d
 - **Frontend:** JavaScript vanilla (sin frameworks), HTML5 y CSS3.
 - **API:** HTTP basada en JSON, con acciones definidas por parámetro `action`.
 
-Las tablas que existen hoy en el esquema son: `services`, `clients`, `appointments`, `service_history` y `appointment_history`.
+Las tablas que existen hoy en el esquema son: `services`, `clients`, `appointments`, `appointment_history`, `service_history`, `products`, `service_consumptions` y `users`.
 
 ## Guía de instalación local
 
-Requisitos mínimos: **PHP 8.0+** y **MySQL/MariaDB**, junto con un servidor web (Apache o Nginx).
+Requisitos mínimos: **PHP 8.0+** y **MySQL/MariaDB**. Para desarrollo local podés usar el servidor integrado de PHP; Apache o Nginx también sirven.
 
-1. **Clonar el repositorio** en la raíz del servidor web (por ejemplo, `htdocs` en XAMPP o `www` en Laragon).
-2. **Iniciar los servicios** del servidor web y del motor de base de datos.
-3. **Preparar la base de datos:** importar el script de [`config/schema.sql`](config/schema.sql). Crea la base `peluqueria` y toda la estructura de tablas, siempre que el usuario de MySQL tenga permisos suficientes.
-4. **Configurar el entorno:** editar [`config/database.php`](config/database.php) con las credenciales de conexión correctas (usuario, contraseña y host).
-5. **Ejecutar la aplicación:** acceder desde el navegador a la ruta correspondiente (por ejemplo, `http://localhost/nombre-del-proyecto`).
+1. **Clonar el repositorio** y abrir una terminal en la carpeta del proyecto.
+2. **Iniciar MySQL/MariaDB**.
+3. **Preparar la base de datos:** importar el script de [`config/schema.sql`](config/schema.sql). Crea la base `peluqueria1` y toda la estructura de tablas, siempre que el usuario de MySQL tenga permisos suficientes.
+4. **Configurar la conexión:** para desarrollo local podés usar tu usuario local `root`; en el servidor alojado, usá el usuario de base de datos provisto para la aplicación, limitado a su base. En la misma terminal donde vayas a iniciar PHP, configurá las variables de conexión:
+
+   ```sh
+   export DB_HOST=127.0.0.1
+   export DB_PORT=3306
+   export DB_NAME=peluqueria1
+   export DB_USER=root
+   read -rsp 'Contraseña de MySQL: ' DB_PASS; echo
+   export DB_PASS
+   ```
+
+   La contraseña se solicita sin mostrarla y no se guarda en el repositorio. En `localhost`, el registro está habilitado automáticamente solo para conexiones locales; las cuentas nuevas reciben rol `owner` y acceso completo. Fuera de localhost permanece deshabilitado, a menos que configures `AUTH_ALLOW_PUBLIC_REGISTRATION=1`; no actives esa variable en un servidor accesible por otras personas.
+5. **Iniciar el servidor local:** ejecutar `php -S localhost:8000` desde la carpeta del proyecto y esa misma terminal. El servidor integrado de PHP usa HTTP, no HTTPS.
+6. **Abrir el acceso web:** visitar `http://localhost:8000/login.php`. El login crea una sesión con cookie `HttpOnly`; si el registro local está habilitado, podés crear una cuenta de pruebas desde esa misma página.
+7. **Probar el estado de autenticación por API:** abrir `http://localhost:8000/index.php?action=session`. Sin iniciar sesión, la respuesta esperada es `{"success":true,"authenticated":false}`. Usá la URL completa con `http://` y el puerto `:8000`; HTTPS provoca `Unsupported SSL request`.
+
+El botón **Salir** del sidebar llama al endpoint de logout, que invalida la sesión en el servidor y expira la cookie `HttpOnly`; también se limpia el almacenamiento local y de sesión accesible al JavaScript. JavaScript no puede borrar cookies `HttpOnly` directamente.
+
+Si antes configuraste credenciales directamente en [`config/database.php`](config/database.php), rotá esa contraseña: quitarla del archivo actual no la elimina del historial de Git.
 
 ---
 
