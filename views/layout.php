@@ -1,6 +1,8 @@
 <?php
 $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
 $currentUser = Auth::currentUser();
+$username = htmlspecialchars($currentUser['username'] ?? 'Usuario', ENT_QUOTES, 'UTF-8');
+$userInitial = mb_strtoupper(mb_substr($username, 0, 1, 'UTF-8'), 'UTF-8');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -8,7 +10,12 @@ $currentUser = Auth::currentUser();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Peluquería</title>
+    <title>HairApp</title>
+    <!-- Fuentes para la tipografía vintage elegante -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="<?= $base ?>/public/css/base.css">
     <link rel="stylesheet" href="<?= $base ?>/public/css/sidebar.css">
     <link rel="stylesheet" href="<?= $base ?>/public/css/components.css">
@@ -24,7 +31,10 @@ $currentUser = Auth::currentUser();
             <span></span>
             <span></span>
         </button>
-        <div class="mobile-header__brand">Mi Peluquería</div>
+        <div class="mobile-header__brand">
+            <span class="brand-script">Hair</span>
+            <span class="brand-script brand-script--space">App</span>
+        </div>
         <div class="mobile-header__spacer" aria-hidden="true"></div>
     </header>
 
@@ -32,8 +42,10 @@ $currentUser = Auth::currentUser();
 
         <aside class="premium-sidebar">
             <div class="premium-sidebar__header">
-                <div class="premium-sidebar__logo"></div>
-                <div class="premium-sidebar__brand">Mi Peluquería</div>
+                <div class="premium-sidebar__brand">
+                    <span class="brand-script">Hair</span>
+                    <span class="brand-script brand-script--space">App</span>
+                </div>
             </div>
 
             <nav class="premium-sidebar__nav">
@@ -60,9 +72,18 @@ $currentUser = Auth::currentUser();
             </nav>
 
             <div class="premium-sidebar__footer">
-                <span class="premium-sidebar__user"><?= htmlspecialchars($currentUser['username'] ?? '', ENT_QUOTES, 'UTF-8') ?></span>
-                <button type="button" id="logoutButton">Salir</button>
-                <p id="logoutMessage" role="status" aria-live="polite"></p>
+                <div class="premium-sidebar__user-box">
+                    <div class="premium-sidebar__avatar"><?= $userInitial ?></div>
+                    <div class="premium-sidebar__user-info">
+                        <span class="premium-sidebar__user"><?= $username ?></span>
+                        <span class="premium-sidebar__role">Sesión activa</span>
+                    </div>
+                </div>
+                <button type="button" id="logoutButton" class="premium-sidebar__logout">
+                    <span class="logout-icon" aria-hidden="true">➔</span>
+                    <span class="logout-label">Cerrar sesión</span>
+                </button>
+                <p id="logoutMessage" role="status" aria-live="polite" class="logout-message"></p>
             </div>
         </aside>
 
@@ -85,7 +106,9 @@ $currentUser = Auth::currentUser();
         </main>
     </div>
 
-    <script>window.BASE_URL = <?= json_encode($base, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;</script>
+    <script>
+        window.BASE_URL = <?= json_encode($base, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+    </script>
     <script src="<?= $base ?>/public/js/main.js" type="module"></script>
 </body>
 

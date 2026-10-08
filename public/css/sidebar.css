@@ -1,6 +1,14 @@
 .premium-sidebar {
   width: 260px;
-  background: var(--sidebar-bg);
+  background-color: var(--sidebar-bg);
+  background-image:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(197, 160, 89, 0.08) 0%,
+      transparent 75%
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%23c5a059' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg transform='translate(15,10) rotate(-15,25,25)'%3E%3Ccircle cx='18' cy='42' r='4.5' stroke-width='0.8' stroke-opacity='0.14'/%3E%3Ccircle cx='32' cy='42' r='4.5' stroke-width='0.8' stroke-opacity='0.14'/%3E%3Cpath d='M20 38 L25 28 L35 8' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M30 38 L25 28 L15 8' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Ccircle cx='25' cy='28' r='1.5' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(75,70) rotate(35,25,25)'%3E%3Ccircle cx='18' cy='42' r='4.5' stroke-width='0.8' stroke-opacity='0.14'/%3E%3Ccircle cx='32' cy='42' r='4.5' stroke-width='0.8' stroke-opacity='0.14'/%3E%3Cpath d='M20 38 L25 28 L35 8' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M30 38 L25 28 L15 8' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Ccircle cx='25' cy='28' r='1.5' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(70,22) rotate(20)'%3E%3Crect x='0' y='0' width='42' height='6' rx='1' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M3 6 V14 M6 6 V14 M9 6 V14 M12 6 V14 M15 6 V14 M18 6 V14 M21 6 V14 M24 6 V14 M27 6 V14 M30 6 V14 M33 6 V14 M36 6 V14 M39 6 V14' stroke-width='0.7' stroke-opacity='0.12'/%3E%3C/g%3E%3Cg transform='translate(18,82)'%3E%3Crect x='8' y='16' width='16' height='20' rx='3' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Crect x='12' y='10' width='8' height='6' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M16 10 V5 H22' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Ccircle cx='25' cy='5' r='1.5' fill='%23c5a059' fill-opacity='0.2' stroke='none'/%3E%3Ccircle cx='29' cy='3' r='0.8' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3Ccircle cx='32' cy='6' r='0.8' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(60,65) rotate(-20)'%3E%3Cpath d='M0 10 Q15 5 30 10' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M15 8 Q26 1 35 5 L33 9 Q23 5 15 8 Z' stroke-width='0.8' stroke-opacity='0.12' fill='%23c5a059' fill-opacity='0.05'/%3E%3Ccircle cx='15' cy='8' r='1' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3Cpath d='M10 15 V21 M7 18 H13' stroke-width='0.6' stroke-opacity='0.1'/%3E%3Cpath d='M125 65 V71 M122 68 H128' stroke-width='0.6' stroke-opacity='0.1'/%3E%3Cpath d='M70 120 V126 M67 123 H73' stroke-width='0.6' stroke-opacity='0.1'/%3E%3Ccircle cx='65' cy='15' r='1.2' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3Ccircle cx='110' cy='115' r='1.2' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3Ccircle cx='15' cy='120' r='1.2' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
   color: var(--sidebar-text);
   border-right: 1px solid var(--sidebar-border);
   display: flex;
@@ -15,27 +23,43 @@
 }
 
 .premium-sidebar__header {
-  padding: 2rem 1.5rem;
+  padding: 1.75rem 1.25rem;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: center; /* Centrado perfecto */
   border-bottom: 1px solid var(--sidebar-border);
+  background-image:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02), transparent),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%23c5a059' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg transform='translate(15,10) rotate(-15,25,25)'%3E%3Ccircle cx='18' cy='42' r='4.5' stroke-width='0.8' stroke-opacity='0.14'/%3E%3Ccircle cx='32' cy='42' r='4.5' stroke-width='0.8' stroke-opacity='0.14'/%3E%3Cpath d='M20 38 L25 28 L35 8' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M30 38 L25 28 L15 8' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Ccircle cx='25' cy='28' r='1.5' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(75,70) rotate(35,25,25)'%3E%3Ccircle cx='18' cy='42' r='4.5' stroke-width='0.8' stroke-opacity='0.14'/%3E%3Ccircle cx='32' cy='42' r='4.5' stroke-width='0.8' stroke-opacity='0.14'/%3E%3Cpath d='M20 38 L25 28 L35 8' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M30 38 L25 28 L15 8' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Ccircle cx='25' cy='28' r='1.5' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(70,22) rotate(20)'%3E%3Crect x='0' y='0' width='42' height='6' rx='1' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M3 6 V14 M6 6 V14 M9 6 V14 M12 6 V14 M15 6 V14 M18 6 V14 M21 6 V14 M24 6 V14 M27 6 V14 M30 6 V14 M33 6 V14 M36 6 V14 M39 6 V14' stroke-width='0.7' stroke-opacity='0.12'/%3E%3C/g%3E%3Cg transform='translate(18,82)'%3E%3Crect x='8' y='16' width='16' height='20' rx='3' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Crect x='12' y='10' width='8' height='6' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M16 10 V5 H22' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Ccircle cx='25' cy='5' r='1.5' fill='%23c5a059' fill-opacity='0.2' stroke='none'/%3E%3Ccircle cx='29' cy='3' r='0.8' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3Ccircle cx='32' cy='6' r='0.8' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(60,65) rotate(-20)'%3E%3Cpath d='M0 10 Q15 5 30 10' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M15 8 Q26 1 35 5 L33 9 Q23 5 15 8 Z' stroke-width='0.8' stroke-opacity='0.12' fill='%23c5a059' fill-opacity='0.05'/%3E%3Ccircle cx='15' cy='8' r='1' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3Cpath d='M10 15 V21 M7 18 H13' stroke-width='0.6' stroke-opacity='0.1'/%3E%3Cpath d='M125 65 V71 M122 68 H128' stroke-width='0.6' stroke-opacity='0.1'/%3E%3Cpath d='M70 120 V126 M67 123 H73' stroke-width='0.6' stroke-opacity='0.1'/%3E%3Ccircle cx='65' cy='15' r='1.2' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3Ccircle cx='110' cy='115' r='1.2' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3Ccircle cx='15' cy='120' r='1.2' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
 }
 
-.premium-sidebar__logo {
-  width: 12px;
-  height: 12px;
-  background: var(--sidebar-text);
-  animation: ambientPulse 4s infinite ease-in-out;
-  border-radius: 50%;
-}
+/* ==========================================================================
+   TIPOGRAFÍA VINTAGE DEL NOMBRE "HairApp"
+   ========================================================================== */
 
-.premium-sidebar__brand {
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+.premium-sidebar__brand,
+.mobile-header__brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   white-space: nowrap;
+  user-select: none;
+}
+
+.brand-script {
+  font-family: "Alex Brush", cursive;
+  font-size: 2.1rem;
+  font-weight: 400;
+  line-height: 1;
+  background: linear-gradient(135deg, #f3e0b5 0%, #c5a059 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+}
+
+.brand-script--space {
+  margin-left: 0.35rem;
 }
 
 .premium-sidebar__nav {
@@ -43,23 +67,31 @@
   padding: 1.5rem 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.15rem;
 }
+
+/* ==========================================================================
+   ÍTEMS DE NAVEGACIÓN
+   ========================================================================== */
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 0.85rem 1.5rem;
+  padding: 0.9rem 1.5rem;
   color: var(--sidebar-muted);
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 500;
   white-space: nowrap;
+  position: relative;
+  border-radius: 0;
+  border-left: 3px solid transparent;
+  background: transparent;
   transition:
     color 0.2s ease,
-    background 0.2s ease;
-  position: relative;
+    background 0.25s ease,
+    border-color 0.25s ease;
 }
 
 .nav-item__icon {
@@ -67,61 +99,95 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 50%;
-  font-size: 1.1rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0;
+  font-size: 1.15rem;
+  opacity: 0.7;
   transition:
-    background var(--t-fast) var(--ease-out),
-    transform var(--t-fast) var(--ease-out);
-}
-
-.nav-item:hover .nav-item__icon {
-  background: rgba(255, 255, 255, 0.07);
-  transform: scale(1.08);
-}
-
-.nav-item.is-active .nav-item__icon {
-  background: rgba(197, 160, 89, 0.18);
+    transform 0.25s ease,
+    opacity 0.25s ease,
+    filter 0.25s ease;
 }
 
 .nav-item:hover {
   color: var(--sidebar-text);
-  background: rgba(255, 255, 255, 0.03);
+  background: linear-gradient(
+    90deg,
+    rgba(197, 160, 89, 0.06) 0%,
+    transparent 100%
+  );
+  border-left-color: rgba(197, 160, 89, 0.35);
+}
+
+.nav-item:hover .nav-item__icon {
+  opacity: 1;
+  transform: translateX(3px);
+  background: transparent;
 }
 
 .nav-item.is-active {
-  color: var(--sidebar-text);
-  background: var(--sidebar-surface);
+  color: #ffffff;
+  font-weight: 600;
+  background: linear-gradient(
+    90deg,
+    rgba(197, 160, 89, 0.16) 0%,
+    rgba(197, 160, 89, 0.02) 85%
+  );
+  border-left: 3px solid #c5a059;
 }
 
-.nav-item.is-active::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: linear-gradient(
-    180deg,
-    var(--accent-glow-1),
-    var(--accent-glow-2),
-    var(--accent-glow-1)
-  );
-  background-size: 100% 200%;
-  animation: fluidEnergy 3s infinite linear;
-  box-shadow: 2px 0 8px rgba(197, 160, 89, 0.25);
+.nav-item.is-active .nav-item__icon {
+  opacity: 1;
+  background: transparent;
+  filter: drop-shadow(0 0 5px rgba(197, 160, 89, 0.4));
+  transform: scale(1.06);
 }
+
+/* ==========================================================================
+   FOOTER VINTAGE Y BOTÓN DE CERRAR SESIÓN
+   ========================================================================== */
 
 .premium-sidebar__footer {
-  padding: 1.5rem;
+  padding: 1.25rem 1.25rem 1.5rem;
   border-top: 1px solid var(--sidebar-border);
-  font-size: 0.75rem;
-  color: var(--sidebar-muted);
+  background: rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.85rem;
   white-space: nowrap;
+  overflow: hidden;
+}
+
+.premium-sidebar__user-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.premium-sidebar__avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(197, 160, 89, 0.25) 0%,
+    rgba(197, 160, 89, 0.08) 100%
+  );
+  border: 1px solid rgba(197, 160, 89, 0.4);
+  color: #f3e0b5;
+  font-family: "Cinzel", serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+}
+
+.premium-sidebar__user-info {
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
@@ -129,41 +195,66 @@
   color: var(--sidebar-text);
   font-weight: 600;
   font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.premium-sidebar__role {
+  color: var(--sidebar-muted);
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+/* Botón estilo vintage artesanal */
+.premium-sidebar__logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  background: transparent;
+  color: var(--sidebar-muted);
+  border: 1px solid rgba(197, 160, 89, 0.3);
+  font-family: var(--font);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    color 0.25s ease,
+    background 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.premium-sidebar__logout .logout-icon {
+  font-size: 0.85rem;
+  color: #c5a059;
+  transition: transform 0.25s ease;
+}
+
+.premium-sidebar__logout:hover {
+  color: #ffffff;
+  background: rgba(197, 160, 89, 0.12);
+  border-color: rgba(197, 160, 89, 0.6);
+  box-shadow: 0 2px 10px rgba(197, 160, 89, 0.15);
+}
+
+.premium-sidebar__logout:hover .logout-icon {
+  transform: translateX(3px);
+}
+
+.logout-message {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--accent-glow-1);
 }
 
 /* ==========================================================================
-   ANIMACIONES AUTÓNOMAS
-   ========================================================================== */
-
-@keyframes fluidEnergy {
-  0% {
-    background-position: 0% 0%;
-  }
-  100% {
-    background-position: 0% 200%;
-  }
-}
-
-@keyframes ambientPulse {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.8;
-    box-shadow: 0 0 0 rgba(255, 255, 255, 0);
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 1;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-  }
-}
-
-/* ==========================================================================
-   SIDEBAR COLAPSABLE (SOLO ESCRITORIO)
-   En pantallas grandes el sidebar arranca angosto, mostrando solo los
-   íconos, y se expande al pasar el mouse (o con foco de teclado) para
-   mostrar las etiquetas. No aplica en mobile: ahí sigue siendo el drawer
-   off-canvas de siempre, con las etiquetas completas.
+   SIDEBAR COLAPSABLE (DESKTOP)
    ========================================================================== */
 
 @media (min-width: 769px) {
@@ -178,32 +269,27 @@
     width: 260px;
   }
 
-  .premium-sidebar__header {
-    justify-content: center;
-    gap: 0;
-    transition: justify-content var(--t-slow) var(--ease-out);
-  }
-
-  .premium-sidebar:hover .premium-sidebar__header,
-  .premium-sidebar:has(:focus-visible) .premium-sidebar__header {
-    justify-content: flex-start;
-    gap: 0.75rem;
-  }
-
   .premium-sidebar__brand,
   .nav-item__label,
-  .premium-sidebar__footer {
+  .premium-sidebar__user-info,
+  .logout-label {
     opacity: 0;
     transition: opacity var(--t-fast) var(--ease-out);
   }
 
   .premium-sidebar:hover .premium-sidebar__brand,
   .premium-sidebar:hover .nav-item__label,
-  .premium-sidebar:hover .premium-sidebar__footer,
+  .premium-sidebar:hover .premium-sidebar__user-info,
+  .premium-sidebar:hover .logout-label,
   .premium-sidebar:has(:focus-visible) .premium-sidebar__brand,
   .premium-sidebar:has(:focus-visible) .nav-item__label,
-  .premium-sidebar:has(:focus-visible) .premium-sidebar__footer {
+  .premium-sidebar:has(:focus-visible) .premium-sidebar__user-info,
+  .premium-sidebar:has(:focus-visible) .logout-label {
     opacity: 1;
+  }
+
+  .premium-sidebar__footer {
+    padding: 1rem 0.85rem;
   }
 }
 
@@ -221,7 +307,15 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--sidebar-bg);
+    background-color: var(--sidebar-bg);
+    background-image:
+      radial-gradient(
+        circle at 50% 0%,
+        rgba(197, 160, 89, 0.08) 0%,
+        transparent 75%
+      ),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%23c5a059' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg transform='translate(15,10) rotate(-15,25,25)'%3E%3Ccircle cx='18' cy='42' r='4.5' stroke-width='0.8' stroke-opacity='0.14'/%3E%3Ccircle cx='32' cy='42' r='4.5' stroke-width='0.8' stroke-opacity='0.14'/%3E%3Cpath d='M20 38 L25 28 L35 8' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M30 38 L25 28 L15 8' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Ccircle cx='25' cy='28' r='1.5' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(75,70) rotate(35,25,25)'%3E%3Ccircle cx='18' cy='42' r='4.5' stroke-width='0.8' stroke-opacity='0.14'/%3E%3Ccircle cx='32' cy='42' r='4.5' stroke-width='0.8' stroke-opacity='0.14'/%3E%3Cpath d='M20 38 L25 28 L35 8' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M30 38 L25 28 L15 8' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Ccircle cx='25' cy='28' r='1.5' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(70,22) rotate(20)'%3E%3Crect x='0' y='0' width='42' height='6' rx='1' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M3 6 V14 M6 6 V14 M9 6 V14 M12 6 V14 M15 6 V14 M18 6 V14 M21 6 V14 M24 6 V14 M27 6 V14 M30 6 V14 M33 6 V14 M36 6 V14 M39 6 V14' stroke-width='0.7' stroke-opacity='0.12'/%3E%3C/g%3E%3Cg transform='translate(18,82)'%3E%3Crect x='8' y='16' width='16' height='20' rx='3' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Crect x='12' y='10' width='8' height='6' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M16 10 V5 H22' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Ccircle cx='25' cy='5' r='1.5' fill='%23c5a059' fill-opacity='0.2' stroke='none'/%3E%3Ccircle cx='29' cy='3' r='0.8' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3Ccircle cx='32' cy='6' r='0.8' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(60,65) rotate(-20)'%3E%3Cpath d='M0 10 Q15 5 30 10' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M15 8 Q26 1 35 5 L33 9 Q23 5 15 8 Z' stroke-width='0.8' stroke-opacity='0.12' fill='%23c5a059' fill-opacity='0.05'/%3E%3Ccircle cx='15' cy='8' r='1' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3Cpath d='M10 15 V21 M7 18 H13' stroke-width='0.6' stroke-opacity='0.1'/%3E%3Cpath d='M125 65 V71 M122 68 H128' stroke-width='0.6' stroke-opacity='0.1'/%3E%3Cpath d='M70 120 V126 M67 123 H73' stroke-width='0.6' stroke-opacity='0.1'/%3E%3Ccircle cx='65' cy='15' r='1.2' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3Ccircle cx='110' cy='115' r='1.2' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3Ccircle cx='15' cy='120' r='1.2' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat: repeat;
     color: var(--sidebar-text);
     padding: 0 1.25rem;
     height: 60px;
@@ -231,13 +325,6 @@
     right: 0;
     z-index: var(--z-mobile-header);
     border-bottom: 1px solid var(--sidebar-border);
-  }
-
-  .mobile-header__brand {
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
   }
 
   .mobile-header__spacer {
