@@ -44,6 +44,7 @@ class ClientController extends BaseController
             case 'clients_all':
                 [$page, $perPage] = $this->pagination();
                 $this->json($this->model->paginate(
+                    $this->ownerId(),
                     $this->str($_GET['q'] ?? ''),
                     $this->statusFilter(),
                     $page,
@@ -54,7 +55,7 @@ class ClientController extends BaseController
             // Trae un cliente puntual (para abrir el formulario de edición).
             case 'client_get':
                 $id = $this->validId($_GET['id'] ?? 0, 'cliente');
-                $client = $this->model->getById($id);
+                $client = $this->model->getById($this->ownerId(), $id);
 
                 if (!$client) {
                     $this->error('El registro del cliente no existe.', 404);
@@ -66,7 +67,7 @@ class ClientController extends BaseController
             // Autocompletado por alias (máximo 15 resultados)
             case 'client_search':
                 $q = $this->str($_GET['q'] ?? '');
-                $this->json($q === '' ? [] : $this->model->search($q));
+                $this->json($q === '' ? [] : $this->model->search($this->ownerId(), $q));
                 break;
 
             // Crea un cliente nuevo.
@@ -78,7 +79,7 @@ class ClientController extends BaseController
                     $this->error($error);
                 }
 
-                $success = $this->model->create($data);
+                $success = $this->model->create($this->ownerId(), $data);
 
                 $this->json([
                     'success' => $success,
@@ -91,7 +92,7 @@ class ClientController extends BaseController
             case 'client_update':
                 $input = $this->readInput();
                 $id = $this->validId($input['id'] ?? 0, 'cliente');
-                $existing = $this->model->getById($id);
+                $existing = $this->model->getById($this->ownerId(), $id);
 
                 if (!$existing) {
                     $this->error('El registro del cliente no existe.', 404);
@@ -104,7 +105,7 @@ class ClientController extends BaseController
                     $this->error($error);
                 }
 
-                $success = $this->model->update($id, $data);
+                $success = $this->model->update($this->ownerId(), $id, $data);
 
                 $this->json([
                     'success' => $success,
@@ -127,11 +128,11 @@ class ClientController extends BaseController
                 $input = $this->readInput();
                 $id = $this->validId($input['id'] ?? 0, 'cliente');
 
-                if ($this->model->hasRelatedRecords($id)) {
+                if ($this->model->hasRelatedRecords($this->ownerId(), $id)) {
                     $this->error('No se puede eliminar el cliente porque tiene turnos o fichas técnicas asociadas. Podés desactivarlo.');
                 }
 
-                $success = $this->model->delete($id);
+                $success = $this->model->delete($this->ownerId(), $id);
 
                 $this->json([
                     'success' => $success,
@@ -154,12 +155,13 @@ class ClientController extends BaseController
     {
         $input = $this->readInput();
         $id = $this->validId($input['id'] ?? 0, 'cliente');
+        $ownerId = $this->ownerId();
 
-        if (!$this->model->getById($id)) {
+        if (!$this->model->getById($ownerId, $id)) {
             $this->error('El registro no existe.', 404);
         }
 
-        $success = $active ? $this->model->activate($id) : $this->model->deactivate($id);
+        $success = $active ? $this->model->activate($ownerId, $id) : $this->model->deactivate($ownerId, $id);
 
         $this->json([
             'success' => $success,
@@ -232,7 +234,7 @@ class ClientController extends BaseController
                 return 'El código interno no puede superar los 40 caracteres.';
             }
 
-            if ($this->model->existsInternalCode($data['internal_code'], $currentId)) {
+            if ($this->model->existsInternalCode($this->ownerId(), $data['internal_code'], $currentId)) {
                 return 'El código interno (' . $data['internal_code'] . ') ya está en uso por otro cliente.';
             }
         }

@@ -45,7 +45,7 @@ class ServiceController extends BaseController
 
             // Servicios activos (selector de nuevos turnos)
             case 'services':
-                $this->json($this->model->getActive());
+                $this->json($this->model->getActive($this->ownerId()));
                 break;
 
             // Listado paginado (activos e inactivos) para administración:
@@ -53,6 +53,7 @@ class ServiceController extends BaseController
             case 'services_all':
                 [$page, $perPage] = $this->pagination();
                 $this->json($this->model->paginate(
+                    $this->ownerId(),
                     $this->str($_GET['q'] ?? ''),
                     $this->statusFilter(),
                     $page,
@@ -63,7 +64,7 @@ class ServiceController extends BaseController
             // Trae un servicio puntual (para abrir el formulario de edición).
             case 'service_get':
                 $id = $this->validId($_GET['id'] ?? 0, 'servicio');
-                $service = $this->model->getById($id);
+                $service = $this->model->getById($this->ownerId(), $id);
 
                 if (!$service) {
                     $this->error('El servicio no existe.', 404);
@@ -81,7 +82,7 @@ class ServiceController extends BaseController
                     $this->error($error);
                 }
 
-                $newId = $this->model->create($data);
+                $newId = $this->model->create($this->ownerId(), $data);
 
                 $this->json([
                     'success' => $newId !== false,
@@ -95,7 +96,7 @@ class ServiceController extends BaseController
                 $input = $this->readInput();
                 $id = $this->validId($input['id'] ?? 0, 'servicio');
 
-                if (!$this->model->getById($id)) {
+                if (!$this->model->getById($this->ownerId(), $id)) {
                     $this->error('El servicio no existe.', 404);
                 }
 
@@ -107,7 +108,7 @@ class ServiceController extends BaseController
                 }
 
                 // El cambio de precio base NO altera los turnos ya creados.
-                $success = $this->model->update($id, $data);
+                $success = $this->model->update($this->ownerId(), $id, $data);
 
                 $this->json([
                     'success' => $success,
@@ -130,12 +131,12 @@ class ServiceController extends BaseController
                 $input = $this->readInput();
                 $id = $this->validId($input['id'] ?? 0, 'servicio');
 
-                if (!$this->model->getById($id)) {
+                if (!$this->model->getById($this->ownerId(), $id)) {
                     $this->error('El servicio no existe.', 404);
                 }
 
                 // Eliminación segura: no se borra un servicio con turnos o fichas asociadas.
-                if ($this->model->countRelatedAppointments($id) > 0) {
+                if ($this->model->countRelatedAppointments($this->ownerId(), $id) > 0) {
                     $this->error(
                         'Este servicio tiene turnos o fichas asociadas y no puede eliminarse. ' .
                             'Podés desactivarlo para que deje de estar disponible.',
@@ -143,7 +144,7 @@ class ServiceController extends BaseController
                     );
                 }
 
-                $success = $this->model->delete($id);
+                $success = $this->model->delete($this->ownerId(), $id);
 
                 $this->json([
                     'success' => $success,
@@ -166,12 +167,13 @@ class ServiceController extends BaseController
     {
         $input = $this->readInput();
         $id = $this->validId($input['id'] ?? 0, 'servicio');
+        $ownerId = $this->ownerId();
 
-        if (!$this->model->getById($id)) {
+        if (!$this->model->getById($ownerId, $id)) {
             $this->error('El servicio no existe.', 404);
         }
 
-        $success = $active ? $this->model->activate($id) : $this->model->deactivate($id);
+        $success = $active ? $this->model->activate($ownerId, $id) : $this->model->deactivate($ownerId, $id);
 
         $this->json([
             'success' => $success,

@@ -215,15 +215,17 @@ final class Auth
         $csrf = bin2hex(random_bytes(32));
 
         $_SESSION = [
-            'uid'     => $user['id'],
-            'created' => $now,
-            'last'    => $now,
-            'csrf'    => $csrf,
-            'pv'      => (string)($user['password_changed_at'] ?? ''),
+            'uid'      => $user['id'],
+            'owner_id' => $user['id'],
+            'created'  => $now,
+            'last'     => $now,
+            'csrf'     => $csrf,
+            'pv'       => (string)($user['password_changed_at'] ?? ''),
         ];
 
         self::$user = [
             'id'       => $user['id'],
+            'owner_id' => $user['id'],
             'username' => $user['username'],
             'role'     => $user['role'],
         ];

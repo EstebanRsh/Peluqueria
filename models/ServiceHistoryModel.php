@@ -19,7 +19,7 @@ class ServiceHistoryModel
     // ============================================================
 
     // Trae la información técnica del turno para asociarla automáticamente a la ficha
-    public function getAppointmentContext(int $appointmentId): ?array
+    public function getAppointmentContext(int $ownerId, int $appointmentId): ?array
     {
         $stmt = $this->conn->prepare("
             SELECT
@@ -32,20 +32,21 @@ class ServiceHistoryModel
             FROM appointments a
             INNER JOIN services s ON s.id = a.service_id
             WHERE a.id = ?
+              AND a.owner_id = ?
             LIMIT 1
         ");
 
-        $stmt->bind_param('i', $appointmentId);
+        $stmt->bind_param('ii', $appointmentId, $ownerId);
         $stmt->execute();
 
         return $stmt->get_result()->fetch_assoc() ?: null;
     }
 
     // Obtiene el nombre del servicio para guardar la captura histórica (snapshot)
-    public function getServiceName(int $serviceId): ?string
+    public function getServiceName(int $ownerId, int $serviceId): ?string
     {
-        $stmt = $this->conn->prepare("SELECT name FROM services WHERE id = ? LIMIT 1");
-        $stmt->bind_param('i', $serviceId);
+        $stmt = $this->conn->prepare("SELECT name FROM services WHERE id = ? AND owner_id = ? LIMIT 1");
+        $stmt->bind_param('ii', $serviceId, $ownerId);
         $stmt->execute();
 
         $row = $stmt->get_result()->fetch_assoc();
@@ -59,7 +60,7 @@ class ServiceHistoryModel
 
     // Registra o actualiza la ficha técnica y procesa el descuento de stock de insumos.
     // Garantiza atomicidad: si falla el stock de un producto, se revierte toda la ficha.
-    public function save(array $data, array $consumptions = []): int
+    public function save(int $ownerId, array $data, array $consumptions = []): int
     {
         $this->conn->begin_transaction();
 
@@ -80,14 +81,14 @@ class ServiceHistoryModel
 
             // Si viene de un turno, actualiza el registro base preexistente; si es suelto, inserta uno nuevo
             if ($data['appointment_id'] !== null) {
-                $historyId = $this->saveForAppointment($data, $json);
+                $historyId = $this->saveForAppointment($ownerId, $data, $json);
             } else {
-                $historyId = $this->insert($data, $json);
+                $historyId = $this->insert($ownerId, $data, $json);
             }
 
             // Descuenta stock y registra consumos de insumos si existen
             if ($consumptions) {
-                $this->applyConsumptions($historyId, $consumptions);
+                $this->applyConsumptions($ownerId, $historyId, $consumptions);
             }
 
             $this->conn->commit();
@@ -100,23 +101,24 @@ class ServiceHistoryModel
     }
 
     // Completa el registro base de un turno previamente creado
-    private function saveForAppointment(array $data, string $json): int
+    private function saveForAppointment(int $ownerId, array $data, string $json): int
     {
         // Se utiliza FOR UPDATE para bloquear el registro y evitar guardar dos fichas concurrentes
         $stmt = $this->conn->prepare("
             SELECT id, technical_details
             FROM service_history
             WHERE appointment_id = ?
+              AND owner_id = ?
             FOR UPDATE
         ");
-        $stmt->bind_param('i', $data['appointment_id']);
+        $stmt->bind_param('ii', $data['appointment_id'], $ownerId);
         $stmt->execute();
 
         $row = $stmt->get_result()->fetch_assoc();
 
         // En caso de que el turno no posea registro base en service_history
         if (!$row) {
-            return $this->insert($data, $json);
+            return $this->insert($ownerId, $data, $json);
         }
 
         // Si ya tenía detalles guardados, se rechaza para no descontar stock doblemente
@@ -126,25 +128,26 @@ class ServiceHistoryModel
 
         $id = (int)$row['id'];
 
-        $stmtUp = $this->conn->prepare("UPDATE service_history SET technical_details = ? WHERE id = ?");
-        $stmtUp->bind_param('si', $json, $id);
+        $stmtUp = $this->conn->prepare("UPDATE service_history SET technical_details = ? WHERE id = ? AND owner_id = ?");
+        $stmtUp->bind_param('sii', $json, $id, $ownerId);
         $stmtUp->execute();
 
         return $id;
     }
 
     // Inserta una ficha de servicio sin turno previo (cliente ocasional o directo)
-    private function insert(array $data, string $json): int
+    private function insert(int $ownerId, array $data, string $json): int
     {
         $stmt = $this->conn->prepare("
             INSERT INTO service_history
-                (client_id, client_name, appointment_id, service_id,
+                (owner_id, client_id, client_name, appointment_id, service_id,
                  service_name_snapshot, performed_at, technical_details)
-            VALUES (?, ?, ?, ?, ?, NOW(), ?)
+            VALUES (?, ?, ?, ?, ?, ?, NOW(), ?)
         ");
 
         $stmt->bind_param(
-            'isiiss',
+            'iisiiss',
+            $ownerId,
             $data['client_id'],
             $data['client_name'],
             $data['appointment_id'],
@@ -162,7 +165,7 @@ class ServiceHistoryModel
     // ============================================================
 
     // Registra los productos consumidos en service_consumptions y descuenta del inventario
-    private function applyConsumptions(int $historyId, array $consumptions): void
+    private function applyConsumptions(int $ownerId, int $historyId, array $consumptions): void
     {
         // Se ordenan los IDs de forma ascendente para evitar bloqueos mutuos (deadlocks) en la base de datos
         ksort($consumptions);
@@ -171,20 +174,21 @@ class ServiceHistoryModel
             SELECT name, stock, unit_cost, active
             FROM products
             WHERE id = ?
+              AND owner_id = ?
             FOR UPDATE
         ");
 
         $stmtInsert = $this->conn->prepare("
-            INSERT INTO service_consumptions (service_history_id, product_id, quantity_used, cost_snapshot)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO service_consumptions (owner_id, service_history_id, product_id, quantity_used, cost_snapshot)
+            VALUES (?, ?, ?, ?, ?)
         ");
 
-        $stmtStock = $this->conn->prepare("UPDATE products SET stock = stock - ? WHERE id = ?");
+        $stmtStock = $this->conn->prepare("UPDATE products SET stock = stock - ? WHERE id = ? AND owner_id = ?");
 
         foreach ($consumptions as $productId => $quantity) {
             $productId = (int)$productId;
 
-            $stmtProduct->bind_param('i', $productId);
+            $stmtProduct->bind_param('ii', $productId, $ownerId);
             $stmtProduct->execute();
 
             $product = $stmtProduct->get_result()->fetch_assoc();
@@ -211,10 +215,10 @@ class ServiceHistoryModel
                 throw new ServiceHistoryException("El costo calculado de \"{$product['name']}\" supera el máximo permitido.", 400);
             }
 
-            $stmtInsert->bind_param('iidd', $historyId, $productId, $quantity, $cost);
+            $stmtInsert->bind_param('iiidd', $ownerId, $historyId, $productId, $quantity, $cost);
             $stmtInsert->execute();
 
-            $stmtStock->bind_param('di', $quantity, $productId);
+            $stmtStock->bind_param('dii', $quantity, $productId, $ownerId);
             $stmtStock->execute();
         }
     }
@@ -224,7 +228,7 @@ class ServiceHistoryModel
     // ============================================================
 
     // Trae una ficha individual por su ID de historial
-    public function getById(int $id): ?array
+    public function getById(int $ownerId, int $id): ?array
     {
         $stmt = $this->conn->prepare("
             SELECT
@@ -232,10 +236,11 @@ class ServiceHistoryModel
                 service_name_snapshot, performed_at, technical_details, created_at
             FROM service_history
             WHERE id = ?
+              AND owner_id = ?
             LIMIT 1
         ");
 
-        $stmt->bind_param('i', $id);
+        $stmt->bind_param('ii', $id, $ownerId);
         $stmt->execute();
 
         $record = $stmt->get_result()->fetch_assoc();
@@ -252,17 +257,18 @@ class ServiceHistoryModel
     }
 
     // Obtiene el "feed" cronológico para el perfil del cliente
-    public function getTimelineByClient(int $clientId): array
+    public function getTimelineByClient(int $ownerId, int $clientId): array
     {
         $stmt = $this->conn->prepare("
             SELECT 
                 id, appointment_id, service_name_snapshot, performed_at, technical_details
             FROM service_history
             WHERE client_id = ?
+              AND owner_id = ?
             ORDER BY performed_at DESC
         ");
 
-        $stmt->bind_param('i', $clientId);
+        $stmt->bind_param('ii', $clientId, $ownerId);
         $stmt->execute();
         $result = $stmt->get_result();
 
@@ -277,7 +283,7 @@ class ServiceHistoryModel
     }
 
     // Obtiene los consumos asociados a una ficha específica
-    public function getConsumptions(int $historyId): array
+    public function getConsumptions(int $ownerId, int $historyId): array
     {
         $stmt = $this->conn->prepare("
             SELECT 
@@ -285,9 +291,10 @@ class ServiceHistoryModel
             FROM service_consumptions sc
             INNER JOIN products p ON sc.product_id = p.id
             WHERE sc.service_history_id = ?
+              AND sc.owner_id = ?
         ");
 
-        $stmt->bind_param('i', $historyId);
+        $stmt->bind_param('ii', $historyId, $ownerId);
         $stmt->execute();
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }

@@ -44,6 +44,7 @@ class AppointmentController extends BaseController
                 }
 
                 $this->json($this->model->getByDate(
+                    $this->ownerId(),
                     $date,
                     $this->str($_GET['search'] ?? ''),
                     $this->normalizeStatusFilter($this->str($_GET['status'] ?? 'todos'))
@@ -59,7 +60,7 @@ class AppointmentController extends BaseController
                     $this->error($error);
                 }
 
-                $success = $this->model->create($data);
+                $success = $this->model->create($this->ownerId(), $data);
 
                 $this->json([
                     'success' => $success,
@@ -77,11 +78,11 @@ class AppointmentController extends BaseController
                     $this->error('El estado seleccionado no es válido.');
                 }
 
-                if (!$this->model->getById($id)) {
+                if (!$this->model->getById($this->ownerId(), $id)) {
                     $this->error('El turno no existe.', 404);
                 }
 
-                $success = $this->model->updateStatus($id, $status);
+                $success = $this->model->updateStatus($this->ownerId(), $id, $status);
 
                 $this->json([
                     'success' => $success,
@@ -92,7 +93,7 @@ class AppointmentController extends BaseController
             // Obtener el historial de cambios de estado del turno
             case 'history':
                 $id = $this->validId($_GET['id'] ?? 0, 'turno');
-                $this->json($this->model->getHistory($id));
+                $this->json($this->model->getHistory($this->ownerId(), $id));
                 break;
 
             // Eliminar un turno de la agenda
@@ -100,11 +101,11 @@ class AppointmentController extends BaseController
                 $input = $this->readInput();
                 $id = $this->validId($input['id'] ?? 0, 'turno');
 
-                if (!$this->model->getById($id)) {
+                if (!$this->model->getById($this->ownerId(), $id)) {
                     $this->error('El turno no existe.', 404);
                 }
 
-                $success = $this->model->delete($id);
+                $success = $this->model->delete($this->ownerId(), $id);
 
                 $this->json([
                     'success' => $success,
@@ -179,7 +180,7 @@ class AppointmentController extends BaseController
         }
 
         if ($data['client_id'] !== null) {
-            $client = $this->model->getClientById($data['client_id']);
+            $client = $this->model->getClientById($this->ownerId(), $data['client_id']);
 
             if (!$client || !$client['active']) {
                 return 'El cliente seleccionado no existe o está inactivo.';
@@ -191,7 +192,7 @@ class AppointmentController extends BaseController
             return 'Debe seleccionar un servicio válido.';
         }
 
-        $service = $this->model->getServiceById($data['service_id']);
+        $service = $this->model->getServiceById($this->ownerId(), $data['service_id']);
 
         if (!$service || !$service['active']) {
             return 'El servicio seleccionado no existe o está inactivo.';

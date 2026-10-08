@@ -12,7 +12,7 @@ class CalendarModel
 
     // Retorna el resumen mensual agrupado por fecha y estado de turno.
     // Permite al calendario pintar los marcadores/contadores numéricos de cada día.
-    public function getEventsByMonth(int $year, int $month): array
+    public function getEventsByMonth(int $ownerId, int $year, int $month): array
     {
         // Primer y último día del mes solicitado
         $firstDay = mktime(0, 0, 0, $month, 1, $year);
@@ -23,13 +23,14 @@ class CalendarModel
         $stmt = $this->conn->prepare("
             SELECT date, status, COUNT(*) AS total
             FROM appointments
-            WHERE date BETWEEN ? AND ?
+            WHERE owner_id = ?
+              AND date BETWEEN ? AND ?
             GROUP BY date, status
             ORDER BY date ASC,
                 FIELD(status, 'Reservado', 'En sala de espera', 'En atención', 'Finalizado', 'Ausente', 'Cancelado') ASC
         ");
 
-        $stmt->bind_param('ss', $start, $end);
+        $stmt->bind_param('iss', $ownerId, $start, $end);
         $stmt->execute();
 
         $summary = [];

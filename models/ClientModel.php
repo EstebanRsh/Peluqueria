@@ -24,11 +24,11 @@ class ClientModel
 
     // Listado paginado para el panel de administración.
     // Busca solo por alias (empieza con el texto ingresado).
-    public function paginate(string $query, string $filter, int $page, int $perPage): array
+    public function paginate(int $ownerId, string $query, string $filter, int $page, int $perPage): array
     {
-        $where = ['1=1'];
-        $types = '';
-        $params = [];
+        $where = ['owner_id = ?'];
+        $types = 'i';
+        $params = [$ownerId];
 
         if ($filter === 'activos') {
             $where[] = 'active = 1';
@@ -45,15 +45,11 @@ class ClientModel
 
         $whereSql = implode(' AND ', $where);
 
-        // Total de registros que cumplen el filtro
         $stmt = $this->conn->prepare("SELECT COUNT(*) AS total FROM clients WHERE {$whereSql}");
-        if ($types !== '') {
-            $stmt->bind_param($types, ...$params);
-        }
+        $stmt->bind_param($types, ...$params);
         $stmt->execute();
         $total = (int)$stmt->get_result()->fetch_assoc()['total'];
 
-        // Página solicitada
         $stmt = $this->conn->prepare("
             SELECT " . self::COLUMNS . "
             FROM clients
@@ -74,23 +70,24 @@ class ClientModel
     }
 
     // Trae un solo cliente por su ID, o null si no existe.
-    public function getById(int $id): ?array
+    public function getById(int $ownerId, int $id): ?array
     {
         $stmt = $this->conn->prepare("
             SELECT " . self::COLUMNS . "
             FROM clients
             WHERE id = ?
+              AND owner_id = ?
             LIMIT 1
         ");
 
-        $stmt->bind_param('i', $id);
+        $stmt->bind_param('ii', $id, $ownerId);
         $stmt->execute();
 
         return $stmt->get_result()->fetch_assoc() ?: null;
     }
 
     // Autocompletado: solo por alias, clientes activos, máximo 15.
-    public function search(string $query): array
+    public function search(int $ownerId, string $query): array
     {
         $query = trim($query);
 
@@ -101,14 +98,15 @@ class ClientModel
         $stmt = $this->conn->prepare("
             SELECT id, alias, internal_code
             FROM clients
-            WHERE active = 1
+            WHERE owner_id = ?
+              AND active = 1
               AND alias LIKE ?
             ORDER BY alias ASC
             LIMIT 15
         ");
 
         $aliasStart = $this->escapeLike($query) . '%';
-        $stmt->bind_param('s', $aliasStart);
+        $stmt->bind_param('is', $ownerId, $aliasStart);
         $stmt->execute();
 
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -116,21 +114,20 @@ class ClientModel
 
     // Inserta un cliente nuevo.
     // $d: alias, internal_code, natural_base_tone, grey_hair, hair_type, allergies, notes
-    public function create(array $d): bool
+    public function create(int $ownerId, array $d): bool
     {
-        // Transacción porque a veces hace 2 pasos: insertar y, si no vino
-        // código interno, actualizarlo con uno generado a partir del ID.
         $this->conn->begin_transaction();
 
         try {
             $stmt = $this->conn->prepare("
                 INSERT INTO clients
-                    (alias, internal_code, natural_base_tone, grey_hair, hair_type, allergies, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (owner_id, alias, internal_code, natural_base_tone, grey_hair, hair_type, allergies, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ");
 
             $stmt->bind_param(
-                'sssisss',
+                'isssisss',
+                $ownerId,
                 $d['alias'],
                 $d['internal_code'],
                 $d['natural_base_tone'],
@@ -162,7 +159,7 @@ class ClientModel
     }
 
     // Actualiza todos los campos de un cliente existente.
-    public function update(int $id, array $d): bool
+    public function update(int $ownerId, int $id, array $d): bool
     {
         $stmt = $this->conn->prepare("
             UPDATE clients
@@ -174,10 +171,11 @@ class ClientModel
                 allergies = ?,
                 notes = ?
             WHERE id = ?
+              AND owner_id = ?
         ");
 
         $stmt->bind_param(
-            'sssisssi',
+            'sssisssii',
             $d['alias'],
             $d['internal_code'],
             $d['natural_base_tone'],
@@ -185,42 +183,43 @@ class ClientModel
             $d['hair_type'],
             $d['allergies'],
             $d['notes'],
-            $id
+            $id,
+            $ownerId
         );
 
         return $stmt->execute();
     }
 
     // Activa / desactiva un cliente (solo cambia la columna "active").
-    public function activate(int $id): bool
+    public function activate(int $ownerId, int $id): bool
     {
-        return $this->setActive($id, 1);
+        return $this->setActive($ownerId, $id, 1);
     }
 
-    public function deactivate(int $id): bool
+    public function deactivate(int $ownerId, int $id): bool
     {
-        return $this->setActive($id, 0);
+        return $this->setActive($ownerId, $id, 0);
     }
 
-    private function setActive(int $id, int $active): bool
+    private function setActive(int $ownerId, int $id, int $active): bool
     {
-        $stmt = $this->conn->prepare("UPDATE clients SET active = ? WHERE id = ?");
-        $stmt->bind_param('ii', $active, $id);
+        $stmt = $this->conn->prepare("UPDATE clients SET active = ? WHERE id = ? AND owner_id = ?");
+        $stmt->bind_param('iii', $active, $id, $ownerId);
 
         return $stmt->execute();
     }
 
     // ¿Tiene turnos o fichas técnicas asociadas? Si sí, no se puede eliminar.
-    public function hasRelatedRecords(int $id): bool
+    public function hasRelatedRecords(int $ownerId, int $id): bool
     {
         $stmt = $this->conn->prepare("
             SELECT (
-                EXISTS(SELECT 1 FROM appointments WHERE client_id = ?)
-                OR EXISTS(SELECT 1 FROM service_history WHERE client_id = ?)
+                EXISTS(SELECT 1 FROM appointments WHERE client_id = ? AND owner_id = ?)
+                OR EXISTS(SELECT 1 FROM service_history WHERE client_id = ? AND owner_id = ?)
             ) AS used
         ");
 
-        $stmt->bind_param('ii', $id, $id);
+        $stmt->bind_param('iiii', $id, $ownerId, $id, $ownerId);
         $stmt->execute();
 
         return (bool)$stmt->get_result()->fetch_assoc()['used'];
@@ -229,30 +228,32 @@ class ClientModel
     // Borra el cliente definitivamente. Vuelve a chequear que no tenga
     // turnos ni fichas asociadas, como respaldo extra (el controller ya
     // lo valida antes de llamar a este método).
-    public function delete(int $id): bool
+    public function delete(int $ownerId, int $id): bool
     {
-        if ($this->hasRelatedRecords($id)) {
+        if ($this->hasRelatedRecords($ownerId, $id)) {
             return false;
         }
 
-        $stmt = $this->conn->prepare("DELETE FROM clients WHERE id = ?");
-        $stmt->bind_param('i', $id);
+        $stmt = $this->conn->prepare("DELETE FROM clients WHERE id = ? AND owner_id = ?");
+        $stmt->bind_param('ii', $id, $ownerId);
 
         return $stmt->execute();
     }
 
     // ¿Ya existe otro cliente con este código interno? (excluyendo $excludeId,
     // útil al editar para no chocar con el propio registro).
-    public function existsInternalCode(string $code, int $excludeId = 0): bool
+    public function existsInternalCode(int $ownerId, string $code, int $excludeId = 0): bool
     {
         $stmt = $this->conn->prepare("
             SELECT id
             FROM clients
-            WHERE internal_code = ? AND id != ?
+            WHERE owner_id = ?
+              AND internal_code = ?
+              AND id != ?
             LIMIT 1
         ");
 
-        $stmt->bind_param('si', $code, $excludeId);
+        $stmt->bind_param('isi', $ownerId, $code, $excludeId);
         $stmt->execute();
 
         return $stmt->get_result()->num_rows > 0;

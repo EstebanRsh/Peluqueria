@@ -47,13 +47,14 @@ class ProductController extends BaseController
 
             // Productos activos (tope 500). Para selectores rápidos usar product_search.
             case 'products':
-                $this->json($this->model->getActive());
+                $this->json($this->model->getActive($this->ownerId()));
                 break;
 
             // Listado paginado para abm: ?page=1&per_page=25&filter=todos|activos|inactivos&q=texto
             case 'products_all':
                 [$page, $perPage] = $this->pagination();
                 $this->json($this->model->paginate(
+                    $this->ownerId(),
                     $this->str($_GET['q'] ?? ''),
                     $this->statusFilter(),
                     $page,
@@ -64,7 +65,7 @@ class ProductController extends BaseController
             // Obtiene los datos completos de un producto por ID para edición
             case 'product_get':
                 $id = $this->validId($_GET['id'] ?? 0, 'producto');
-                $product = $this->model->getById($id);
+                $product = $this->model->getById($this->ownerId(), $id);
 
                 if (!$product) {
                     $this->error('El producto no existe.', 404);
@@ -76,7 +77,7 @@ class ProductController extends BaseController
             // Autocompletado rápido al armar ficha de servicio (máximo 15 resultados)
             case 'product_search':
                 $q = $this->str($_GET['q'] ?? '');
-                $this->json($q === '' ? [] : $this->model->search($q));
+                $this->json($q === '' ? [] : $this->model->search($this->ownerId(), $q));
                 break;
 
             // Alta de nuevo producto
@@ -89,6 +90,7 @@ class ProductController extends BaseController
                 }
 
                 $success = $this->model->create(
+                    $this->ownerId(),
                     $data['name'],
                     $data['brand'],
                     $data['measurement_unit'],
@@ -107,7 +109,7 @@ class ProductController extends BaseController
                 $input = $this->readInput();
                 $id = $this->validId($input['id'] ?? 0, 'producto');
 
-                if (!$this->model->getById($id)) {
+                if (!$this->model->getById($this->ownerId(), $id)) {
                     $this->error('El producto no existe.', 404);
                 }
 
@@ -119,6 +121,7 @@ class ProductController extends BaseController
                 }
 
                 $success = $this->model->update(
+                    $this->ownerId(),
                     $id,
                     $data['name'],
                     $data['brand'],
@@ -148,11 +151,11 @@ class ProductController extends BaseController
                 $input = $this->readInput();
                 $id = $this->validId($input['id'] ?? 0, 'producto');
 
-                if ($this->model->hasConsumptions($id)) {
+                if ($this->model->hasConsumptions($this->ownerId(), $id)) {
                     $this->error('No se puede eliminar el producto porque ya fue usado en servicios. Podés desactivarlo.');
                 }
 
-                $success = $this->model->delete($id);
+                $success = $this->model->delete($this->ownerId(), $id);
 
                 $this->json([
                     'success' => $success,
@@ -172,12 +175,13 @@ class ProductController extends BaseController
     {
         $input = $this->readInput();
         $id = $this->validId($input['id'] ?? 0, 'producto');
+        $ownerId = $this->ownerId();
 
-        if (!$this->model->getById($id)) {
+        if (!$this->model->getById($ownerId, $id)) {
             $this->error('El producto no existe.', 404);
         }
 
-        $success = $active ? $this->model->activate($id) : $this->model->deactivate($id);
+        $success = $active ? $this->model->activate($ownerId, $id) : $this->model->deactivate($ownerId, $id);
 
         $this->json([
             'success' => $success,

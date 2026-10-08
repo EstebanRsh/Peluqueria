@@ -45,7 +45,7 @@ class ServiceHistoryController extends BaseController
             }
 
             try {
-                $newId = $this->model->save($data, $consumptions);
+                $newId = $this->model->save($this->ownerId(), $data, $consumptions);
             } catch (ServiceHistoryException $e) {
                 $this->error($e->getMessage(), $e->getCode() ?: 400);
                 return;
@@ -62,7 +62,7 @@ class ServiceHistoryController extends BaseController
                 $this->error('ID de cliente inválido.', 400);
             }
 
-            $timeline = $this->model->getTimelineByClient($clientId);
+            $timeline = $this->model->getTimelineByClient($this->ownerId(), $clientId);
             $this->json(['success' => true, 'data' => $timeline]);
         }
 
@@ -74,13 +74,13 @@ class ServiceHistoryController extends BaseController
                 $this->error('ID de ficha inválido.', 400);
             }
 
-            $record = $this->model->getById($historyId);
+            $record = $this->model->getById($this->ownerId(), $historyId);
 
             if (!$record) {
                 $this->error('Ficha no encontrada.', 404);
             }
 
-            $record['consumptions'] = $this->model->getConsumptions($historyId);
+            $record['consumptions'] = $this->model->getConsumptions($this->ownerId(), $historyId);
 
             $this->json(['success' => true, 'data' => $record]);
         }
@@ -183,7 +183,7 @@ class ServiceHistoryController extends BaseController
 
         // Validación con turno asociado
         if ($data['appointment_id'] !== null) {
-            $appointment = $this->model->getAppointmentContext($data['appointment_id']);
+            $appointment = $this->model->getAppointmentContext($this->ownerId(), $data['appointment_id']);
 
             if (!$appointment) {
                 $this->error('El turno indicado no existe.', 404);
@@ -205,7 +205,7 @@ class ServiceHistoryController extends BaseController
                 return 'Debe seleccionar un cliente registrado o indicar un nombre.';
             }
 
-            if ($data['client_id'] !== null && !$this->clientModel->getById($data['client_id'])) {
+            if ($data['client_id'] !== null && !$this->clientModel->getById($this->ownerId(), $data['client_id'])) {
                 return 'El cliente seleccionado no existe.';
             }
 
@@ -214,7 +214,7 @@ class ServiceHistoryController extends BaseController
             }
 
             if ($data['service_id'] !== null) {
-                $serviceName = $this->model->getServiceName($data['service_id']);
+                $serviceName = $this->model->getServiceName($this->ownerId(), $data['service_id']);
 
                 if ($serviceName === null) {
                     return 'El servicio seleccionado no existe.';

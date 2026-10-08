@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../config/auth.php';
+
 /**
  * Clase base para los controladores de la API.
  * Proporciona métodos auxiliares estandarizados para la lectura de datos,
@@ -7,6 +9,18 @@
  */
 abstract class BaseController
 {
+    // Devuelve el ID del owner autenticado, que coincide con users.id.
+    protected function ownerId(): int
+    {
+        $user = Auth::currentUser();
+
+        if ($user === null || !isset($user['id']) || !is_int($user['id']) || $user['id'] <= 0) {
+            $this->error('No se pudo identificar el owner autenticado.', 401);
+        }
+
+        return $user['id'];
+    }
+
     // Limpia y recorta espacios de una cadena de texto.
     // Retorna string vacío si el valor recibido no es una cadena válida.
     protected function str(mixed $value): string

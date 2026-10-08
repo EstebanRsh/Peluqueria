@@ -32,7 +32,8 @@ class CalendarController
         $year  = min(2100, max(2000, $year));
 
         // Obtiene resumen de eventos e información técnica para construir la grilla del mes
-        $events      = $this->model->getEventsByMonth($year, $month);
+        $ownerId     = Auth::currentUser()['id'];
+        $events      = $this->model->getEventsByMonth($ownerId, $year, $month);
         $firstDay    = (int)date('N', mktime(0, 0, 0, $month, 1, $year)); // Día de la semana en que empieza (1=Lun, 7=Dom)
         $daysInMonth = (int)date('t', mktime(0, 0, 0, $month, 1, $year)); // Total de días del mes
         $prevMonth   = $month - 1 < 1  ? 12 : $month - 1;

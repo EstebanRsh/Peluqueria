@@ -24,16 +24,18 @@ class ProductModel
     }
 
     // Productos activos (con tope de seguridad; para selectores usar search()).
-    public function getActive(): array
+    public function getActive(int $ownerId): array
     {
         $stmt = $this->conn->prepare("
             SELECT " . self::COLUMNS . "
             FROM products
-            WHERE active = 1
+            WHERE owner_id = ?
+              AND active = 1
             ORDER BY name ASC
             LIMIT 500
         ");
 
+        $stmt->bind_param('i', $ownerId);
         $stmt->execute();
 
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -41,11 +43,11 @@ class ProductModel
 
     // Listado paginado para el panel de administración.
     // Busca por nombre o marca (contiene el texto).
-    public function paginate(string $query, string $filter, int $page, int $perPage): array
+    public function paginate(int $ownerId, string $query, string $filter, int $page, int $perPage): array
     {
-        $where = ['1=1'];
-        $types = '';
-        $params = [];
+        $where = ['owner_id = ?'];
+        $types = 'i';
+        $params = [$ownerId];
 
         if ($filter === 'activos') {
             $where[] = 'active = 1';
@@ -65,9 +67,7 @@ class ProductModel
 
         // Total de registros que cumplen el filtro
         $stmt = $this->conn->prepare("SELECT COUNT(*) AS total FROM products WHERE {$whereSql}");
-        if ($types !== '') {
-            $stmt->bind_param($types, ...$params);
-        }
+        $stmt->bind_param($types, ...$params);
         $stmt->execute();
         $total = (int)$stmt->get_result()->fetch_assoc()['total'];
 
@@ -92,23 +92,24 @@ class ProductModel
     }
 
     // Trae un solo producto por su ID, o null si no existe.
-    public function getById(int $id): ?array
+    public function getById(int $ownerId, int $id): ?array
     {
         $stmt = $this->conn->prepare("
             SELECT " . self::COLUMNS . "
             FROM products
             WHERE id = ?
+              AND owner_id = ?
             LIMIT 1
         ");
 
-        $stmt->bind_param('i', $id);
+        $stmt->bind_param('ii', $id, $ownerId);
         $stmt->execute();
 
         return $stmt->get_result()->fetch_assoc() ?: null;
     }
 
     // Autocompletado: productos activos por nombre o marca, máximo 15.
-    public function search(string $query): array
+    public function search(int $ownerId, string $query): array
     {
         $query = trim($query);
 
@@ -119,14 +120,15 @@ class ProductModel
         $stmt = $this->conn->prepare("
             SELECT id, name, brand, measurement_unit
             FROM products
-            WHERE active = 1
+            WHERE owner_id = ?
+              AND active = 1
               AND (name LIKE ? OR brand LIKE ?)
             ORDER BY name ASC
             LIMIT 15
         ");
 
         $term = '%' . $this->escapeLike($query) . '%';
-        $stmt->bind_param('ss', $term, $term);
+        $stmt->bind_param('iss', $ownerId, $term, $term);
         $stmt->execute();
 
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -134,6 +136,7 @@ class ProductModel
 
     // Inserta un producto nuevo en la base de datos.
     public function create(
+        int $ownerId,
         string $name,
         ?string $brand,
         string $measurementUnit,
@@ -141,17 +144,18 @@ class ProductModel
         float $unitCost
     ): bool {
         $stmt = $this->conn->prepare("
-            INSERT INTO products (name, brand, measurement_unit, stock, unit_cost)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO products (owner_id, name, brand, measurement_unit, stock, unit_cost)
+            VALUES (?, ?, ?, ?, ?, ?)
         ");
 
-        $stmt->bind_param('sssdd', $name, $brand, $measurementUnit, $stock, $unitCost);
+        $stmt->bind_param('isssdd', $ownerId, $name, $brand, $measurementUnit, $stock, $unitCost);
 
         return $stmt->execute();
     }
 
     // Actualiza todos los datos de un producto existente.
     public function update(
+        int $ownerId,
         int $id,
         string $name,
         ?string $brand,
@@ -167,54 +171,55 @@ class ProductModel
                 stock = ?,
                 unit_cost = ?
             WHERE id = ?
+              AND owner_id = ?
         ");
 
-        $stmt->bind_param('sssddi', $name, $brand, $measurementUnit, $stock, $unitCost, $id);
+        $stmt->bind_param('sssddii', $name, $brand, $measurementUnit, $stock, $unitCost, $id, $ownerId);
 
         return $stmt->execute();
     }
 
     // Activa / desactiva un producto (solo cambia la columna "active").
-    public function activate(int $id): bool
+    public function activate(int $ownerId, int $id): bool
     {
-        return $this->setActive($id, 1);
+        return $this->setActive($ownerId, $id, 1);
     }
 
-    public function deactivate(int $id): bool
+    public function deactivate(int $ownerId, int $id): bool
     {
-        return $this->setActive($id, 0);
+        return $this->setActive($ownerId, $id, 0);
     }
 
-    private function setActive(int $id, int $active): bool
+    private function setActive(int $ownerId, int $id, int $active): bool
     {
-        $stmt = $this->conn->prepare("UPDATE products SET active = ? WHERE id = ?");
-        $stmt->bind_param('ii', $active, $id);
+        $stmt = $this->conn->prepare("UPDATE products SET active = ? WHERE id = ? AND owner_id = ?");
+        $stmt->bind_param('iii', $active, $id, $ownerId);
 
         return $stmt->execute();
     }
 
     // ¿Fue consumido en alguna ficha técnica? Si sí, no se puede eliminar.
-    public function hasConsumptions(int $id): bool
+    public function hasConsumptions(int $ownerId, int $id): bool
     {
         $stmt = $this->conn->prepare("
-            SELECT EXISTS(SELECT 1 FROM service_consumptions WHERE product_id = ?) AS used
+            SELECT EXISTS(SELECT 1 FROM service_consumptions WHERE product_id = ? AND owner_id = ?) AS used
         ");
 
-        $stmt->bind_param('i', $id);
+        $stmt->bind_param('ii', $id, $ownerId);
         $stmt->execute();
 
         return (bool)$stmt->get_result()->fetch_assoc()['used'];
     }
 
     // Borra el producto definitivamente. Vuelve a chequear consumos por seguridad.
-    public function delete(int $id): bool
+    public function delete(int $ownerId, int $id): bool
     {
-        if ($this->hasConsumptions($id)) {
+        if ($this->hasConsumptions($ownerId, $id)) {
             return false;
         }
 
-        $stmt = $this->conn->prepare("DELETE FROM products WHERE id = ?");
-        $stmt->bind_param('i', $id);
+        $stmt = $this->conn->prepare("DELETE FROM products WHERE id = ? AND owner_id = ?");
+        $stmt->bind_param('ii', $id, $ownerId);
 
         return $stmt->execute();
     }
