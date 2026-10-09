@@ -10,14 +10,17 @@ import { initClients, loadClientsList } from "./clients.js";
 import { initProducts, loadProductsList } from "./products.js";
 import { initQuickEntry } from "./quickEntry.js";
 import { initLogout } from "./auth.js";
+import { initFab } from "./fab.js";
 
 const panel = document.getElementById("dayPanel");
 const closeBtn = document.getElementById("panelClose");
 
 export const appState = {
   activeDay: null,
+  activeView: "appointments",
 };
 
+// Clic en la celda del calendario
 document.querySelectorAll(".calendar__cell--active").forEach((cell) => {
   cell.addEventListener("click", () => {
     const date = cell.dataset.date;
@@ -30,15 +33,16 @@ document.querySelectorAll(".calendar__cell--active").forEach((cell) => {
   });
 });
 
+// Clic y Hover en el indicador de Reservados
 document.querySelectorAll(".cell__status-badge").forEach((badge) => {
   badge.addEventListener("click", (event) => {
     event.stopPropagation();
 
     const date = badge.dataset.date;
-    const status = badge.dataset.status;
     const cell = badge.closest(".calendar__cell--active");
 
-    openPanelForDate(cell, date, status);
+    // Abrir el panel filtrando por la agenda del día
+    openPanelForDate(cell, date, "reservado");
   });
 
   badge.addEventListener("mouseenter", async () => {
@@ -47,24 +51,24 @@ document.querySelectorAll(".cell__status-badge").forEach((badge) => {
     }
 
     const date = badge.dataset.date;
-    const status = badge.dataset.status;
-    const originalTitle = badge.getAttribute("title") || "";
 
     try {
       const data = await fetchAppointments(date);
+      // Solo nos interesan los clientes con estado Reservado para el tooltip del calendario
       const filtered = data.filter(
-        (appointment) => slugify(appointment.status) === status,
+        (appointment) => slugify(appointment.status) === "reservado",
       );
       const names = filtered
-        .map((appointment) => appointment.client_name)
+        .map((appointment) => appointment.client_name || appointment.alias)
+        .filter(Boolean)
         .join(", ");
 
       if (names) {
-        badge.setAttribute("title", `${originalTitle} \n(${names})`);
+        badge.setAttribute("title", `Reservas: ${filtered.length}\n(${names})`);
         badge.dataset.loadedNames = "true";
       }
     } catch (error) {
-      console.error("Error al cargar nombres de clientes:", error);
+      console.error("Error al cargar nombres de reservas:", error);
     }
   });
 });
@@ -86,11 +90,20 @@ const views = {
   products: viewProducts,
 };
 
+const fab = initFab({
+  appState,
+  navItems,
+  getCurrentView: () => appState.activeView,
+});
+fab.setView(appState.activeView);
+
 navItems.forEach((item) => {
   item.addEventListener("click", (event) => {
     event.preventDefault();
 
     const view = item.dataset.view;
+    appState.activeView = view;
+    fab.setView(view);
 
     navItems.forEach((nav) => nav.classList.remove("is-active"));
     item.classList.add("is-active");
@@ -133,86 +146,13 @@ if (burgerBtn && sidebar && sidebarOverlay) {
   });
 }
 
-const fabToggle = document.getElementById("fabToggle");
-const fabActions = document.getElementById("fabActions");
-const fabBackdrop = document.getElementById("fabBackdrop");
-
-if (fabToggle && fabActions) {
-  const fabItems = fabActions.querySelectorAll(".fab-actions__item");
-
-  const setFabOpen = (isOpen) => {
-    fabActions.classList.toggle("is-open", isOpen);
-    fabToggle.setAttribute("aria-expanded", String(isOpen));
-    fabBackdrop?.classList.toggle("is-visible", isOpen);
-
-    // Evita que un Tab llegue a botones invisibles cuando el
-    // menú está cerrado (accesibilidad de teclado).
-    fabItems.forEach((item) => {
-      item.tabIndex = isOpen ? 0 : -1;
-    });
-  };
-
-  const closeFab = () => setFabOpen(false);
-  const toggleFab = () => setFabOpen(!fabActions.classList.contains("is-open"));
-
-  setFabOpen(false);
-
-  fabToggle.addEventListener("click", toggleFab);
-  fabBackdrop?.addEventListener("click", closeFab);
-
-  // Cierra el menú apenas se elige una acción: no lo dejamos abierto
-  // tapando la pantalla mientras se abre el modal correspondiente.
-  fabItems.forEach((item) => {
-    item.addEventListener("click", closeFab);
-  });
-
-  const openExistingForm = (viewName, triggerId) => {
-    const navItem = Array.from(navItems).find(
-      (item) => item.dataset.view === viewName,
-    );
-    if (navItem && !navItem.classList.contains("is-active")) {
-      navItem.click();
-    }
-    document.getElementById(triggerId)?.click();
-  };
-
-  document
-    .getElementById("btnNewAppointment")
-    ?.addEventListener("click", () => {
-      const today = new Date();
-      appState.activeDay ??= [
-        today.getFullYear(),
-        String(today.getMonth() + 1).padStart(2, "0"),
-        String(today.getDate()).padStart(2, "0"),
-      ].join("-");
-      document.getElementById("btnAddAppointment")?.click();
-    });
-
-  document
-    .getElementById("btnNewProduct")
-    ?.addEventListener("click", () =>
-      openExistingForm("products", "btnAddProduct"),
-    );
-
-  document
-    .getElementById("btnNewCustomer")
-    ?.addEventListener("click", () =>
-      openExistingForm("clients", "btnAddClient"),
-    );
-
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && fabActions.classList.contains("is-open")) {
-      closeFab();
-    }
-  });
-}
-
 initModal();
 initServices();
 initClients();
 initProducts();
 initQuickEntry();
 initLogout();
+
 window.addEventListener("error", (event) => {
   console.group("ERROR GLOBAL");
   console.error(event.message);

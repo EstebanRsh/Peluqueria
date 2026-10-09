@@ -14,6 +14,7 @@
         </h3>
 
         <button
+            type="button"
             class="day-panel__close"
             id="serviceModalClose"
             aria-label="Cerrar">
@@ -87,12 +88,14 @@
     <div class="appointment-detail-footer">
 
         <button
+            type="button"
             class="btn btn--ghost"
             id="serviceModalCancel">
             Cancelar
         </button>
 
         <button
+            type="button"
             class="btn btn--primary"
             id="serviceModalSave">
             Guardar servicio

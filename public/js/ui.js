@@ -24,14 +24,13 @@ const panelBody = document.getElementById("panelBody");
 // Guarda temporalmente los turnos cargados por ID.
 const appointmentMap = new Map();
 
-// Modal de detalle actualmente abierto (overlay + panel).
+// Modal de detalle actualmente abierto.
 let activeDetailModal = null;
 
 // ============================================================
 // FILTROS
 // ============================================================
 
-// Conservan los filtros utilizados dentro del panel.
 let appointmentSearchQuery = "";
 let appointmentFilterStatus = "todos";
 
@@ -39,8 +38,6 @@ let appointmentFilterStatus = "todos";
 // SEGURIDAD HTML
 // ============================================================
 
-// Escapa caracteres especiales antes de insertar
-// datos recibidos del servidor dentro del HTML.
 function escapeHtml(value) {
   if (value === null || value === undefined) {
     return "";
@@ -58,8 +55,6 @@ function escapeHtml(value) {
 // APERTURA DEL PANEL
 // ============================================================
 
-// Abre el panel lateral para una fecha determinada.
-// También permite aplicar un filtro de estado.
 export function openPanelForDate(cell, date, statusFilter) {
   document
     .querySelectorAll(".calendar__cell--selected")
@@ -67,18 +62,20 @@ export function openPanelForDate(cell, date, statusFilter) {
       selectedCell.classList.remove("calendar__cell--selected");
     });
 
-  cell.classList.add("calendar__cell--selected");
+  if (cell) {
+    cell.classList.add("calendar__cell--selected");
+  }
 
   // Actualizar día activo.
   appState.activeDay = date;
 
-  // Sincronizar el filtro de estado.
+  // Por defecto al abrir un día mostramos "todos" los turnos del día o el filtro indicado
   appointmentFilterStatus = statusFilter ? slugify(statusFilter) : "todos";
 
   // Reiniciar búsqueda.
   appointmentSearchQuery = "";
 
-  // Mostrar fecha en el panel.
+  // Mostrar fecha en la cabecera del panel.
   const dateFormatted = formatDate(date);
   panelDate.innerHTML = dateFormatted;
 
@@ -87,7 +84,7 @@ export function openPanelForDate(cell, date, statusFilter) {
   panel.setAttribute("aria-hidden", "false");
   panelOverlay?.classList.add("is-open");
 
-  // Cargar turnos.
+  // Cargar turnos del día.
   loadAppointments(date);
 }
 
@@ -95,7 +92,6 @@ export function openPanelForDate(cell, date, statusFilter) {
 // CIERRE DEL PANEL
 // ============================================================
 
-// Cierra el panel lateral y limpia la selección actual.
 export function closePanel() {
   panel.classList.remove("is-open");
   panel.setAttribute("aria-hidden", "true");
@@ -108,8 +104,6 @@ export function closePanel() {
   appState.activeDay = null;
 }
 
-// Cerrar al hacer clic afuera (sobre el overlay) o con Escape,
-// igual que el resto de los paneles laterales de la app.
 panelOverlay?.addEventListener("click", closePanel);
 
 document.addEventListener("keydown", (event) => {
@@ -122,8 +116,6 @@ document.addEventListener("keydown", (event) => {
 // CARGA DE TURNOS
 // ============================================================
 
-// Solicita al servidor los turnos correspondientes
-// al día y filtros actualmente seleccionados.
 export async function loadAppointments(date) {
   if (!date) {
     return;
@@ -152,7 +144,6 @@ export async function loadAppointments(date) {
 // RENDERIZADO DE LA LISTA
 // ============================================================
 
-// Genera las tarjetas visuales de los turnos.
 function renderAppointmentsList(appointments) {
   let html = `
     <div class="panel-controls">
@@ -220,14 +211,10 @@ function renderAppointmentsList(appointments) {
     <div id="appointmentsListContainer">
   `;
 
-  // ==========================================================
-  // SIN RESULTADOS
-  // ==========================================================
-
   if (!appointments || !appointments.length) {
     html += `
         <p class="panel-empty">
-          No se encontraron turnos con los filtros aplicados.
+          No se encontraron turnos para este día con los filtros aplicados.
         </p>
       </div>
     `;
@@ -236,10 +223,6 @@ function renderAppointmentsList(appointments) {
     setupFilterListeners();
     return;
   }
-
-  // ==========================================================
-  // TARJETAS
-  // ==========================================================
 
   appointmentMap.clear();
 
@@ -297,7 +280,6 @@ function renderAppointmentsList(appointments) {
 // DETALLE DE TURNO
 // ============================================================
 
-// Abre el modal con toda la información del turno seleccionado.
 function openAppointmentDetailModal(appointmentId) {
   const appointment = appointmentMap.get(String(appointmentId));
 
@@ -323,7 +305,7 @@ function openAppointmentDetailModal(appointmentId) {
       <div class="day-panel__header appointment-detail-header">
         <div>
           <span class="appointment-detail-meta">
-            ${escapeHtml(appointment.time_start.substring(0, 5))}
+            ${escapeHtml(appointment.time_start.substring(0, 5))} hs
           </span>
 
           <h3 class="day-panel__date">
@@ -342,7 +324,6 @@ function openAppointmentDetailModal(appointmentId) {
 
       <div class="day-panel__body appointment-detail-body">
         <section class="detail-grid">
-          <!-- Fecha -->
           <div class="detail-card">
             <span class="detail-label">Fecha</span>
             <span class="detail-value">
@@ -350,7 +331,6 @@ function openAppointmentDetailModal(appointmentId) {
             </span>
           </div>
 
-          <!-- Servicio -->
           <div class="detail-card">
             <span class="detail-label">Servicio</span>
             <span class="detail-value">
@@ -358,7 +338,6 @@ function openAppointmentDetailModal(appointmentId) {
             </span>
           </div>
 
-          <!-- Peluquero/a -->
           <div class="detail-card">
             <span class="detail-label">Peluquero/a</span>
             <span class="detail-value">
@@ -366,19 +345,17 @@ function openAppointmentDetailModal(appointmentId) {
             </span>
           </div>
 
-          <!-- Duración -->
           <div class="detail-card">
             <span class="detail-label">Duración</span>
             <span class="detail-value">
               ${
                 appointment.service_duration
-                  ? `${escapeHtml(appointment.service_duration)} minutos`
+                  ? `${escapeHtml(appointment.service_duration)} min`
                   : "No disponible"
               }
             </span>
           </div>
 
-          <!-- Precio -->
           <div class="detail-card">
             <span class="detail-label">Precio</span>
             <span class="detail-value">
@@ -386,7 +363,7 @@ function openAppointmentDetailModal(appointmentId) {
             </span>
           </div>
 
-          <!-- Estado -->
+          <!-- Cambio de Estado Dinámico -->
           <div class="detail-card">
             <span class="detail-label">Estado</span>
             <select
@@ -440,7 +417,6 @@ function openAppointmentDetailModal(appointmentId) {
             </select>
           </div>
 
-          <!-- Horario -->
           <div class="detail-card">
             <span class="detail-label">Horario</span>
             <span class="detail-value">
@@ -450,7 +426,6 @@ function openAppointmentDetailModal(appointmentId) {
             </span>
           </div>
 
-          <!-- Notas -->
           <div class="detail-card detail-card-full">
             <span class="detail-label">Notas</span>
             <span class="detail-value">
@@ -459,7 +434,6 @@ function openAppointmentDetailModal(appointmentId) {
           </div>
         </section>
 
-        <!-- Historial -->
         <section
           class="appointment-history-log"
           id="histLog-${escapeHtml(appointment.id)}"
@@ -471,7 +445,6 @@ function openAppointmentDetailModal(appointmentId) {
         </section>
       </div>
 
-      <!-- Botones -->
       <div class="appointment-detail-footer">
         <button
           type="button"
@@ -499,11 +472,6 @@ function openAppointmentDetailModal(appointmentId) {
   loadTimelineHistory(appointment.id);
 }
 
-// ============================================================
-// CIERRE DEL MODAL DE DETALLE
-// ============================================================
-
-// Cierra y elimina el modal de detalle actual.
 function closeAppointmentDetailModal() {
   if (!activeDetailModal) {
     return;
@@ -515,8 +483,6 @@ function closeAppointmentDetailModal() {
   document.body.classList.remove("has-detail-modal");
 }
 
-// Cierra el detalle del turno con la tecla Escape, igual que
-// el resto de los paneles laterales de la app.
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && activeDetailModal) {
     closeAppointmentDetailModal();
@@ -527,7 +493,6 @@ document.addEventListener("keydown", (event) => {
 // EVENTOS DEL DETALLE
 // ============================================================
 
-// Configura los botones y controles del modal de detalle.
 function attachDetailModalEvents(panel, overlay, appointmentId) {
   const closeButtons = panel.querySelectorAll(
     ".appointment-detail-close, .appointment-detail-close-btn",
@@ -535,19 +500,11 @@ function attachDetailModalEvents(panel, overlay, appointmentId) {
   const deleteButton = panel.querySelector(".appointment-detail-delete");
   const statusSelect = panel.querySelector("#modalStatusSelect");
 
-  // ----------------------------------------------------------
-  // CERRAR
-  // ----------------------------------------------------------
-
   closeButtons.forEach((button) =>
     button.addEventListener("click", closeAppointmentDetailModal),
   );
 
   overlay.addEventListener("click", closeAppointmentDetailModal);
-
-  // ----------------------------------------------------------
-  // CAMBIAR ESTADO
-  // ----------------------------------------------------------
 
   if (statusSelect) {
     statusSelect.addEventListener("change", async () => {
@@ -575,13 +532,13 @@ function attachDetailModalEvents(panel, overlay, appointmentId) {
           )}`;
         }
 
+        // Al cambiar el estado, recargamos tanto el panel como la grilla general del calendario si hiciera falta
         await loadAppointments(appState.activeDay);
       } catch (error) {
         console.error("Error al actualizar estado:", error);
 
         alert("No se pudo actualizar el estado.\n\n" + error.message);
 
-        // Restaurar valor original si falla
         const appointment = appointmentMap.get(String(appointmentIdNum));
         if (appointment) {
           statusSelect.value = appointment.status;
@@ -591,10 +548,6 @@ function attachDetailModalEvents(panel, overlay, appointmentId) {
       }
     });
   }
-
-  // ----------------------------------------------------------
-  // ELIMINAR
-  // ----------------------------------------------------------
 
   if (deleteButton) {
     deleteButton.addEventListener("click", async () => {
@@ -631,13 +584,8 @@ function attachDetailModalEvents(panel, overlay, appointmentId) {
 // FILTROS Y BÚSQUEDA
 // ============================================================
 
-// Configura los eventos de búsqueda y filtrado.
 function setupFilterListeners() {
   const searchInput = document.getElementById("appointmentSearch");
-
-  // ----------------------------------------------------------
-  // BÚSQUEDA
-  // ----------------------------------------------------------
 
   if (searchInput) {
     searchInput.addEventListener("input", (event) => {
@@ -654,10 +602,6 @@ function setupFilterListeners() {
     });
   }
 
-  // ----------------------------------------------------------
-  // FILTROS DE ESTADO
-  // ----------------------------------------------------------
-
   panelBody.querySelectorAll(".btn-filter[data-status]").forEach((button) => {
     button.addEventListener("click", () => {
       appointmentFilterStatus = button.dataset.status;
@@ -670,7 +614,6 @@ function setupFilterListeners() {
 // EVENTOS DE LAS TARJETAS
 // ============================================================
 
-// Hace que cada tarjeta abra el detalle del turno.
 function attachAppointmentEvents() {
   panelBody.querySelectorAll(".appointment-card__row").forEach((row) => {
     row.addEventListener("click", () => {
@@ -686,10 +629,9 @@ function attachAppointmentEvents() {
 }
 
 // ============================================================
-// HISTORIAL
+// HISTORIAL DE ESTADOS
 // ============================================================
 
-// Carga y muestra el historial de estados de un turno.
 async function loadTimelineHistory(id) {
   const container = document.querySelector(`#histLog-${id} .history-items`);
 

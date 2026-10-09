@@ -11,7 +11,8 @@
             <button
                 type="button"
                 class="btn btn--primary btn--sm"
-                id="btnAddService">
+                id="btnAddService"
+                style="display:none">
                 <span aria-hidden="true">➕</span> Nuevo servicio
             </button>
         </div>
@@ -33,15 +34,15 @@
                 autocomplete="off">
 
             <div class="panel-filters">
-                <button class="btn-filter active" data-filter="todos">
+                <button type="button" class="btn-filter active" data-filter="todos">
                     Todos
                 </button>
 
-                <button class="btn-filter" data-filter="activos">
+                <button type="button" class="btn-filter" data-filter="activos">
                     Activos
                 </button>
 
-                <button class="btn-filter" data-filter="inactivos">
+                <button type="button" class="btn-filter" data-filter="inactivos">
                     Inactivos
                 </button>
             </div>

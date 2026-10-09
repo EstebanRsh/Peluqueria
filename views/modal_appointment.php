@@ -14,6 +14,7 @@
         </h3>
 
         <button
+            type="button"
             class="day-panel__close"
             id="modalClose"
             aria-label="Cerrar">
@@ -179,6 +180,7 @@
     <div class="appointment-detail-footer">
 
         <button
+            type="button"
             class="btn btn--ghost"
             id="modalCancel">
             Cancelar
@@ -186,6 +188,7 @@
 
 
         <button
+            type="button"
             class="btn btn--primary"
             id="modalSave">
             Guardar turno

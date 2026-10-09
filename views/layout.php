@@ -26,7 +26,7 @@ $userInitial = mb_strtoupper(mb_substr($username, 0, 1, 'UTF-8'), 'UTF-8');
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <header class="mobile-header">
-        <button class="mobile-burger" id="mobileBurger" aria-label="Abrir menú de navegación">
+        <button type="button" class="mobile-burger" id="mobileBurger" aria-label="Abrir menú de navegación">
             <span></span>
             <span></span>
             <span></span>
@@ -104,6 +104,14 @@ $userInitial = mb_strtoupper(mb_substr($username, 0, 1, 'UTF-8'), 'UTF-8');
                 <?php require __DIR__ . '/modal_product.php'; ?>
             </div>
         </main>
+    </div>
+
+    <div class="fab-actions-backdrop" id="fabBackdrop"></div>
+    <div class="fab-actions" id="fabActions" hidden>
+        <div class="fab-actions__menu" id="fabMenu"></div>
+        <button class="fab-actions__toggle" id="fabToggle" type="button" aria-label="Abrir acciones rápidas" aria-expanded="false" aria-controls="fabMenu">
+            <span class="fab-actions__toggle-icon">+</span>
+        </button>
     </div>
 
     <script>

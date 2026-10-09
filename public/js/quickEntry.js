@@ -11,7 +11,6 @@ export function initQuickEntry() {
   const btnClose = document.getElementById("quickEntryClose");
   const btnCancel = document.getElementById("quickEntryCancel");
   const btnSave = document.getElementById("quickEntrySave");
-  const btnNewHistory = document.getElementById("btnNewHistory");
 
   // Confirmación: guardar ficha sin cliente registrado
   const noClientOverlay = document.getElementById("noClientOverlay");
@@ -35,7 +34,7 @@ export function initQuickEntry() {
     resetForm();
   };
 
-  if (btnNewHistory) btnNewHistory.addEventListener("click", openDrawer);
+  document.addEventListener("quickentry:open", openDrawer);
   if (btnClose) btnClose.addEventListener("click", closeDrawer);
   if (btnCancel) btnCancel.addEventListener("click", closeDrawer);
   if (overlay) overlay.addEventListener("click", closeDrawer);
@@ -478,7 +477,8 @@ export function initQuickEntry() {
   });
 
   const buildJSON = () => {
-    const clientId = document.getElementById("quickEntryClientId").value || null;
+    const clientId =
+      document.getElementById("quickEntryClientId").value || null;
     const clientNameTyped = document
       .getElementById("quickEntryClientSearch")
       .value.trim();

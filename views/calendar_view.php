@@ -29,24 +29,24 @@ $monthNames = [
 $dayNames   = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
 $today      = date('Y-m-d');
 
-$monthTotal = 0;
+$monthTotalReservados = 0;
 $busyDays = 0;
+
+// Calcular únicamente los turnos RESERVADOS del mes
 foreach ($events as $dayEvents) {
-    $busyDays++;
+    $hasReservations = false;
     foreach ($dayEvents as $dayEvent) {
-        $monthTotal += (int)$dayEvent['total'];
+        if (mb_strtolower($dayEvent['status'], 'UTF-8') === 'reservado') {
+            $monthTotalReservados += (int)$dayEvent['total'];
+            $hasReservations = true;
+        }
+    }
+    if ($hasReservations) {
+        $busyDays++;
     }
 }
-$legend = [
-    'reservado' => 'Reservado',
-    'en-sala-de-espera' => 'Espera',
-    'en-atencion' => 'Atención',
-    'finalizado' => 'Finalizado',
-    'cancelado' => 'Cancelado',
-    'ausente' => 'Ausente',
-];
 ?>
-<div class="app-layout">
+<div class="admin-view">
     <main class="calendar-wrapper">
         <div class="calendar">
             <div class="calendar__header">
@@ -79,39 +79,36 @@ $legend = [
                 <?php for ($d = 1; $d <= $daysInMonth; $d++):
                     $dateKey = sprintf('%04d-%02d-%02d', $year, $month, $d);
                     $isToday  = $dateKey === $today;
-                    $hasEvent = isset($events[$dateKey]);
+
+                    // Filtrar solo los datos de RESERVADO para la casilla
+                    $reservadosCount = 0;
+                    if (isset($events[$dateKey])) {
+                        foreach ($events[$dateKey] as $dayEvent) {
+                            if (mb_strtolower($dayEvent['status'], 'UTF-8') === 'reservado') {
+                                $reservadosCount += (int)$dayEvent['total'];
+                            }
+                        }
+                    }
+
+                    $hasEvent = $reservadosCount > 0;
                     $classes  = 'calendar__cell calendar__cell--active';
                     if ($isToday)  $classes .= ' calendar__cell--today';
                     if ($hasEvent) $classes .= ' calendar__cell--has-event';
-                    $dayTotal = 0;
-                    if ($hasEvent) {
-                        foreach ($events[$dateKey] as $dayEvent) {
-                            $dayTotal += (int)$dayEvent['total'];
-                        }
-                    }
                 ?>
                     <div class="<?= $classes ?>" data-date="<?= $dateKey ?>"
                         role="button" tabindex="0"
                         <?= $isToday ? 'aria-current="date"' : '' ?>
-                        aria-label="<?= $d ?> de <?= $monthNames[$month] ?><?= $hasEvent ? ', ' . $dayTotal . ($dayTotal === 1 ? ' turno' : ' turnos') : '' ?>">
+                        aria-label="<?= $d ?> de <?= $monthNames[$month] ?><?= $hasEvent ? ', ' . $reservadosCount . ($reservadosCount === 1 ? ' reserva' : ' reservas') : '' ?>">
                         <span class="cell__number"><?= $d ?></span>
+
                         <?php if ($hasEvent): ?>
                             <div class="cell__events">
-                                <?php foreach ($events[$dateKey] as $st):
-                                    $lowerStatus = mb_strtolower($st['status'], 'UTF-8');
-                                    $statusSlug  = str_replace(
-                                        [' ', 'á', 'é', 'í', 'ó', 'ú', 'ñ'],
-                                        ['-', 'a', 'e', 'i', 'o', 'u', 'n'],
-                                        $lowerStatus
-                                    );
-                                ?>
-                                    <span class="cell__status-badge cell__status-badge--<?= $statusSlug ?>"
-                                        data-status="<?= $statusSlug ?>"
-                                        data-date="<?= $dateKey ?>"
-                                        title="<?= htmlspecialchars($st['status']) ?>: <?= $st['total'] ?>">
-                                        <?= $st['total'] ?>
-                                    </span>
-                                <?php endforeach; ?>
+                                <span class="cell__status-badge cell__status-badge--reservado"
+                                    data-status="reservado"
+                                    data-date="<?= $dateKey ?>"
+                                    title="Reservados: <?= $reservadosCount ?>">
+                                    <?= $reservadosCount ?>
+                                </span>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -129,29 +126,23 @@ $legend = [
                 <?php endfor; ?>
             </div>
 
-            <!--
-                Resumen compacto del mes: se mantiene visible sin saturar la vista y
-                funciona como "headline" del calendario. La intención es dar contexto
-                rápido antes de entrar en los detalles por día.
-            -->
+            <!-- Resumen limpio y enfocado únicamente en la carga de reservas -->
             <div class="calendar__summary" aria-label="Resumen del mes">
-                <span class="summary__item"><b class="summary__num"><?= $monthTotal ?></b> turnos</span>
-                <span class="summary__item"><b class="summary__num"><?= $busyDays ?></b> días con agenda</span>
+                <span class="summary__item"><b class="summary__num"><?= $monthTotalReservados ?></b> reservas activas</span>
+                <span class="summary__item"><b class="summary__num"><?= $busyDays ?></b> días con agenda ocupada</span>
             </div>
+
             <ul class="calendar__legend" aria-label="Leyenda de estados">
-                <?php foreach ($legend as $slug => $label): ?>
-                    <li class="legend__item">
-                        <span class="legend__swatch cell__status-badge--<?= $slug ?>"></span><?= $label ?>
-                    </li>
-                    <?php endforeach; ?>
+                <li class="legend__item">
+                    <span class="legend__swatch cell__status-badge--reservado"></span> Turnos Reservados (Pendientes de atención)
+                </li>
             </ul>
         </div>
     </main>
-
 </div>
 
 <!-- =====================================================
-     PANEL LATERAL — TURNOS DEL DÍA
+     PANEL LATERAL — TURNOS DEL DÍA (AQUÍ SÍ SE GESTIONA EL FLUJO COMPLETO)
 ====================================================== -->
 
 <div class="side-drawer-overlay" id="dayPanelOverlay"></div>
@@ -160,62 +151,12 @@ $legend = [
     <div class="day-panel__header">
         <span class="day-panel__date" id="panelDate"></span>
         <div class="day-panel__actions">
-            <button class="btn btn--primary btn--sm" id="btnAddAppointment">+ Turno</button>
-            <button class="day-panel__close" id="panelClose" aria-label="Cerrar">×</button>
+            <button type="button" class="btn btn--primary btn--sm" id="btnAddAppointment">+ Turno</button>
+            <button type="button" class="day-panel__close" id="panelClose" aria-label="Cerrar">×</button>
         </div>
     </div>
     <div class="day-panel__body" id="panelBody"></div>
 </aside>
-<!-- ============================================================
-     BOTÓN FLOTANTE DE ACCIONES RÁPIDAS (FAB)
-============================================================= -->
-<div class="fab-actions-backdrop" id="fabBackdrop"></div>
 
-<div class="fab-actions" id="fabActions">
-    <div class="fab-actions__menu" id="fabMenu">
-        <button class="fab-actions__item fab-actions__item--accent" id="btnNewAppointment" type="button" tabindex="-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="17" rx="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-                <line x1="12" y1="14" x2="12" y2="18" />
-                <line x1="10" y1="16" x2="14" y2="16" />
-            </svg>
-            <span>Nuevo Turno</span>
-        </button>
-        <button class="fab-actions__item" id="btnNewHistory" type="button" tabindex="-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 3h6a1 1 0 0 1 1 1v1h1a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h1V4a1 1 0 0 1 1-1z" />
-                <line x1="8" y1="11" x2="16" y2="11" />
-                <line x1="8" y1="15" x2="16" y2="15" />
-            </svg>
-            <span>Nueva Historia</span>
-        </button>
-
-        <button class="fab-actions__item" id="btnNewProduct" type="button" tabindex="-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 8v8a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 16V8" />
-                <path d="M3.27 6.96 12 12l8.73-5.04" />
-                <path d="M12 22V12" />
-                <path d="M8.5 4.27L16 8.5" />
-            </svg>
-            <span>Nuevo Producto</span>
-        </button>
-
-        <button class="fab-actions__item" id="btnNewCustomer" type="button" tabindex="-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="7.5" r="4" />
-                <path d="M4.5 21a7.5 7.5 0 0 1 15 0" />
-            </svg>
-            <span>Nuevo Cliente</span>
-        </button>
-
-    </div>
-
-    <button class="fab-actions__toggle" id="fabToggle" type="button" aria-label="Abrir acciones rápidas" aria-expanded="false" aria-controls="fabMenu">
-        <span class="fab-actions__toggle-icon">+</span>
-    </button>
-</div>
 <?php require __DIR__ . '/service_sheet.php'; ?>
 <?php require __DIR__ . '/modal_appointment.php'; ?>

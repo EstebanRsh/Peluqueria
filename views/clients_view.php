@@ -11,7 +11,8 @@
             <button
                 type="button"
                 class="btn btn--primary btn--sm"
-                id="btnAddClient">
+                id="btnAddClient"
+                style="display:none">
                 <span aria-hidden="true">➕</span> Nuevo cliente
             </button>
         </div>
@@ -33,15 +34,15 @@
                 autocomplete="off">
 
             <div class="panel-filters">
-                <button class="btn-filter active" data-filter="todos">
+                <button type="button" class="btn-filter active" data-filter="todos">
                     Todos
                 </button>
 
-                <button class="btn-filter" data-filter="activos">
+                <button type="button" class="btn-filter" data-filter="activos">
                     Activos
                 </button>
 
-                <button class="btn-filter" data-filter="inactivos">
+                <button type="button" class="btn-filter" data-filter="inactivos">
                     Inactivos
                 </button>
             </div>
@@ -86,7 +87,7 @@
                 <span class="profile-drawer__code" id="clientProfileCode">CLI-0000</span>
             </div>
         </div>
-        <button class="day-panel__close" id="clientProfileClose" aria-label="Cerrar perfil">
+        <button type="button" class="day-panel__close" id="clientProfileClose" aria-label="Cerrar perfil">
             ×
         </button>
     </div>
@@ -139,10 +140,10 @@
                     placeholder="Buscar en el historial..."
                     autocomplete="off">
                 <div class="panel-filters" id="historyFilters">
-                    <button class="btn-filter active" data-history-filter="todos">Todos</button>
-                    <button class="btn-filter" data-history-filter="color">Color</button>
-                    <button class="btn-filter" data-history-filter="tratamiento">Tratamientos</button>
-                    <button class="btn-filter" data-history-filter="corte">Cortes</button>
+                    <button type="button" class="btn-filter active" data-history-filter="todos">Todos</button>
+                    <button type="button" class="btn-filter" data-history-filter="color">Color</button>
+                    <button type="button" class="btn-filter" data-history-filter="tratamiento">Tratamientos</button>
+                    <button type="button" class="btn-filter" data-history-filter="corte">Cortes</button>
                 </div>
             </div>
 
@@ -161,10 +162,10 @@
     </div>
 
     <div class="appointment-detail-footer">
-        <button class="btn btn--ghost btn--sm" id="clientProfileEdit">
+        <button type="button" class="btn btn--ghost btn--sm" id="clientProfileEdit">
             Editar perfil
         </button>
-        <button class="btn btn--primary btn--sm" id="clientProfileSchedule">
+        <button type="button" class="btn btn--primary btn--sm" id="clientProfileSchedule">
             Nuevo turno
         </button>
     </div>

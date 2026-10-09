@@ -8,7 +8,7 @@
     <div class="day-panel__header">
         <h3 class="day-panel__date">Ficha de Servicio</h3>
         <div class="day-panel__actions">
-            <button class="day-panel__close" id="quickEntryClose" aria-label="Cerrar">×</button>
+            <button type="button" class="day-panel__close" id="quickEntryClose" aria-label="Cerrar">×</button>
         </div>
     </div>
 
@@ -270,10 +270,10 @@
 
     <!-- FOOTER -->
     <div class="appointment-detail-footer">
-        <button class="btn btn--ghost" id="quickEntryCancel">
+        <button type="button" class="btn btn--ghost" id="quickEntryCancel">
             Cancelar
         </button>
-        <button class="btn btn--primary" id="quickEntrySave">
+        <button type="button" class="btn btn--primary" id="quickEntrySave">
             Guardar Ficha
         </button>
     </div>
