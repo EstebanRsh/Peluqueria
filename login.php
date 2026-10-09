@@ -29,7 +29,7 @@ $registrationEnabled = Auth::publicRegistrationEnabled();
                     <label for="loginPassword">Contraseña</label>
                     <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
 
-                    <button type="button">Entrar</button>
+                    <button type="submit">Entrar</button>
                 </fieldset>
             </form>
             <?php if ($registrationEnabled): ?>
@@ -49,7 +49,7 @@ $registrationEnabled = Auth::publicRegistrationEnabled();
                         <label for="registerPassword">Contraseña (mínimo 12 caracteres)</label>
                         <input id="registerPassword" name="password" type="password" autocomplete="new-password" minlength="12" required>
 
-                        <button type="button">Registrarme</button>
+                        <button type="submit">Registrarme</button>
                     </fieldset>
                 </form>
                 <p><a id="showLogin" href="#login">Volver al inicio de sesión</a></p>
