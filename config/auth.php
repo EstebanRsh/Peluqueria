@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__ . '/environment.php';
 require_once __DIR__ . '/../models/UserModel.php';
 
 /**
@@ -11,46 +12,33 @@ final class Auth
     // CONFIGURACIÓN
     // ============================================================
 
-    // Cookie de sesión para conexiones HTTPS.
-    public const SESSION_NAME = '__Host-peluqueria_sid';
-
-    // Cookie usada en localhost, donde se permite HTTP.
-    public const SESSION_NAME_HTTP = 'peluqueria_sid';
-
-    // HTTP solo se permite en localhost.
-    public const ALLOW_HTTP_LOCALHOST = true;
-
     // Tiempo máximo de inactividad de la sesión.
     public const IDLE_TIMEOUT = 1800;
 
     // Duración máxima de la sesión.
     public const ABSOLUTE_TIMEOUT = 43200;
 
-    // Hosts permitidos.
-    public const ALLOWED_HOSTS = ['localhost', '127.0.0.1'];
-
     // Ruta de la pantalla de login.
     public const LOGIN_PATH = 'login.php';
-
-    // Activar solo si un proxy de confianza informa el protocolo original.
-    public const TRUST_PROXY_HEADERS = false;
 
     // Acciones públicas.
     public const PUBLIC_ACTIONS = ['auth_page', 'login', 'register', 'session'];
 
-    // Habilita el registro en localhost o mediante una variable de entorno.
+    // El registro público sólo se habilita si el perfil activo lo permite.
     public static function publicRegistrationEnabled(): bool
     {
-        if (getenv('AUTH_ALLOW_PUBLIC_REGISTRATION') === '1') {
-            return true;
+        $auth = self::environmentConfig();
+
+        if (!$auth['allow_public_registration']) {
+            return false;
         }
 
         $rawHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
         $host = $rawHost === '' ? false : parse_url('//' . $rawHost, PHP_URL_HOST);
         $host = is_string($host) ? trim($host, '[]') : '';
 
-        return self::ALLOW_HTTP_LOCALHOST
-            && in_array($host, self::LOCAL_HOSTS, true)
+        return $auth['allow_http_localhost']
+            && in_array($host, $auth['local_hosts'], true)
             && in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true);
     }
 
@@ -117,8 +105,6 @@ final class Auth
 
     private const TOUCH_INTERVAL = 30;
 
-    private const LOCAL_HOSTS = ['localhost', '127.0.0.1', '::1'];
-
     private static ?array $user = null;
     private static ?string $csrf = null;
 
@@ -137,7 +123,7 @@ final class Auth
         self::enforceHttps($host);
 
         // No activar HSTS en localhost.
-        if (!in_array($host['name'], self::LOCAL_HOSTS, true)) {
+        if (!in_array($host['name'], self::environmentConfig()['local_hosts'], true)) {
             header('Strict-Transport-Security: max-age=31536000');
         }
 
@@ -435,7 +421,7 @@ final class Auth
 
         $name = trim($parts['host'], '[]');
 
-        if (!in_array($name, self::ALLOWED_HOSTS, true)) {
+        if (!in_array($name, self::environmentConfig()['allowed_hosts'], true)) {
             self::deny('Host no permitido.', 400);
         }
 
@@ -444,14 +430,18 @@ final class Auth
 
     private static function cookieName(): string
     {
-        return self::isHttps() ? self::SESSION_NAME : self::SESSION_NAME_HTTP;
+        $auth = self::environmentConfig();
+
+        return self::isHttps() ? $auth['session_name_https'] : $auth['session_name_http'];
     }
 
     // Comprueba si la petición local puede usar HTTP.
     private static function isLocalHttpAllowed(array $host): bool
     {
-        return self::ALLOW_HTTP_LOCALHOST
-            && in_array($host['name'], self::LOCAL_HOSTS, true)
+        $auth = self::environmentConfig();
+
+        return $auth['allow_http_localhost']
+            && in_array($host['name'], $auth['local_hosts'], true)
             && in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true);
     }
 
@@ -465,7 +455,7 @@ final class Auth
             return true;
         }
 
-        return self::TRUST_PROXY_HEADERS
+        return self::environmentConfig()['trust_proxy_headers']
             && strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
     }
 
@@ -511,6 +501,12 @@ final class Auth
 
         header('Location: ' . $base . '/' . self::LOGIN_PATH, true, 302);
         exit;
+    }
+
+    /** Configuración de seguridad correspondiente al entorno activo. */
+    private static function environmentConfig(): array
+    {
+        return appConfigSection('auth');
     }
 
     // Devuelve un error JSON y termina la petición.

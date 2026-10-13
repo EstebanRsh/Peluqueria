@@ -1,25 +1,14 @@
 <?php
 
-// Valores locales seguros y compatibles con XAMPP/MariaDB/MySQL.
-// Si una computadora necesita credenciales específicas, puede definirlas
-// mediante variables de entorno antes de iniciar PHP.
-$databaseUser = getenv('DB_USER') ?: 'root';
-$databasePassword = getenv('DB_PASS') ?: '';
-$databaseHost = getenv('DB_HOST') ?: '127.0.0.1';
-$databaseName = getenv('DB_NAME') ?: 'peluqueria';
-$databasePort = getenv('DB_PORT') ?: '3306';
+require_once __DIR__ . '/environment.php';
 
-$validatedPort = filter_var($databasePort, FILTER_VALIDATE_INT);
+$database = appConfigSection('database');
 
-if ($validatedPort === false || $validatedPort < 1 || $validatedPort > 65535) {
-    throw new RuntimeException('DB_PORT debe ser un puerto válido entre 1 y 65535.');
-}
-
-define('DB_HOST', $databaseHost);
-define('DB_USER', $databaseUser);
-define('DB_PASS', $databasePassword);
-define('DB_NAME', $databaseName);
-define('DB_PORT', $validatedPort);
+define('DB_HOST', $database['host']);
+define('DB_USER', $database['user']);
+define('DB_PASS', $database['password']);
+define('DB_NAME', $database['name']);
+define('DB_PORT', $database['port']);
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
