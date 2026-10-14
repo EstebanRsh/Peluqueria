@@ -2,18 +2,20 @@
 
     <!-- =====================================================
          ENCABEZADO
+         El botón "Nuevo cliente" está oculto: lo activa el botón
+         flotante de acciones rápidas (fab.js).
     ====================================================== -->
 
     <div class="day-panel__header">
-        <span class="day-panel__date">Panel de clientes</span>
+        <h2 class="day-panel__date">Panel de clientes</h2>
 
         <div class="day-panel__actions">
             <button
                 type="button"
                 class="btn btn--primary btn--sm"
                 id="btnAddClient"
-                style="display:none">
-                <span aria-hidden="true">➕</span> Nuevo cliente
+                hidden>
+                Nuevo cliente
             </button>
         </div>
     </div>
@@ -30,38 +32,40 @@
                 class="panel-search"
                 type="text"
                 id="clientListSearch"
-                placeholder="Buscar por alias o código..."
+                aria-label="Buscar clientes por alias o código"
+                placeholder="Buscar por alias o código"
                 autocomplete="off">
 
-            <div class="panel-filters">
-                <button type="button" class="btn-filter active" data-filter="todos">
+            <div class="panel-filters" role="group" aria-label="Filtrar clientes por estado">
+                <button type="button" class="btn-filter is-active" data-filter="todos" aria-pressed="true">
                     Todos
                 </button>
 
-                <button type="button" class="btn-filter" data-filter="activos">
+                <button type="button" class="btn-filter" data-filter="activos" aria-pressed="false">
                     Activos
                 </button>
 
-                <button type="button" class="btn-filter" data-filter="inactivos">
+                <button type="button" class="btn-filter" data-filter="inactivos" aria-pressed="false">
                     Inactivos
                 </button>
             </div>
         </div>
 
         <table class="data-table" id="clientsTable">
+            <caption class="sr-only">Listado de clientes</caption>
             <thead>
                 <tr>
-                    <th>Alias</th>
-                    <th>Código</th>
-                    <th>Notas</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
+                    <th scope="col">Alias</th>
+                    <th scope="col">Código</th>
+                    <th scope="col">Notas</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Acciones</th>
                 </tr>
             </thead>
 
             <tbody id="clientsTableBody">
                 <tr>
-                    <td colspan="5" class="panel-loading">
+                    <td colspan="5" class="panel-loading" role="status">
                         Cargando clientes...
                     </td>
                 </tr>
@@ -78,12 +82,13 @@
 
 <div class="side-drawer-overlay" id="clientProfileOverlay"></div>
 
-<aside class="side-drawer side-drawer--wide" id="clientProfilePanel" aria-hidden="true">
+<aside class="side-drawer side-drawer--wide" id="clientProfilePanel"
+    role="dialog" aria-modal="true" aria-labelledby="clientProfileName" aria-hidden="true" tabindex="-1">
     <div class="day-panel__header">
         <div class="profile-drawer__identity">
-            <span class="profile-drawer__avatar" id="clientProfileAvatar">CR</span>
+            <span class="profile-drawer__avatar" id="clientProfileAvatar" aria-hidden="true">CR</span>
             <div class="profile-drawer__identity-text">
-                <span class="day-panel__date" id="clientProfileName">Cliente</span>
+                <h3 class="day-panel__date" id="clientProfileName">Cliente</h3>
                 <span class="profile-drawer__code" id="clientProfileCode">CLI-0000</span>
             </div>
         </div>
@@ -108,7 +113,7 @@
         </div>
 
         <div class="profile-drawer__section">
-            <span class="history-title">Diagnóstico capilar</span>
+            <h4 class="history-title">Diagnóstico capilar</h4>
             <div class="detail-grid">
                 <div class="detail-card">
                     <span class="detail-label">Base natural</span>
@@ -130,20 +135,21 @@
         </div>
 
         <div class="profile-drawer__section">
-            <span class="history-title">Historial técnico</span>
+            <h4 class="history-title">Historial técnico</h4>
 
             <div class="history-controls">
                 <input
                     type="text"
                     id="historySearch"
-                    class="panel-search panel-search--sm"
-                    placeholder="Buscar en el historial..."
+                    class="panel-search"
+                    aria-label="Buscar en el historial técnico"
+                    placeholder="Buscar en el historial"
                     autocomplete="off">
-                <div class="panel-filters" id="historyFilters">
-                    <button type="button" class="btn-filter active" data-history-filter="todos">Todos</button>
-                    <button type="button" class="btn-filter" data-history-filter="color">Color</button>
-                    <button type="button" class="btn-filter" data-history-filter="tratamiento">Tratamientos</button>
-                    <button type="button" class="btn-filter" data-history-filter="corte">Cortes</button>
+                <div class="panel-filters" id="historyFilters" role="group" aria-label="Filtrar historial por tipo">
+                    <button type="button" class="btn-filter is-active" data-history-filter="todos" aria-pressed="true">Todos</button>
+                    <button type="button" class="btn-filter" data-history-filter="color" aria-pressed="false">Color</button>
+                    <button type="button" class="btn-filter" data-history-filter="tratamiento" aria-pressed="false">Tratamientos</button>
+                    <button type="button" class="btn-filter" data-history-filter="corte" aria-pressed="false">Cortes</button>
                 </div>
             </div>
 
@@ -153,7 +159,7 @@
         </div>
 
         <div class="profile-drawer__section">
-            <span class="history-title">Turnos</span>
+            <h4 class="history-title">Turnos</h4>
             <div class="history-items" id="clientProfileAppointments">
                 <p class="history-empty">Sin turnos.</p>
             </div>

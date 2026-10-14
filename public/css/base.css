@@ -1,40 +1,77 @@
 /* ==========================================================================
    VARIABLES Y DISEÑO BASE (ESTILO VINTAGE / ATELIER DE LUJO)
+   Única fuente de colores de la aplicación: ningún otro archivo CSS debe
+   declarar colores literales (hex, rgb, rgba, hsl).
    ========================================================================== */
 
 :root {
-  /* Paleta Base — "Atelier Dorado": cálida, sobria, oscuros/marrón/negro/blanco/dorado */
+  /* --- Acento dorado: todos los tonos dorados derivan de --gold-rgb ------ */
+  --gold-rgb: 197, 160, 89;
+  --color-gold: rgb(var(--gold-rgb));
+  --color-gold-light: #f3e0b5;
+  --color-gold-dark: #b6913f;
+  --color-gold-text: #8a6a24; /* Dorado oscuro para texto sobre fondo claro (contraste ≥ 4.5:1) */
+
+  /* --- Paleta Base: "Atelier Dorado" ------------------------------------ */
   --color-bg: #f5f2eb;
   --color-surface: #ffffff;
-  --color-border: rgba(197, 160, 89, 0.28); /* Bordes con matiz dorado suave */
-  --color-border-subtle: #e6e0d3;
   --color-text: #1c1712;
+  --color-text-hover: #2b2620;
   --color-text-muted: #7a6f61;
-  --color-today-bg: #c5a059;
-  --color-today-text: #ffffff;
-  --color-hover: rgba(197, 160, 89, 0.07);
-  --color-danger: #a82a2a;
+  --color-text-faint: rgba(122, 111, 97, 0.4);
+  --color-on-dark: #ffffff;
+  --color-today-bg: var(--color-gold);
+  --color-today-text: var(--color-text);
+  --color-selected: var(--color-text);
 
-  /* Radios: Estilo rectilíneo vintage (sin bordes redondeados toscos) */
+  /* Bordes */
+  --color-border: rgba(var(--gold-rgb), 0.28);
+  --color-border-subtle: #e6e0d3;
+
+  /* Superficies y estados interactivos derivados del dorado */
+  --color-gold-wash: rgba(var(--gold-rgb), 0.05);
+  --color-hover: rgba(var(--gold-rgb), 0.07);
+  --color-gold-tint: rgba(var(--gold-rgb), 0.08);
+  --color-hover-strong: rgba(var(--gold-rgb), 0.12);
+  --color-focus-ring: rgba(var(--gold-rgb), 0.14);
+  --color-gold-line-soft: rgba(var(--gold-rgb), 0.3);
+  --color-gold-line: rgba(var(--gold-rgb), 0.4);
+  --color-gold-line-strong: rgba(var(--gold-rgb), 0.6);
+
+  /* Pergamino translúcido (cabeceras, resúmenes, celdas fuera de mes) */
+  --color-bg-translucent: rgba(245, 242, 235, 0.6);
+  --color-bg-faint: rgba(245, 242, 235, 0.3);
+
+  /* Error / peligro */
+  --color-danger: #a82a2a;
+  --color-danger-soft: #f0cfcf;
+  --color-danger-ring: rgba(168, 42, 42, 0.14);
+
+  /* Radios: Estilo rectilíneo vintage */
   --radius: 0px;
   --radius-sm: 0px;
 
-  /* Tipografías: Combinación de sans-serif limpia con serif clásica */
+  /* Tipografías */
   --font:
     "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
   --font-serif: "Cinzel", serif;
-  --cell-min-h: 90px;
+  --cell-min-h: 64px;
 
-  /* Sombras sobrias y bien definidas */
+  /* Sombras */
   --shadow-xs: 0 1px 2px rgba(28, 23, 18, 0.04);
   --shadow-sm: 0 2px 6px rgba(28, 23, 18, 0.05);
   --shadow-md: 0 8px 20px rgba(28, 23, 18, 0.07);
   --shadow-lg: 0 18px 40px rgba(28, 23, 18, 0.15);
   --shadow-float:
-    0 10px 30px rgba(197, 160, 89, 0.09), 0 1px 3px rgba(28, 23, 18, 0.05);
+    0 10px 30px rgba(var(--gold-rgb), 0.09), 0 1px 3px rgba(28, 23, 18, 0.05);
+  --shadow-badge: 0 1px 2px rgba(0, 0, 0, 0.12);
+  --shadow-gold-glow: 0 2px 10px rgba(var(--gold-rgb), 0.15);
+  --shadow-sidebar-open: 15px 0 40px rgba(0, 0, 0, 0.4);
+  --filter-brand-shadow: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+  --filter-icon-glow: drop-shadow(0 0 5px rgba(var(--gold-rgb), 0.4));
 
-  /* Transiciones consistentes */
+  /* Transiciones */
   --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --t-fast: 0.15s;
@@ -50,7 +87,17 @@
   --z-burger: 1025;
   --z-drawer: 1500;
   --z-modal: 2000;
+  --z-drawer-nested: 1600;
+  --z-toast: 3000;
   --z-fab: 900;
+
+  /* Fondos de capa y overlays */
+  --overlay-fab: rgba(28, 21, 16, 0.25);
+  --overlay-drawer: rgba(28, 21, 16, 0.35);
+  --overlay-sidebar: rgba(0, 0, 0, 0.4);
+  --bg-glow-gold: rgba(var(--gold-rgb), 0.12);
+  --bg-glow-dark: rgba(60, 51, 42, 0.05);
+  --scrollbar-thumb: rgba(var(--gold-rgb), 0.35);
 
   /* Sidebar */
   --sidebar-bg: #1a1511;
@@ -58,22 +105,54 @@
   --sidebar-border: #3c332a;
   --sidebar-text: #f7f4ee;
   --sidebar-muted: #a89a86;
-  --accent-glow-1: #c5a059;
+  --sidebar-sheen: rgba(255, 255, 255, 0.02);
+  --sidebar-footer-bg: rgba(0, 0, 0, 0.12);
+  --sidebar-active-from: rgba(var(--gold-rgb), 0.16);
+  --sidebar-active-to: rgba(var(--gold-rgb), 0.02);
+  --sidebar-avatar-from: rgba(var(--gold-rgb), 0.25);
+  --accent-glow-1: var(--color-gold);
   --accent-glow-2: #e6d3a3;
 
-  /* Paleta de Estados Matizados (Menos saturados, estilo cuero/pátina) */
+  /* Texturas e íconos (los colores de un data-URI no admiten var(): se declaran aquí) */
+  --sidebar-texture:
+    radial-gradient(
+      circle at 50% 0%,
+      var(--color-gold-tint) 0%,
+      transparent 75%
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%23c5a059' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg transform='translate(15,10) rotate(-15,25,25)'%3E%3Ccircle cx='18' cy='42' r='4.5' stroke-width='0.8' stroke-opacity='0.14'/%3E%3Ccircle cx='32' cy='42' r='4.5' stroke-width='0.8' stroke-opacity='0.14'/%3E%3Cpath d='M20 38 L25 28 L35 8' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M30 38 L25 28 L15 8' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Ccircle cx='25' cy='28' r='1.5' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(75,70) rotate(35,25,25)'%3E%3Ccircle cx='18' cy='42' r='4.5' stroke-width='0.8' stroke-opacity='0.14'/%3E%3Ccircle cx='32' cy='42' r='4.5' stroke-width='0.8' stroke-opacity='0.14'/%3E%3Cpath d='M20 38 L25 28 L35 8' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M30 38 L25 28 L15 8' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Ccircle cx='25' cy='28' r='1.5' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(70,22) rotate(20)'%3E%3Crect x='0' y='0' width='42' height='6' rx='1' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M3 6 V14 M6 6 V14 M9 6 V14 M12 6 V14 M15 6 V14 M18 6 V14 M21 6 V14 M24 6 V14 M27 6 V14 M30 6 V14 M33 6 V14 M36 6 V14 M39 6 V14' stroke-width='0.7' stroke-opacity='0.12'/%3E%3C/g%3E%3Cg transform='translate(18,82)'%3E%3Crect x='8' y='16' width='16' height='20' rx='3' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Crect x='12' y='10' width='8' height='6' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M16 10 V5 H22' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Ccircle cx='25' cy='5' r='1.5' fill='%23c5a059' fill-opacity='0.2' stroke='none'/%3E%3Ccircle cx='29' cy='3' r='0.8' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3Ccircle cx='32' cy='6' r='0.8' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(60,65) rotate(-20)'%3E%3Cpath d='M0 10 Q15 5 30 10' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M15 8 Q26 1 35 5 L33 9 Q23 5 15 8 Z' stroke-width='0.8' stroke-opacity='0.12' fill='%23c5a059' fill-opacity='0.05'/%3E%3Ccircle cx='15' cy='8' r='1' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3Cpath d='M10 15 V21 M7 18 H13' stroke-width='0.6' stroke-opacity='0.1'/%3E%3Cpath d='M125 65 V71 M122 68 H128' stroke-width='0.6' stroke-opacity='0.1'/%3E%3Cpath d='M70 120 V126 M67 123 H73' stroke-width='0.6' stroke-opacity='0.1'/%3E%3Ccircle cx='65' cy='15' r='1.2' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3Ccircle cx='110' cy='115' r='1.2' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3Ccircle cx='15' cy='120' r='1.2' fill='%23c5a059' fill-opacity='0.25' stroke='none'/%3E%3C/g%3E%3C/svg%3E");
+  --icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a6f61' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  --icon-chevron-focus: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c5a059' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+
+  /* --- Estados de turno: tono suave (píldoras, selectores, alertas) ------ */
   --color-reservado-bg: #f1f3f5;
   --color-reservado-text: #475569;
   --color-espera-bg: #fef8e7;
   --color-espera-text: #92400e;
   --color-atencion-bg: #edf7ed;
   --color-atencion-text: #1e6b37;
-  --color-finalizado-bg: #e8f5e9;
-  --color-finalizado-text: #1b5e20;
+  --color-finalizado-bg: #f6efdd;
+  --color-finalizado-text: #7a5a14;
   --color-cancelado-bg: #fdf2f2;
   --color-cancelado-text: #9b1c1c;
   --color-ausente-bg: #fff3e0;
   --color-ausente-text: #e65100;
+
+  /* --- Estados de turno: tono sólido (marcas compactas del calendario) --- */
+  --color-solid-text: var(--color-on-dark);
+  --color-reservado-solid: #475569;
+  --color-reservado-line: #334155;
+  --color-espera-solid: #b45309;
+  --color-espera-line: #92400e;
+  --color-atencion-solid: #047857;
+  --color-atencion-line: #065f46;
+  --color-finalizado-solid: var(--color-gold);
+  --color-finalizado-solid-text: var(--color-text);
+  --color-finalizado-line: #a17d36;
+  --color-cancelado-solid: #9f1239;
+  --color-cancelado-line: #881337;
+  --color-ausente-solid: #c2410c;
+  --color-ausente-line: #9a3412;
 }
 
 *,
@@ -99,6 +178,7 @@ body {
   align-items: stretch;
   justify-content: flex-start;
   min-height: 100vh;
+  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -111,7 +191,7 @@ body {
 /* Scrollbar fina estilizada en dorado/bronce */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #c5a059 transparent;
+  scrollbar-color: var(--color-gold) transparent;
 }
 *::-webkit-scrollbar {
   width: 6px;
@@ -121,18 +201,18 @@ body {
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background-color: rgba(197, 160, 89, 0.35);
-  border-radius: 0px;
+  background-color: var(--scrollbar-thumb);
+  border-radius: var(--radius);
 }
 *::-webkit-scrollbar-thumb:hover {
-  background-color: #c5a059;
+  background-color: var(--color-gold);
 }
 
 /* Estado de foco accesible y rectilíneo */
 :focus-visible {
   outline: 2px solid var(--color-today-bg);
   outline-offset: 2px;
-  border-radius: 0px;
+  border-radius: var(--radius);
 }
 
 /* ==========================================================================
@@ -143,6 +223,7 @@ body {
   display: flex;
   flex-direction: row;
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
 }
 
@@ -153,25 +234,38 @@ body {
   align-items: flex-start;
   overflow-y: auto;
   height: 100vh;
+  height: 100dvh;
   position: relative;
 
-  /* Fondo Texturado Pergamino / Luz de Taller Vintage */
+  /* Fondo texturado pergamino / luz de taller vintage */
   background-color: var(--color-bg);
   background-image:
     radial-gradient(
       ellipse 900px 600px at 0% 0%,
-      rgba(197, 160, 89, 0.12),
+      var(--bg-glow-gold),
       transparent 65%
     ),
     radial-gradient(
       ellipse 700px 500px at 100% 100%,
-      rgba(60, 51, 42, 0.05),
+      var(--bg-glow-dark),
       transparent 70%
     );
   background-attachment: fixed;
 }
 
 /* Utilidad para alternar secciones completas de la aplicación */
-.is-hidden {
+.is-hidden,
+[hidden] {
   display: none !important;
+}
+
+/* Contenido solo para lectores de pantalla */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

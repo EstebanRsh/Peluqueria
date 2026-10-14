@@ -1,12 +1,13 @@
 <!-- =====================================================
      PANEL LATERAL — ALTA / EDICIÓN DE SERVICIO
-     Mismo drawer que perfil/alta de cliente: overlay + aside
-     con day-panel__header / day-panel__body / footer.
+     Mismo drawer que el resto: overlay + aside con
+     day-panel__header / formulario / botones.
 ====================================================== -->
 
 <div class="side-drawer-overlay" id="serviceModalOverlay"></div>
 
-<aside class="side-drawer" id="serviceFormPanel" aria-hidden="true">
+<aside class="side-drawer" id="serviceFormPanel"
+    role="dialog" aria-modal="true" aria-labelledby="serviceModalTitle" aria-hidden="true" tabindex="-1">
 
     <div class="day-panel__header">
         <h3 class="day-panel__date" id="serviceModalTitle">
@@ -23,16 +24,13 @@
     </div>
 
 
-    <!-- =====================================================
-         FORMULARIO
-    ====================================================== -->
+    <form class="drawer-form" id="serviceForm" novalidate autocomplete="off">
 
-    <div class="day-panel__body">
+        <div class="day-panel__body">
 
-        <input type="hidden" id="managedServiceId">
+            <input type="hidden" id="managedServiceId">
 
-        <div class="form-row">
-            <div class="form-group form-group--full">
+            <div class="form-group is-required">
                 <label for="serviceName">Nombre</label>
 
                 <input
@@ -41,66 +39,65 @@
                     maxlength="100"
                     placeholder="Ej: Corte de cabello">
             </div>
-        </div>
 
-        <div class="form-row">
-            <div class="form-group form-group--full">
+            <div class="form-group">
                 <label for="serviceDescription">Descripción</label>
 
                 <textarea
                     id="serviceDescription"
                     rows="2"
-                    placeholder="Descripción opcional..."></textarea>
+                    placeholder="Descripción opcional"></textarea>
             </div>
+
+            <div class="form-row">
+                <div class="form-group is-required">
+                    <label for="serviceDuration">Duración (min)</label>
+
+                    <input
+                        type="number"
+                        id="serviceDuration"
+                        min="1"
+                        step="1"
+                        inputmode="numeric"
+                        placeholder="30">
+                </div>
+
+                <div class="form-group is-required">
+                    <label for="servicePrice">Precio base ($)</label>
+
+                    <input
+                        type="number"
+                        id="servicePrice"
+                        min="0"
+                        step="0.01"
+                        inputmode="decimal"
+                        placeholder="0.00">
+                </div>
+            </div>
+
+            <p class="form-hint">Los campos con * son obligatorios.</p>
+
         </div>
 
-        <div class="form-row">
-            <div class="form-group">
-                <label for="serviceDuration">Duración (minutos)</label>
 
-                <input
-                    type="number"
-                    id="serviceDuration"
-                    min="1"
-                    step="1"
-                    placeholder="30">
-            </div>
+        <div class="appointment-detail-footer">
 
-            <div class="form-group">
-                <label for="servicePrice">Precio base ($)</label>
+            <button
+                type="button"
+                class="btn btn--ghost"
+                id="serviceModalCancel">
+                Cancelar
+            </button>
 
-                <input
-                    type="number"
-                    id="servicePrice"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00">
-            </div>
+            <button
+                type="submit"
+                class="btn btn--primary"
+                id="serviceModalSave">
+                Guardar servicio
+            </button>
+
         </div>
 
-    </div>
-
-
-    <!-- =====================================================
-         BOTONES
-    ====================================================== -->
-
-    <div class="appointment-detail-footer">
-
-        <button
-            type="button"
-            class="btn btn--ghost"
-            id="serviceModalCancel">
-            Cancelar
-        </button>
-
-        <button
-            type="button"
-            class="btn btn--primary"
-            id="serviceModalSave">
-            Guardar servicio
-        </button>
-
-    </div>
+    </form>
 
 </aside>

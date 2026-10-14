@@ -1,10 +1,10 @@
 // ============================================================
 // CONTROL PRINCIPAL DE LA APLICACIÓN
 // ============================================================
-import { openPanelForDate, closePanel } from "./ui.js";
+import { openPanelForDate, closePanel, bindCalendarBadge } from "./ui.js";
 import { initModal } from "./modal.js";
-import { fetchAppointments } from "./api.js";
-import { slugify } from "./utils.js";
+import { ApiError, isAbortError } from "./api.js";
+import { notify } from "./toast.js";
 import { initServices, loadServicesList } from "./services.js";
 import { initClients, loadClientsList } from "./clients.js";
 import { initProducts, loadProductsList } from "./products.js";
@@ -20,62 +20,50 @@ export const appState = {
   activeView: "appointments",
 };
 
-// Clic en la celda del calendario
+// ============================================================
+// CALENDARIO: CELDAS (CLIC Y TECLADO)
+// ============================================================
+
+function toggleDayPanel(cell) {
+  const date = cell.dataset.date;
+
+  if (appState.activeDay === date && panel.classList.contains("is-open")) {
+    closePanel();
+  } else {
+    openPanelForDate(cell, date, null);
+  }
+}
+
 document.querySelectorAll(".calendar__cell--active").forEach((cell) => {
-  cell.addEventListener("click", () => {
-    const date = cell.dataset.date;
+  cell.addEventListener("click", () => toggleDayPanel(cell));
 
-    if (appState.activeDay === date && panel.classList.contains("is-open")) {
-      closePanel();
-    } else {
-      openPanelForDate(cell, date, null);
-    }
-  });
-});
-
-// Clic y Hover en el indicador de Reservados
-document.querySelectorAll(".cell__status-badge").forEach((badge) => {
-  badge.addEventListener("click", (event) => {
-    event.stopPropagation();
-
-    const date = badge.dataset.date;
-    const cell = badge.closest(".calendar__cell--active");
-
-    // Abrir el panel filtrando por la agenda del día
-    openPanelForDate(cell, date, "reservado");
-  });
-
-  badge.addEventListener("mouseenter", async () => {
-    if (badge.dataset.loadedNames) {
+  // Enter o Espacio activan la celda (role="button"). Se ignoran las teclas
+  // que provienen de elementos internos.
+  cell.addEventListener("keydown", (event) => {
+    if (event.target !== cell) {
       return;
     }
 
-    const date = badge.dataset.date;
-
-    try {
-      const data = await fetchAppointments(date);
-      // Solo nos interesan los clientes con estado Reservado para el tooltip del calendario
-      const filtered = data.filter(
-        (appointment) => slugify(appointment.status) === "reservado",
-      );
-      const names = filtered
-        .map((appointment) => appointment.client_name || appointment.alias)
-        .filter(Boolean)
-        .join(", ");
-
-      if (names) {
-        badge.setAttribute("title", `Reservas: ${filtered.length}\n(${names})`);
-        badge.dataset.loadedNames = "true";
-      }
-    } catch (error) {
-      console.error("Error al cargar nombres de reservas:", error);
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      toggleDayPanel(cell);
     }
   });
 });
+
+// ============================================================
+// CALENDARIO: INDICADOR DE RESERVADOS (CLIC Y TOOLTIP)
+// ============================================================
+
+document.querySelectorAll(".cell__status-badge").forEach(bindCalendarBadge);
 
 if (closeBtn) {
   closeBtn.addEventListener("click", closePanel);
 }
+
+// ============================================================
+// NAVEGACIÓN ENTRE VISTAS
+// ============================================================
 
 const viewAppointments = document.getElementById("viewAppointments");
 const viewServices = document.getElementById("viewServices");
@@ -98,6 +86,10 @@ const fab = initFab({
 fab.setView(appState.activeView);
 
 navItems.forEach((item) => {
+  if (item.classList.contains("is-active")) {
+    item.setAttribute("aria-current", "page");
+  }
+
   item.addEventListener("click", (event) => {
     event.preventDefault();
 
@@ -105,8 +97,12 @@ navItems.forEach((item) => {
     appState.activeView = view;
     fab.setView(view);
 
-    navItems.forEach((nav) => nav.classList.remove("is-active"));
+    navItems.forEach((nav) => {
+      nav.classList.remove("is-active");
+      nav.removeAttribute("aria-current");
+    });
     item.classList.add("is-active");
+    item.setAttribute("aria-current", "page");
 
     Object.entries(views).forEach(([key, element]) => {
       if (!element) return;
@@ -123,28 +119,56 @@ navItems.forEach((item) => {
   });
 });
 
+// ============================================================
+// MENÚ MÓVIL
+// ============================================================
+
 const burgerBtn = document.getElementById("mobileBurger");
 const sidebar = document.querySelector(".premium-sidebar");
 const sidebarOverlay = document.getElementById("sidebarOverlay");
 
 if (burgerBtn && sidebar && sidebarOverlay) {
-  const toggleMobileSidebar = () => {
-    sidebar.classList.toggle("mobile-open");
-    sidebarOverlay.classList.toggle("is-visible");
-    burgerBtn.classList.toggle("is-active");
+  const setMobileSidebar = (isOpen) => {
+    sidebar.classList.toggle("is-open", isOpen);
+    sidebarOverlay.classList.toggle("is-open", isOpen);
+    burgerBtn.classList.toggle("is-active", isOpen);
+    burgerBtn.setAttribute("aria-expanded", String(isOpen));
+    burgerBtn.setAttribute(
+      "aria-label",
+      isOpen ? "Cerrar menú de navegación" : "Abrir menú de navegación",
+    );
   };
 
-  burgerBtn.addEventListener("click", toggleMobileSidebar);
-  sidebarOverlay.addEventListener("click", toggleMobileSidebar);
+  setMobileSidebar(false);
+
+  burgerBtn.addEventListener("click", () =>
+    setMobileSidebar(!sidebar.classList.contains("is-open")),
+  );
+  sidebarOverlay.addEventListener("click", () => setMobileSidebar(false));
 
   sidebar.querySelectorAll(".nav-item").forEach((item) => {
-    item.addEventListener("click", () => {
-      sidebar.classList.remove("mobile-open");
-      sidebarOverlay.classList.remove("is-visible");
-      burgerBtn.classList.remove("is-active");
-    });
+    item.addEventListener("click", () => setMobileSidebar(false));
   });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && sidebar.classList.contains("is-open")) {
+      setMobileSidebar(false);
+    }
+  });
+
+  // Al pasar a desktop el menú móvil no debe quedar abierto
+  window
+    .matchMedia("(min-width: 769px)")
+    .addEventListener("change", (event) => {
+      if (event.matches) {
+        setMobileSidebar(false);
+      }
+    });
 }
+
+// ============================================================
+// INICIALIZACIÓN DE MÓDULOS
+// ============================================================
 
 initModal();
 initServices();
@@ -153,16 +177,52 @@ initProducts();
 initQuickEntry();
 initLogout();
 
+// Los errores inesperados se registran en la consola y se informan al usuario
+// sin mostrar detalles técnicos. Se limita la frecuencia para no saturar.
+const UNEXPECTED_ERROR_MESSAGE =
+  "Ocurrió un error inesperado. Si el problema continúa, recargá la página.";
+const NOTICE_INTERVAL_MS = 5000;
+let lastNoticeAt = 0;
+
+function notifyUnexpectedError(message) {
+  const now = Date.now();
+
+  if (now - lastNoticeAt < NOTICE_INTERVAL_MS) {
+    return;
+  }
+
+  lastNoticeAt = now;
+  notify.error(message);
+}
+
 window.addEventListener("error", (event) => {
   console.group("ERROR GLOBAL");
   console.error(event.message);
   console.error(event.filename);
   console.error(event.lineno);
   console.groupEnd();
+
+  // Aviso benigno del navegador: no afecta al usuario.
+  if (String(event.message).startsWith("ResizeObserver")) {
+    return;
+  }
+
+  notifyUnexpectedError(UNEXPECTED_ERROR_MESSAGE);
 });
 
 window.addEventListener("unhandledrejection", (event) => {
+  // Las cancelaciones pedidas por la propia aplicación no son errores.
+  if (isAbortError(event.reason)) {
+    return;
+  }
+
   console.group("PROMESA RECHAZADA");
   console.error(event.reason);
   console.groupEnd();
+
+  notifyUnexpectedError(
+    event.reason instanceof ApiError
+      ? event.reason.message
+      : UNEXPECTED_ERROR_MESSAGE,
+  );
 });

@@ -1,30 +1,139 @@
 // ============================================================
-// FICHA RÁPIDA DE SERVICIO
+// FICHA DE SERVICIO
 // ============================================================
 
-import { saveServiceHistory, searchClients, searchProducts } from "./api.js";
+import {
+  ApiError,
+  fetchClientTimeline,
+  getErrorMessage,
+  saveServiceHistory,
+  searchClients,
+  searchProducts,
+} from "./api.js";
+import { createAutocomplete } from "./autocomplete.js";
+import { escapeHtml } from "./dom.js";
+import { clearInvalidOnInput, createFeedback, setBusy } from "./feedback.js";
+import { confirmAction } from "./confirm.js";
+import { notify } from "./toast.js";
+
+const UNIT_LABELS = { ml: "ml", g: "g", unidad: "unid." };
+
+// Campos numéricos de la ficha (enteros mayores a 0).
+const NUMBER_FIELDS = [
+  "colorQuantityValue",
+  "colorOxidantValue",
+  "colorTimeValue",
+  "treatmentMlValue",
+  "treatmentTempValue",
+  "treatmentPassesValue",
+];
+
+// Dónde se guarda cada dato de una ficha anterior dentro del formulario.
+const DETAIL_FIELDS = {
+  color: {
+    type: "colorType",
+    ratio: "colorOxidantRatio",
+    formula: "colorFormula",
+    brand: "colorBrand",
+    color_grams: "colorQuantityValue",
+    oxidant_vol: "colorOxidantValue",
+    exposure_time_min: "colorTimeValue",
+    application: "colorApplication",
+    result: "colorResult",
+  },
+  treatment: {
+    type: "treatmentType",
+    product: "treatmentProduct",
+    quantity_ml: "treatmentMlValue",
+    iron_temp_c: "treatmentTempValue",
+    iron_passes: "treatmentPassesValue",
+    processes: "treatmentProcess",
+    results: "treatmentResult",
+  },
+  cut: {
+    type: "cutType",
+    length: "cutLength",
+    condition: "cutCondition",
+    tools: "cutTools",
+    finish: "cutFinish",
+  },
+};
+
+const $ = (id) => document.getElementById(id);
+
+const isEnabled = (record) =>
+  record.active === undefined ||
+  record.active === true ||
+  Number(record.active) === 1;
+
+function toList(response) {
+  return Array.isArray(response)
+    ? response
+    : Array.isArray(response?.data)
+      ? response.data
+      : [];
+}
+
+// Una categoría tiene datos si algún valor no es nulo ni una lista vacía.
+function categoryHasData(category) {
+  return Object.values(category).some((value) =>
+    Array.isArray(value) ? value.length > 0 : value !== null,
+  );
+}
+
+function isFocusable(element) {
+  return Boolean(
+    element &&
+    element.isConnected &&
+    !element.closest("[hidden]") &&
+    getComputedStyle(element).visibility !== "hidden",
+  );
+}
 
 export function initQuickEntry() {
   // REFERENCIAS AL DOM
-  const panel = document.getElementById("quickEntryPanel");
-  const overlay = document.getElementById("quickEntryOverlay");
-  const btnClose = document.getElementById("quickEntryClose");
-  const btnCancel = document.getElementById("quickEntryCancel");
-  const btnSave = document.getElementById("quickEntrySave");
+  const panel = $("quickEntryPanel");
+  const overlay = $("quickEntryOverlay");
+  const btnClose = $("quickEntryClose");
+  const btnCancel = $("quickEntryCancel");
+  const btnSave = $("quickEntrySave");
 
-  // Confirmación: guardar ficha sin cliente registrado
-  const noClientOverlay = document.getElementById("noClientOverlay");
-  const noClientDialog = document.getElementById("noClientDialog");
-  const noClientBack = document.getElementById("noClientBack");
-  const noClientConfirm = document.getElementById("noClientConfirm");
+  // Sin el panel no hay ficha: se evita interrumpir el resto de la aplicación.
+  if (!panel || !overlay) {
+    return;
+  }
+
+  const feedback = createFeedback(panel);
+  clearInvalidOnInput(panel);
 
   let cartItems = [];
+  let opener = null;
+  let isSaving = false;
 
-  // CONTROL DE APERTURA Y CIERRE
+  // Cliente: registrado (selectedClient) o alias elegido (aliasName)
+  let selectedClient = null;
+  let aliasName = "";
+
+  // ============================================================
+  // APERTURA Y CIERRE
+  // ============================================================
+
   const openDrawer = () => {
+    opener = document.activeElement;
+
+    feedback.clear();
+    feedback.clearInvalid();
+
     panel.setAttribute("aria-hidden", "false");
     panel.classList.add("is-open");
     overlay.classList.add("is-open");
+
+    requestAnimationFrame(() => {
+      const target = !$("quickEntryClientSearch").hidden
+        ? $("quickEntryClientSearch")
+        : panel;
+      target.focus({ preventScroll: true });
+    });
   };
 
   const closeDrawer = () => {
@@ -32,129 +141,120 @@ export function initQuickEntry() {
     panel.classList.remove("is-open");
     overlay.classList.remove("is-open");
     resetForm();
+
+    // El botón que abrió la ficha puede haberse ocultado: se vuelve al botón flotante.
+    const target = isFocusable(opener) ? opener : $("fabToggle");
+    target?.focus({ preventScroll: true });
+    opener = null;
   };
 
-  document.addEventListener("quickentry:open", openDrawer);
-  if (btnClose) btnClose.addEventListener("click", closeDrawer);
-  if (btnCancel) btnCancel.addEventListener("click", closeDrawer);
-  if (overlay) overlay.addEventListener("click", closeDrawer);
-
-  const escapeHtml = (value) =>
-    String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-
-  // ============================================================
-  // BÚSQUEDA DE CLIENTE (AUTOCOMPLETE CON CACHE Y ABORTCONTROLLER)
-  // ============================================================
-
-  const clientSearchInput = document.getElementById("quickEntryClientSearch");
-  const clientSuggestionsList = document.getElementById("clientSuggestions");
-  const clientIdInput = document.getElementById("quickEntryClientId");
-
-  let clientSearchDebounce = null;
-  let clientSearchController = null;
-  const clientSearchCache = new Map();
-
-  const renderClientSuggestions = (clients) => {
-    if (!clientSuggestionsList) return;
-
-    if (!clients.length) {
-      clientSuggestionsList.style.display = "none";
-      clientSuggestionsList.innerHTML = "";
+  // Un clic fuera del panel o Escape no deben borrar lo ya cargado.
+  const requestClose = () => {
+    if (isDirty()) {
+      feedback.show(
+        "warning",
+        "Hay datos sin guardar. Usá Cancelar o × para descartarlos.",
+        "dirty",
+      );
       return;
     }
 
-    clientSuggestionsList.innerHTML = clients
-      .map(
-        (client) => `
-        <li data-id="${escapeHtml(client.id)}" data-alias="${escapeHtml(client.alias)}">
-          ${escapeHtml(client.alias)}${client.internal_code ? ` (${escapeHtml(client.internal_code)})` : ""}
-        </li>`,
-      )
-      .join("");
-    clientSuggestionsList.style.display = "block";
+    closeDrawer();
   };
 
-  const clearClientSelection = () => {
-    if (clientIdInput) clientIdInput.value = "";
-    renderClientSuggestions([]);
+  document.addEventListener("quickentry:open", openDrawer);
+  btnClose?.addEventListener("click", closeDrawer);
+  btnCancel?.addEventListener("click", closeDrawer);
+  overlay.addEventListener("click", requestClose);
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && panel.classList.contains("is-open")) {
+      requestClose();
+    }
+  });
+
+  panel.addEventListener("input", () => feedback.clear("dirty"));
+
+  // ============================================================
+  // CLIENTE (BÚSQUEDA, ALIAS Y CHIP)
+  // ============================================================
+
+  const clientSearchInput = $("quickEntryClientSearch");
+  const clientSuggestionsList = $("clientSuggestions");
+  const clientIdInput = $("quickEntryClientId");
+  const clientChip = $("quickClientSelected");
+  const clientHelp = $("quickClientHelp");
+  const repeatButton = $("quickRepeatLast");
+
+  const showClientChip = (title, meta, registered) => {
+    $("quickClientChipTitle").textContent = title;
+    $("quickClientChipMeta").textContent = meta;
+    clientChip.hidden = false;
+    repeatButton.hidden = !registered;
+    clientSearchInput.hidden = true;
+    clientSearchInput.value = "";
+    clientSearchInput.removeAttribute("aria-invalid");
+    clientHelp.hidden = true;
   };
 
-  if (clientSearchInput && clientSuggestionsList && clientIdInput) {
-    clientSearchInput.addEventListener("input", () => {
-      clientIdInput.value = "";
-      const query = clientSearchInput.value.trim();
+  const selectClient = (client) => {
+    selectedClient = client;
+    aliasName = "";
+    clientIdInput.value = String(client.id);
 
-      clearTimeout(clientSearchDebounce);
+    showClientChip(
+      client.alias ?? client.name ?? "Cliente",
+      client.internal_code
+        ? `Código ${client.internal_code}`
+        : "Cliente registrado",
+      true,
+    );
+  };
 
-      if (!query) {
-        renderClientSuggestions([]);
-        return;
-      }
+  const useAlias = (text) => {
+    selectedClient = null;
+    aliasName = text;
+    clientIdInput.value = "";
 
-      const cacheKey = query.toLowerCase();
+    showClientChip(text, "Alias de referencia · sin cliente registrado", false);
+  };
 
-      if (clientSearchCache.has(cacheKey)) {
-        renderClientSuggestions(clientSearchCache.get(cacheKey));
-        return;
-      }
+  const clearClientUi = () => {
+    selectedClient = null;
+    aliasName = "";
+    clientIdInput.value = "";
+    clientChip.hidden = true;
+    repeatButton.hidden = true;
+    clientSearchInput.hidden = false;
+    clientHelp.hidden = false;
+    clientAutocomplete?.reset();
+  };
 
-      if (clientSearchController) {
-        clientSearchController.abort();
-      }
-      clientSearchController = new AbortController();
+  const clientAutocomplete =
+    clientSearchInput && clientSuggestionsList
+      ? createAutocomplete({
+          input: clientSearchInput,
+          list: clientSuggestionsList,
+          minChars: 1,
+          debounceMs: 200,
+          emptyMessage: "No hay clientes registrados con ese nombre.",
+          search: async (query, signal) =>
+            toList(await searchClients(query, signal)).filter(isEnabled),
+          getTitle: (client) => client.alias ?? client.name ?? "",
+          getSubtitle: (client) =>
+            client.internal_code ? `Código ${client.internal_code}` : "",
+          onSelect: selectClient,
+          customOption: {
+            label: (query) => `Usar «${query}» como alias`,
+            onSelect: useAlias,
+          },
+        })
+      : null;
 
-      clientSearchDebounce = setTimeout(async () => {
-        try {
-          const results = await searchClients(
-            query,
-            clientSearchController.signal,
-          );
-          const validResults = Array.isArray(results) ? results : [];
-
-          clientSearchCache.set(cacheKey, validResults);
-          renderClientSuggestions(validResults);
-        } catch (error) {
-          if (error.name !== "AbortError") {
-            console.error("Error al buscar clientes:", error);
-            renderClientSuggestions([]);
-          }
-        }
-      }, 150);
-    });
-
-    clientSuggestionsList.addEventListener("click", (event) => {
-      const item = event.target.closest("li[data-id]");
-      if (!item) return;
-
-      clientIdInput.value = item.dataset.id;
-      clientSearchInput.value = item.dataset.alias;
-      renderClientSuggestions([]);
-
-      if (clientSearchController) {
-        clientSearchController.abort();
-      }
-    });
-
-    document.addEventListener("click", (event) => {
-      if (
-        !clientSuggestionsList.contains(event.target) &&
-        event.target !== clientSearchInput
-      ) {
-        clientSuggestionsList.style.display = "none";
-      }
-    });
-
-    clientSearchInput.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") {
-        clientSuggestionsList.style.display = "none";
-      }
-    });
-  }
+  $("quickClientChange")?.addEventListener("click", () => {
+    clearClientUi();
+    clientSearchInput.focus();
+  });
 
   // ============================================================
   // NAVEGACIÓN POR PESTAÑAS
@@ -164,6 +264,10 @@ export function initQuickEntry() {
   const allDynamicPanels = Array.from(
     document.querySelectorAll(".dynamic-panel"),
   );
+
+  tabs.forEach((tab) => {
+    tab.dataset.label = tab.textContent.trim();
+  });
 
   const DEFAULT_CATEGORY = tabs[0]?.dataset.category || null;
   let activeCategory = DEFAULT_CATEGORY;
@@ -190,7 +294,7 @@ export function initQuickEntry() {
     tab.addEventListener("click", () => setActive(tab.dataset.category));
   });
 
-  const tablist = document.getElementById("quickCategories");
+  const tablist = $("quickCategories");
 
   if (tablist) {
     tablist.addEventListener("keydown", (event) => {
@@ -222,221 +326,181 @@ export function initQuickEntry() {
   render();
 
   // ============================================================
-  // SINCRONIZACIÓN DE SLIDERS
+  // VALORES FRECUENTES DE LOS CAMPOS NUMÉRICOS
   // ============================================================
 
-  document.querySelectorAll(".label-with-val").forEach((group) => {
-    const range = group.querySelector('input[type="range"]');
-    const number = group.querySelector('input[type="number"]');
+  panel.querySelectorAll("input[data-presets]").forEach((input) => {
+    const values = input.dataset.presets
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
 
-    if (range && number) {
-      range.addEventListener("input", () => {
-        number.value = range.value;
-        number.dataset.edited = "true";
+    const label = document.querySelector(`label[for="${input.id}"]`);
+    const group = document.createElement("div");
+
+    group.className = "preset-chips";
+    group.setAttribute("role", "group");
+    group.setAttribute(
+      "aria-label",
+      `Valores frecuentes${label ? ` de ${label.textContent.trim().toLowerCase()}` : ""}`,
+    );
+
+    values.forEach((value) => {
+      const chip = document.createElement("button");
+
+      chip.type = "button";
+      chip.className = "btn-filter preset-chip";
+      chip.dataset.value = value;
+      chip.setAttribute("aria-pressed", "false");
+      chip.textContent = value;
+
+      chip.addEventListener("click", () => {
+        input.value = value;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
       });
-      number.addEventListener("input", () => {
-        range.value = number.value;
-        number.dataset.edited = "true";
+
+      group.appendChild(chip);
+    });
+
+    input.closest(".input-with-unit")?.insertAdjacentElement("afterend", group);
+
+    // El valor elegido queda resaltado entre los frecuentes.
+    input.addEventListener("input", () => {
+      group.querySelectorAll(".preset-chip").forEach((chip) => {
+        const selected = input.value === chip.dataset.value;
+
+        chip.classList.toggle("is-active", selected);
+        chip.setAttribute("aria-pressed", String(selected));
       });
-    }
+    });
   });
 
   // ============================================================
-  // MINI POS: BÚSQUEDA DE PRODUCTOS (SERVIDOR + CACHE + ABORTCONTROLLER)
+  // MINI POS: PRODUCTOS USADOS
   // ============================================================
 
-  const quickEntryRoot = document.getElementById("panelGeneral");
-  const productSearch = quickEntryRoot?.querySelector(
-    "#quickEntryProductSearch",
-  );
-  const productSuggestionsList = quickEntryRoot?.querySelector(
-    "#quickEntryProductSuggestions",
-  );
-  const productsTableBody = quickEntryRoot?.querySelector(
-    "#quickEntryProductsTableBody",
-  );
+  const productSearch = $("quickEntryProductSearch");
+  const productSuggestionsList = $("quickEntryProductSuggestions");
+  const productsTableBody = $("quickEntryProductsTableBody");
 
-  const UNIT_LABELS = { ml: "ml", g: "g", unidad: "unid." };
+  const addProductToCart = (product) => {
+    const existing = cartItems.find((entry) => entry.product_id === product.id);
 
-  let productSearchDebounce = null;
-  let productSearchController = null;
-  const productSearchCache = new Map();
-  let lastFetchedProducts = [];
-
-  const hideProductSuggestions = () => {
-    if (!productSuggestionsList) return;
-    productSuggestionsList.style.display = "none";
-    productSuggestionsList.innerHTML = "";
-  };
-
-  const renderProductSuggestions = (products) => {
-    if (!productSuggestionsList) return;
-
-    if (!products.length) {
-      productSuggestionsList.innerHTML = `<li class="autocomplete-hint" aria-disabled="true">No se encontraron productos.</li>`;
-      productSuggestionsList.style.display = "block";
-      return;
+    if (existing) {
+      existing.quantity += 1;
+    } else {
+      cartItems.push({
+        item_id: Date.now(),
+        product_id: product.id,
+        name: product.name,
+        brand: product.brand || null,
+        unit: product.measurement_unit,
+        quantity: 1,
+      });
     }
 
-    productSuggestionsList.innerHTML = products
-      .map(
-        (product) => `
-        <li data-id="${escapeHtml(product.id)}">
-          ${escapeHtml(product.name)}${product.brand ? ` — ${escapeHtml(product.brand)}` : ""}
-        </li>`,
-      )
-      .join("");
-    productSuggestionsList.style.display = "block";
+    renderCart();
+    productSearch.value = "";
+    notify.success(`${product.name} agregado.`, { duration: 1800 });
   };
 
-  if (productSearch && productSuggestionsList) {
-    productSearch.addEventListener("input", () => {
-      const query = productSearch.value.trim();
+  const productAutocomplete =
+    productSearch && productSuggestionsList
+      ? createAutocomplete({
+          input: productSearch,
+          list: productSuggestionsList,
+          minChars: 1,
+          debounceMs: 200,
+          emptyMessage: "No se encontraron productos.",
+          search: async (query, signal) =>
+            toList(await searchProducts(query, signal)),
+          getTitle: (product) => product.name ?? "",
+          getSubtitle: (product) =>
+            [
+              product.brand,
+              UNIT_LABELS[product.measurement_unit] ?? product.measurement_unit,
+            ]
+              .filter(Boolean)
+              .join(" · "),
+          onSelect: addProductToCart,
+        })
+      : null;
 
-      clearTimeout(productSearchDebounce);
+  function renderCart() {
+    if (!productsTableBody) return;
 
-      if (!query) {
-        hideProductSuggestions();
-        return;
-      }
-
-      const cacheKey = query.toLowerCase();
-
-      if (productSearchCache.has(cacheKey)) {
-        const cached = productSearchCache.get(cacheKey);
-        lastFetchedProducts = cached;
-        renderProductSuggestions(cached);
-        return;
-      }
-
-      if (productSearchController) {
-        productSearchController.abort();
-      }
-      productSearchController = new AbortController();
-
-      productSearchDebounce = setTimeout(async () => {
-        try {
-          const results = await searchProducts(
-            query,
-            productSearchController.signal,
-          );
-          const validResults = Array.isArray(results) ? results : [];
-
-          productSearchCache.set(cacheKey, validResults);
-          lastFetchedProducts = validResults;
-          renderProductSuggestions(validResults);
-        } catch (error) {
-          if (error.name !== "AbortError") {
-            console.error("Error al buscar productos:", error);
-            hideProductSuggestions();
-          }
-        }
-      }, 150);
-    });
-
-    productSuggestionsList.addEventListener("click", (event) => {
-      const item = event.target.closest("li[data-id]");
-      if (!item) return;
-
-      const product = lastFetchedProducts.find(
-        (p) => String(p.id) === item.dataset.id,
-      );
-      if (!product) return;
-
-      const existing = cartItems.find(
-        (entry) => entry.product_id === product.id,
-      );
-
-      if (existing) {
-        existing.quantity += 1;
-      } else {
-        cartItems.push({
-          item_id: Date.now(),
-          product_id: product.id,
-          name: product.name,
-          brand: product.brand || null,
-          unit: product.measurement_unit,
-          quantity: 1,
-        });
-      }
-
-      renderCart();
-      productSearch.value = "";
-      hideProductSuggestions();
-
-      if (productSearchController) {
-        productSearchController.abort();
-      }
-    });
-
-    document.addEventListener("click", (event) => {
-      if (
-        !productSuggestionsList.contains(event.target) &&
-        event.target !== productSearch
-      ) {
-        hideProductSuggestions();
-      }
-    });
-
-    productSearch.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") {
-        hideProductSuggestions();
-      }
-    });
-  }
-
-  const renderCart = () => {
     if (cartItems.length === 0) {
       productsTableBody.innerHTML =
-        '<tr><td colspan="6" class="panel-loading">No hay productos en la sesión.</td></tr>';
+        '<tr><td colspan="5" class="panel-empty">Todavía no agregaste productos.</td></tr>';
+      updateTabIndicators();
       return;
     }
 
     productsTableBody.innerHTML = cartItems
       .map(
         (item, index) => `
-            <tr>
-                <td>
-                          <input type="number" min="1" class="cart-quantity"
-                           value="${item.quantity}" onchange="window.updateCartQty(${index}, this.value)">
-                </td>
-                <td>${escapeHtml(UNIT_LABELS[item.unit] || item.unit || "—")}</td>
-                <td>${escapeHtml(item.name)}</td>
-                <td>${escapeHtml(item.brand || "—")}</td>
-                <td>-</td>
-                <td>
-                    <button class="btn btn--ghost cart-remove" onclick="window.removeCartItem(${index})">X</button>
-                </td>
-            </tr>
-        `,
+          <tr>
+            <td data-label="Cantidad">
+              <input type="number" min="1" step="1" inputmode="numeric" class="cart-quantity"
+                value="${item.quantity}" data-index="${index}"
+                aria-label="Cantidad de ${escapeHtml(item.name)}">
+            </td>
+            <td data-label="Unidad">${escapeHtml(UNIT_LABELS[item.unit] || item.unit || "—")}</td>
+            <td data-label="Nombre">${escapeHtml(item.name)}</td>
+            <td data-label="Marca">${escapeHtml(item.brand || "—")}</td>
+            <td data-label="Acciones">
+              <button type="button" class="btn btn--ghost btn--sm cart-remove" data-index="${index}"
+                aria-label="Quitar ${escapeHtml(item.name)}">Quitar</button>
+            </td>
+          </tr>`,
       )
       .join("");
-  };
 
-  window.updateCartQty = (index, val) => {
-    cartItems[index].quantity = parseInt(val, 10);
-  };
-  window.removeCartItem = (index) => {
-    cartItems.splice(index, 1);
+    updateTabIndicators();
+  }
+
+  productsTableBody?.addEventListener("change", (event) => {
+    const input = event.target.closest(".cart-quantity");
+    if (!input) return;
+
+    const item = cartItems[Number(input.dataset.index)];
+    if (!item) return;
+
+    const quantity = Number.parseInt(input.value, 10);
+
+    if (!Number.isFinite(quantity) || quantity < 1) {
+      input.value = String(item.quantity);
+      notify.warning("La cantidad debe ser un número entero mayor a 0.");
+      return;
+    }
+
+    item.quantity = quantity;
+    input.value = String(quantity);
+  });
+
+  productsTableBody?.addEventListener("click", (event) => {
+    const button = event.target.closest(".cart-remove");
+    if (!button) return;
+
+    cartItems.splice(Number(button.dataset.index), 1);
     renderCart();
-  };
+  });
 
   // ============================================================
   // RECOLECCIÓN DE DATOS
   // ============================================================
 
   const textOrNull = (id) => {
-    const value = document.getElementById(id)?.value.trim() || "";
+    const value = $(id)?.value.trim() || "";
     return value === "" ? null : value;
   };
 
   const numberOrNull = (id) => {
-    const input = document.getElementById(id);
-    const raw = input?.value;
-    if (raw === undefined || raw === "" || input.dataset.edited !== "true") {
+    const raw = $(id)?.value ?? "";
+    if (raw === "") {
       return null;
     }
-    const parsed = parseInt(raw, 10);
+    const parsed = Number.parseInt(raw, 10);
     return Number.isFinite(parsed) ? parsed : null;
   };
 
@@ -477,15 +541,12 @@ export function initQuickEntry() {
   });
 
   const buildJSON = () => {
-    const clientId =
-      document.getElementById("quickEntryClientId").value || null;
-    const clientNameTyped = document
-      .getElementById("quickEntryClientSearch")
-      .value.trim();
+    const clientId = clientIdInput.value || null;
+    const typedName = aliasName || clientSearchInput.value.trim();
 
     return {
       client_id: clientId,
-      client_name: clientId ? null : clientNameTyped || null,
+      client_name: clientId ? null : typedName || null,
       consumptions: cartItems.map((item) => ({
         product_id: Number(item.product_id),
         quantity: Number(item.quantity),
@@ -499,151 +560,288 @@ export function initQuickEntry() {
     };
   };
 
-  const hasData = (payload) => {
-    const { general, color, treatment, cut } = payload.details;
+  const hasData = (payload) =>
+    Object.values(payload.details).some(categoryHasData);
 
-    const categoryHasData = (category) =>
-      Object.values(category).some((value) =>
-        Array.isArray(value) ? value.length > 0 : value !== null,
+  const isDirty = () =>
+    Boolean(
+      selectedClient ||
+      aliasName ||
+      clientSearchInput.value.trim() ||
+      hasData(buildJSON()),
+    );
+
+  // Un punto en la pestaña indica que esa categoría ya tiene datos.
+  function updateTabIndicators() {
+    const details = {
+      general: buildGeneral(),
+      color: buildColor(),
+      treatment: buildTreatment(),
+      cut: buildCut(),
+    };
+
+    tabs.forEach((tab) => {
+      const filled = categoryHasData(details[tab.dataset.category] ?? {});
+
+      tab.classList.toggle("has-data", filled);
+      tab.setAttribute(
+        "aria-label",
+        filled ? `${tab.dataset.label} (con datos)` : tab.dataset.label,
+      );
+    });
+  }
+
+  panel.addEventListener("input", updateTabIndicators);
+  panel.addEventListener("change", updateTabIndicators);
+
+  // Campos numéricos con un valor que no es un entero mayor a 0.
+  const invalidNumberFields = () =>
+    NUMBER_FIELDS.filter((id) => {
+      const raw = $(id)?.value ?? "";
+      return raw !== "" && !/^[1-9]\d*$/.test(raw);
+    });
+
+  // ============================================================
+  // COPIAR LA ÚLTIMA FICHA DEL CLIENTE
+  // ============================================================
+
+  const setFieldValue = (id, value) => {
+    const field = $(id);
+    if (!field) return;
+
+    field.value = value === null || value === undefined ? "" : String(value);
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+  };
+
+  const repeatLastRecord = async () => {
+    if (!selectedClient) return;
+
+    setBusy(repeatButton, true);
+
+    try {
+      const response = await fetchClientTimeline(selectedClient.id);
+
+      if (!response?.success || !Array.isArray(response.data)) {
+        throw new ApiError(
+          response?.error || "El historial llegó con un formato inesperado.",
+          { kind: "invalid-response" },
+        );
+      }
+
+      const last = response.data
+        .filter((record) => {
+          const details = record.technical_details;
+
+          return (
+            details &&
+            typeof details === "object" &&
+            Object.keys(DETAIL_FIELDS).some(
+              (category) =>
+                details[category] &&
+                typeof details[category] === "object" &&
+                categoryHasData(details[category]),
+            )
+          );
+        })
+        .sort((a, b) =>
+          String(b.performed_at).localeCompare(String(a.performed_at)),
+        )[0];
+
+      if (!last) {
+        notify.info(
+          "Este cliente todavía no tiene fichas anteriores para copiar.",
+        );
+        return;
+      }
+
+      const current = buildJSON().details;
+      const hasCurrent = Object.keys(DETAIL_FIELDS).some((category) =>
+        categoryHasData(current[category]),
       );
 
-    return [general, color, treatment, cut].some(categoryHasData);
-  };
+      if (hasCurrent) {
+        const confirmed = await confirmAction({
+          title: "Reemplazar los datos cargados",
+          message:
+            "Ya completaste datos de color, tratamiento o corte. Si copiás la última ficha, se van a reemplazar.",
+          confirmLabel: "Reemplazar",
+          danger: true,
+        });
 
-  // ============================================================
-  // CONFIRMACIÓN: GUARDAR SIN CLIENTE
-  // ============================================================
+        if (!confirmed) return;
+      }
 
-  let resolveNoClientDialog = null;
+      let firstFilled = null;
 
-  const openNoClientDialog = () => {
-    if (!noClientOverlay || !noClientDialog) return;
-    noClientOverlay.classList.add("is-open");
-    noClientDialog.classList.add("is-open");
-    noClientDialog.setAttribute("aria-hidden", "false");
-  };
+      Object.entries(DETAIL_FIELDS).forEach(([category, fields]) => {
+        const source = last.technical_details[category] || {};
 
-  const closeNoClientDialog = () => {
-    if (!noClientOverlay || !noClientDialog) return;
-    noClientOverlay.classList.remove("is-open");
-    noClientDialog.classList.remove("is-open");
-    noClientDialog.setAttribute("aria-hidden", "true");
-  };
+        Object.entries(fields).forEach(([key, id]) =>
+          setFieldValue(id, source[key]),
+        );
 
-  const askConfirmSaveWithoutClient = () => {
-    if (!noClientDialog) return Promise.resolve(false);
+        if (!firstFilled && categoryHasData(source)) {
+          firstFilled = category;
+        }
+      });
 
-    return new Promise((resolve) => {
-      resolveNoClientDialog = resolve;
-      openNoClientDialog();
-    });
-  };
+      if (firstFilled) {
+        setActive(firstFilled);
+      }
 
-  const settleNoClientDialog = (result) => {
-    closeNoClientDialog();
-    if (resolveNoClientDialog) {
-      resolveNoClientDialog(result);
-      resolveNoClientDialog = null;
+      const date = String(last.performed_at)
+        .slice(0, 10)
+        .split("-")
+        .reverse()
+        .join("/");
+
+      notify.success(
+        `Se copiaron los datos de la ficha del ${date}. Revisalos antes de guardar.`,
+      );
+
+      // Lo anotado para la próxima visita es un recordatorio para esta.
+      const reminder = last.technical_details.general?.next_visit_notes;
+
+      if (reminder) {
+        feedback.show(
+          "info",
+          `Para esta visita habías anotado: ${reminder}`,
+          "next-visit",
+        );
+      }
+    } catch (error) {
+      console.error("Error al copiar la última ficha:", error);
+      notify.error(
+        getErrorMessage(error, "No se pudo copiar la última ficha."),
+      );
+    } finally {
+      setBusy(repeatButton, false);
     }
   };
 
-  if (noClientConfirm) {
-    noClientConfirm.addEventListener("click", () => settleNoClientDialog(true));
-  }
-  if (noClientBack) {
-    noClientBack.addEventListener("click", () => settleNoClientDialog(false));
-  }
-  if (noClientOverlay) {
-    noClientOverlay.addEventListener("click", () =>
-      settleNoClientDialog(false),
-    );
-  }
-  document.addEventListener("keydown", (event) => {
-    if (
-      event.key === "Escape" &&
-      noClientDialog &&
-      noClientDialog.classList.contains("is-open")
-    ) {
-      settleNoClientDialog(false);
-    }
-  });
+  repeatButton?.addEventListener("click", repeatLastRecord);
 
   // ============================================================
   // GUARDAR
   // ============================================================
 
-  if (btnSave) {
-    btnSave.addEventListener("click", async () => {
-      const data = buildJSON();
+  const saveRecord = async () => {
+    if (isSaving) return;
 
-      if (!data.client_id && !data.client_name) {
-        alert("Por favor, seleccione un cliente o ingrese al menos su nombre.");
+    feedback.clear();
+    feedback.clearInvalid();
+
+    const data = buildJSON();
+
+    if (!data.client_id && !data.client_name) {
+      feedback.invalidate(["quickEntryClientSearch"]);
+      feedback.show(
+        "error",
+        "Elegí un cliente o escribí al menos un nombre de referencia.",
+      );
+      clientSearchInput.focus();
+      return;
+    }
+
+    const badNumbers = invalidNumberFields();
+
+    if (badNumbers.length > 0) {
+      feedback.invalidate(badNumbers);
+      feedback.show(
+        "error",
+        "Revisá los valores marcados: tienen que ser números enteros mayores a 0.",
+      );
+
+      const firstField = $(badNumbers[0]);
+      const category = firstField?.closest(".dynamic-panel")?.dataset.category;
+
+      if (category) setActive(category);
+      firstField?.focus();
+      return;
+    }
+
+    if (!hasData(data)) {
+      feedback.show(
+        "error",
+        "Completá al menos un dato de algún servicio antes de guardar.",
+      );
+      return;
+    }
+
+    // Texto escrito sin elegir un cliente ni marcarlo como alias.
+    if (!data.client_id && !aliasName) {
+      const saveAnyway = await confirmAction({
+        title: "Cliente no seleccionado",
+        message:
+          "No elegiste un cliente registrado para esta ficha. Si continuás, el registro va a quedar guardado sin vínculo con un cliente de la base, lo que puede dificultar encontrarlo más adelante.",
+        confirmLabel: "Guardar sin cliente",
+        cancelLabel: "Volver a buscar cliente",
+      });
+
+      if (!saveAnyway) {
+        clientSearchInput.focus();
         return;
       }
+    }
 
-      if (!data.client_id) {
-        const wantsToSaveAnyway = await askConfirmSaveWithoutClient();
-        if (!wantsToSaveAnyway) {
-          document.getElementById("quickEntryClientSearch").focus();
-          return;
-        }
+    isSaving = true;
+    setBusy(btnSave, true);
+
+    try {
+      const result = await saveServiceHistory(data);
+
+      if (!result.success) {
+        throw new ApiError(result.error || "No se pudo guardar la ficha.", {
+          kind: "request",
+        });
       }
 
-      if (!hasData(data)) {
-        alert("Complete al menos un campo de algún servicio antes de guardar.");
-        return;
-      }
+      notify.success("Ficha guardada.");
+      closeDrawer();
+    } catch (error) {
+      console.error("Error al guardar ficha:", error);
+      feedback.show(
+        "error",
+        getErrorMessage(
+          error,
+          "No se pudo guardar la ficha. Intentá de nuevo.",
+        ),
+      );
+    } finally {
+      isSaving = false;
+      setBusy(btnSave, false);
+    }
+  };
 
-      try {
-        btnSave.disabled = true;
-        btnSave.textContent = "Guardando...";
-
-        const result = await saveServiceHistory(data);
-
-        if (!result.success) {
-          throw new Error(result.error || "No se pudo guardar la ficha.");
-        }
-
-        alert("Ficha guardada con éxito.");
-        closeDrawer();
-      } catch (error) {
-        console.error("Error al guardar ficha:", error);
-        alert(error.message || "Ocurrió un error al guardar.");
-      } finally {
-        btnSave.disabled = false;
-        btnSave.textContent = "Guardar Ficha";
-      }
-    });
-  }
+  btnSave?.addEventListener("click", saveRecord);
 
   // ============================================================
   // RESETEO DE FORMULARIO
   // ============================================================
 
-  const resetForm = () => {
-    document
-      .querySelectorAll(
-        '#quickEntryPanel input[type="text"], #quickEntryPanel textarea',
-      )
-      .forEach((input) => (input.value = ""));
-    document.getElementById("quickEntryClientId").value = "";
-    clearClientSelection();
+  function resetForm() {
+    panel
+      .querySelectorAll('input[type="text"], input[type="number"], textarea')
+      .forEach((input) => {
+        input.value = "";
+      });
 
-    document.querySelectorAll('input[type="range"]').forEach((range) => {
-      const defVal = range.getAttribute("value") || range.min;
-      range.value = defVal;
-      const num = range.parentElement.querySelector('input[type="number"]');
-      if (num) {
-        num.value = defVal;
-        delete num.dataset.edited;
-      }
+    // Se avisa a los valores frecuentes para que quiten su resaltado.
+    panel.querySelectorAll("input[data-presets]").forEach((input) => {
+      input.dispatchEvent(new Event("input", { bubbles: true }));
     });
+
+    clearClientUi();
+    productAutocomplete?.reset();
 
     activeCategory = DEFAULT_CATEGORY;
     render();
 
     cartItems = [];
     renderCart();
-    hideProductSuggestions();
-  };
+
+    feedback.clear();
+    feedback.clearInvalid();
+    updateTabIndicators();
+  }
 }

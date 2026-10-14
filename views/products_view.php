@@ -2,18 +2,20 @@
 
     <!-- =====================================================
          ENCABEZADO
+         El botón "Nuevo producto" está oculto: lo activa el botón
+         flotante de acciones rápidas (fab.js).
     ====================================================== -->
 
     <div class="day-panel__header">
-        <span class="day-panel__date">Panel de productos</span>
+        <h2 class="day-panel__date">Panel de productos</h2>
 
         <div class="day-panel__actions">
             <button
                 type="button"
                 class="btn btn--primary btn--sm"
                 id="btnAddProduct"
-                style="display:none">
-                <span aria-hidden="true">➕</span> Nuevo producto
+                hidden>
+                Nuevo producto
             </button>
         </div>
     </div>
@@ -30,39 +32,41 @@
                 class="panel-search"
                 type="text"
                 id="adminProductSearch"
-                placeholder="Buscar por nombre o marca..."
+                aria-label="Buscar productos por nombre o marca"
+                placeholder="Buscar por nombre o marca"
                 autocomplete="off">
 
-            <div class="panel-filters">
-                <button type="button" class="btn-filter active" data-filter="todos">
+            <div class="panel-filters" role="group" aria-label="Filtrar productos por estado">
+                <button type="button" class="btn-filter is-active" data-filter="todos" aria-pressed="true">
                     Todos
                 </button>
 
-                <button type="button" class="btn-filter" data-filter="activos">
+                <button type="button" class="btn-filter" data-filter="activos" aria-pressed="false">
                     Activos
                 </button>
 
-                <button type="button" class="btn-filter" data-filter="inactivos">
+                <button type="button" class="btn-filter" data-filter="inactivos" aria-pressed="false">
                     Inactivos
                 </button>
             </div>
         </div>
 
         <table class="data-table" id="productsTable">
+            <caption class="sr-only">Listado de productos</caption>
             <thead>
                 <tr>
-                    <th>Nombre</th>
-                    <th>Marca</th>
-                    <th>Stock</th>
-                    <th>Costo</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
+                    <th scope="col">Nombre</th>
+                    <th scope="col">Marca</th>
+                    <th scope="col">Stock</th>
+                    <th scope="col">Costo</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Acciones</th>
                 </tr>
             </thead>
 
             <tbody id="adminProductsTableBody">
                 <tr>
-                    <td colspan="6" class="panel-loading">
+                    <td colspan="6" class="panel-loading" role="status">
                         Cargando productos...
                     </td>
                 </tr>

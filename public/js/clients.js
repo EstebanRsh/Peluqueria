@@ -1,4 +1,6 @@
 import {
+  ApiError,
+  collectPages,
   fetchAppointments,
   fetchAllClients,
   fetchClientTimeline,
@@ -7,8 +9,18 @@ import {
   activateClient,
   deactivateClient,
   deleteClient,
+  getErrorMessage,
 } from "./api.js";
-import { matchesSearch } from "./utils.js";
+import { matchesSearch, slugify } from "./utils.js";
+import { escapeHtml, isActive, setActiveFilter, truncate } from "./dom.js";
+import {
+  clearInvalidOnInput,
+  createDirtyTracker,
+  createFeedback,
+  setBusy,
+} from "./feedback.js";
+import { confirmAction } from "./confirm.js";
+import { notify } from "./toast.js";
 
 const clientsState = {
   clients: [],
@@ -17,30 +29,20 @@ const clientsState = {
 };
 
 let initialized = false;
+let isSaving = false;
 let profileRequestId = 0;
 let profileAppointments = [];
+let profileClient = null;
+let profileOpener = null;
+let modalOpener = null;
+let feedback = null;
+let dirty = null;
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
+const $ = (id) => document.getElementById(id);
 
-function isActive(client) {
-  return client.active === true || Number(client.active) === 1;
-}
-
-// Recorta notas largas para que no rompan la tabla.
-function truncate(text, maxLength = 40) {
-  const value = String(text ?? "");
-  if (value.length <= maxLength) {
-    return value;
-  }
-  return `${value.slice(0, maxLength)}…`;
-}
+// ============================================================
+// LISTADO
+// ============================================================
 
 function visibleClients() {
   return clientsState.clients.filter((client) => {
@@ -58,14 +60,33 @@ function visibleClients() {
   });
 }
 
+function renderMessageRow(body, html) {
+  body.innerHTML = `<tr><td colspan="5">${html}</td></tr>`;
+}
+
 function renderClientsList() {
-  const body = document.getElementById("clientsTableBody");
+  const body = $("clientsTableBody");
   if (!body) return;
 
   const clients = visibleClients();
+
   if (!clients.length) {
-    body.innerHTML =
-      '<tr><td colspan="5" class="panel-empty">No se encontraron clientes.</td></tr>';
+    if (clientsState.clients.length === 0) {
+      renderMessageRow(
+        body,
+        `<div class="panel-empty" role="status">
+          <div>Todavía no cargaste clientes.</div>
+          <div class="panel-empty__action">
+            <button type="button" class="btn btn--primary btn--sm" data-action="new">Nuevo cliente</button>
+          </div>
+        </div>`,
+      );
+    } else {
+      renderMessageRow(
+        body,
+        '<div class="panel-empty" role="status">No hay clientes que coincidan con la búsqueda o el filtro.</div>',
+      );
+    }
     return;
   }
 
@@ -74,146 +95,187 @@ function renderClientsList() {
       const active = isActive(client);
       const action = active ? "deactivate" : "activate";
       const label = active ? "Desactivar" : "Activar";
+      const alias = escapeHtml(client.alias);
+      const id = escapeHtml(client.id);
+      const notes = client.notes
+        ? `<span title="${escapeHtml(client.notes)}">${escapeHtml(truncate(client.notes))}</span>`
+        : "—";
 
       return `
-      <tr data-client-id="${escapeHtml(client.id)}" class="client-row">
-        <td data-label="Alias">${escapeHtml(client.alias)}</td>
+      <tr data-client-id="${id}" class="client-row">
+        <td data-label="Alias"><button type="button" class="table-link" data-action="profile" data-id="${id}" aria-label="Ver perfil de ${alias}">${alias}</button></td>
         <td data-label="Código">${escapeHtml(client.internal_code || "—")}</td>
-        <td data-label="Notas">${escapeHtml(truncate(client.notes))}</td>
+        <td data-label="Notas">${notes}</td>
         <td data-label="Estado"><span class="status-badge status-badge--${active ? "activo" : "inactivo"}">${active ? "Activo" : "Inactivo"}</span></td>
         <td data-label="Acciones"><div class="data-table__actions">
-          <button class="btn btn--ghost btn--sm" data-action="edit" data-id="${escapeHtml(client.id)}">Editar</button>
-          <button class="btn btn--ghost btn--sm" data-action="${action}" data-id="${escapeHtml(client.id)}">${label}</button>
-          <button class="btn btn--danger btn--sm" data-action="delete" data-id="${escapeHtml(client.id)}">Eliminar</button>
+          <button type="button" class="btn btn--ghost btn--sm" data-action="edit" data-id="${id}" aria-label="Editar ${alias}">Editar</button>
+          <button type="button" class="btn btn--ghost btn--sm" data-action="${action}" data-id="${id}" aria-label="${label} ${alias}">${label}</button>
+          <button type="button" class="btn btn--danger btn--sm" data-action="delete" data-id="${id}" aria-label="Eliminar ${alias}">Eliminar</button>
         </div></td>
       </tr>`;
     })
     .join("");
 }
 
+function renderLoadError(error) {
+  const body = $("clientsTableBody");
+  if (!body) return;
+
+  renderMessageRow(
+    body,
+    `<div class="panel-error" role="alert">
+      <div>${escapeHtml(getErrorMessage(error, "No se pudieron cargar los clientes."))}</div>
+      <div class="panel-empty__action">
+        <button type="button" class="btn btn--ghost btn--sm" data-action="retry">Reintentar</button>
+      </div>
+    </div>`,
+  );
+}
+
+async function loadClients() {
+  clientsState.clients = await collectPages(
+    (page, perPage) => fetchAllClients(page, perPage),
+    "clientes",
+  );
+
+  return clientsState.clients;
+}
+
+export async function loadClientsList() {
+  try {
+    await loadClients();
+    renderClientsList();
+  } catch (error) {
+    console.error("Error al cargar clientes:", error);
+    renderLoadError(error);
+  }
+}
+
+// Vuelve a pedir la lista; si falla, avisa sin dar por perdido el cambio.
+async function refreshAfterChange() {
+  try {
+    await loadClients();
+    renderClientsList();
+  } catch (error) {
+    console.error("Error al actualizar la lista de clientes:", error);
+    notify.warning(
+      "El cambio se guardó, pero no se pudo actualizar la lista. Recargá la sección.",
+    );
+  }
+}
+
+// ============================================================
+// PANEL DE ALTA / EDICIÓN
+// ============================================================
+
 function showClientModal(client = null) {
-  const overlay = document.getElementById("clientModalOverlay");
-  const panel = document.getElementById("clientFormPanel");
+  const overlay = $("clientModalOverlay");
+  const panel = $("clientFormPanel");
   if (!overlay || !panel) return;
 
-  document.getElementById("managedClientId").value = client?.id || "";
-  document.getElementById("clientAlias").value = client?.alias || "";
-  document.getElementById("clientCode").value = client?.internal_code || "";
-  document.getElementById("clientNotes").value = client?.notes || "";
-  document.getElementById("clientModalTitle").textContent = client
+  modalOpener = document.activeElement;
+
+  $("managedClientId").value = client?.id || "";
+  $("clientAlias").value = client?.alias || "";
+  $("clientCode").value = client?.internal_code || "";
+  $("clientNotes").value = client?.notes || "";
+  $("clientModalTitle").textContent = client
     ? "Editar cliente"
     : "Nuevo cliente";
+
+  feedback.clear();
+  feedback.clearInvalid();
+  dirty.reset();
 
   overlay.classList.add("is-open");
   panel.classList.add("is-open");
   panel.setAttribute("aria-hidden", "false");
+
+  requestAnimationFrame(() => $("clientAlias").focus({ preventScroll: true }));
 }
 
 function closeClientModal() {
-  document.getElementById("clientModalOverlay")?.classList.remove("is-open");
-  const panel = document.getElementById("clientFormPanel");
+  $("clientModalOverlay")?.classList.remove("is-open");
+  const panel = $("clientFormPanel");
   panel?.classList.remove("is-open");
   panel?.setAttribute("aria-hidden", "true");
+
+  if (modalOpener && modalOpener.isConnected) {
+    modalOpener.focus({ preventScroll: true });
+  }
+  modalOpener = null;
+}
+
+// Un clic fuera del panel o Escape no deben borrar lo ya escrito.
+function requestCloseClientModal() {
+  if (dirty.isDirty()) {
+    feedback.show(
+      "warning",
+      "Hay datos sin guardar. Usá Cancelar o × para descartarlos.",
+      "dirty",
+    );
+    return;
+  }
+
+  closeClientModal();
 }
 
 function formData() {
   return {
-    alias: document.getElementById("clientAlias").value.trim(),
-    internal_code: document.getElementById("clientCode").value.trim() || null,
-    notes: document.getElementById("clientNotes").value.trim(),
+    alias: $("clientAlias").value.trim(),
+    internal_code: $("clientCode").value.trim() || null,
+    notes: $("clientNotes").value.trim(),
   };
 }
 
-function closeClientProfile() {
-  profileRequestId += 1;
-  const panel = document.getElementById("clientProfilePanel");
-  const overlay = document.getElementById("clientProfileOverlay");
-  const tableBody = document.getElementById("clientsTableBody");
+async function saveClient() {
+  if (isSaving) return;
 
-  panel?.classList.remove("is-open");
-  panel?.setAttribute("aria-hidden", "true");
-  overlay?.classList.remove("is-open");
+  feedback.clear();
+  feedback.clearInvalid();
 
-  if (tableBody) {
-    tableBody
-      .querySelectorAll("tr[data-client-id]")
-      .forEach((row) => row.classList.remove("client-row--selected"));
-  }
-}
+  const id = $("managedClientId").value;
+  const data = formData();
 
-function openClientProfile(client) {
-  const panel = document.getElementById("clientProfilePanel");
-  const overlay = document.getElementById("clientProfileOverlay");
-  const name = document.getElementById("clientProfileName");
-  const code = document.getElementById("clientProfileCode");
-  const status = document.getElementById("clientProfileStatus");
-  const notes = document.getElementById("clientProfileNotes");
-  const avatar = document.getElementById("clientProfileAvatar");
-
-  if (!panel || !client) return;
-
-  const active = isActive(client);
-  name.textContent = client.alias || "Cliente";
-  code.textContent = client.internal_code || "Sin código";
-  status.textContent = active ? "Activo" : "Inactivo";
-  status.className = `status-badge status-badge--${active ? "activo" : "inactivo"}`;
-  notes.textContent = client.notes || "Sin notas permanentes.";
-  document.getElementById("clientProfileBase").textContent =
-    client.natural_base_tone || "—";
-  document.getElementById("clientProfileHair").textContent =
-    client.hair_type || "—";
-  document.getElementById("clientProfileGrey").textContent =
-    client.grey_hair === null || client.grey_hair === ""
-      ? "—"
-      : `${client.grey_hair}%`;
-  document.getElementById("clientProfileAllergies").textContent =
-    client.allergies || "—";
-
-  const initial = String(client.alias || "C")
-    .trim()
-    .toUpperCase()
-    .slice(0, 2);
-
-  avatar.textContent = initial;
-
-  const tableBody = document.getElementById("clientsTableBody");
-  if (tableBody) {
-    tableBody
-      .querySelectorAll("tr[data-client-id]")
-      .forEach((row) =>
-        row.classList.toggle(
-          "client-row--selected",
-          String(row.dataset.clientId) === String(client.id),
-        ),
-      );
+  if (!data.alias) {
+    feedback.invalidate(["clientAlias"]);
+    feedback.show("error", "Ingresá un alias o nombre de referencia.");
+    $("clientAlias").focus();
+    return;
   }
 
-  panel.classList.add("is-open");
-  panel.setAttribute("aria-hidden", "false");
-  overlay?.classList.add("is-open");
+  const saveButton = $("clientModalSave");
+  isSaving = true;
+  setBusy(saveButton, true);
 
-  timelineState.records = [];
-  timelineState.filter = "todos";
-  timelineState.search = "";
-  profileAppointments = [];
-  document.getElementById("historySearch").value = "";
-  document
-    .querySelectorAll("#historyFilters .btn-filter")
-    .forEach((button) =>
-      button.classList.toggle("active", button.dataset.historyFilter === "todos"),
+  try {
+    const result = id ? await updateClient(id, data) : await createClient(data);
+
+    if (!result.success) {
+      throw new ApiError(result.error || "No se pudo guardar el cliente.", {
+        kind: "request",
+      });
+    }
+
+    closeClientModal();
+    notify.success(id ? "Cliente actualizado." : "Cliente creado.");
+
+    await refreshAfterChange();
+  } catch (error) {
+    console.error("Error al guardar cliente:", error);
+    feedback.show(
+      "error",
+      getErrorMessage(error, "No se pudo guardar el cliente."),
     );
-  document.getElementById("clientProfileHistory").innerHTML =
-    '<p class="history-placeholder">Cargando historial técnico...</p>';
-  document.getElementById("clientProfileAppointments").innerHTML =
-    '<p class="history-placeholder">Cargando turnos...</p>';
-
-  profileRequestId += 1;
-  void loadClientProfileData(client, profileRequestId);
+  } finally {
+    isSaving = false;
+    setBusy(saveButton, false);
+  }
 }
 
-// ==========================================================================
-// ESTADO Y LÓGICA DEL HISTORIAL (Timeline)
-// ==========================================================================
+// ============================================================
+// HISTORIAL TÉCNICO (TIMELINE)
+// ============================================================
 
 const timelineState = {
   records: [],
@@ -227,6 +289,52 @@ const TIMELINE_CATEGORIES = {
   treatment: "Tratamiento",
   cut: "Corte",
 };
+
+// Nombres legibles de los datos técnicos guardados en cada ficha.
+const FIELD_LABELS = {
+  general: {
+    cart_items: "Productos usados",
+    session_notes: "Observaciones",
+    next_visit_notes: "Para la próxima visita",
+  },
+  color: {
+    type: "Tipo de color",
+    ratio: "Proporción",
+    formula: "Fórmula / tono",
+    brand: "Marca / línea",
+    color_grams: "Cantidad de color (g)",
+    oxidant_vol: "Oxidante (vol)",
+    exposure_time_min: "Exposición (min)",
+    application: "Aplicación",
+    result: "Resultado / corrección",
+  },
+  treatment: {
+    type: "Tipo de tratamiento",
+    product: "Producto / línea",
+    quantity_ml: "Cantidad aplicada (ml)",
+    iron_temp_c: "Temperatura de plancha (°C)",
+    iron_passes: "Pasadas por mecha",
+    processes: "Proceso realizado",
+    results: "Resultado",
+  },
+  cut: {
+    type: "Tipo de corte",
+    length: "Largo / referencia",
+    condition: "Condición",
+    tools: "Técnicas / herramientas",
+    finish: "Terminación",
+  },
+};
+
+function humanizeField(field) {
+  const text = String(field).replace(/_/g, " ");
+
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function fieldLabel(groupKey, field) {
+  return FIELD_LABELS[groupKey]?.[field] ?? humanizeField(field);
+}
 
 function technicalEntries(category) {
   if (!category || typeof category !== "object" || Array.isArray(category)) {
@@ -281,9 +389,15 @@ function timelineGroups(details, serviceName = "") {
   let category = "general";
   if (/\b(corte|tijera|maquina|capas|bob|pixie)\b/.test(searchable)) {
     category = "cut";
-  } else if (/\b(color|tinte|oxidante|decoloracion|matizador|formula|tono)\b/.test(searchable)) {
+  } else if (
+    /\b(color|tinte|oxidante|decoloracion|matizador|formula|tono)\b/.test(
+      searchable,
+    )
+  ) {
     category = "color";
-  } else if (/\b(tratamiento|alisado|hidratacion|reconstruccion)\b/.test(searchable)) {
+  } else if (
+    /\b(tratamiento|alisado|hidratacion|reconstruccion)\b/.test(searchable)
+  ) {
     category = "treatment";
   }
 
@@ -337,7 +451,7 @@ function formatProfileDate(value, includeTime = true) {
 }
 
 function renderTimeline() {
-  const container = document.getElementById("clientProfileHistory");
+  const container = $("clientProfileHistory");
   if (!container) return;
 
   const filtered = timelineState.records.filter((record) => {
@@ -356,7 +470,7 @@ function renderTimeline() {
       .flatMap((group) =>
         group.entries.flatMap(([key, value]) => [
           group.label,
-          key,
+          fieldLabel(group.key, key),
           formatTechnicalValue(key, value),
         ]),
       )
@@ -372,7 +486,10 @@ function renderTimeline() {
   });
 
   if (filtered.length === 0) {
-    container.innerHTML = '<p class="history-empty">Sin historial.</p>';
+    container.innerHTML =
+      timelineState.records.length === 0
+        ? '<p class="history-empty">Todavía no hay fichas técnicas para este cliente.</p>'
+        : '<p class="history-empty">No hay fichas que coincidan con la búsqueda o el filtro.</p>';
     return;
   }
 
@@ -389,7 +506,7 @@ function renderTimeline() {
                   .map(
                     ([field, value]) => `
                       <div class="timeline-field">
-                        <dt>${escapeHtml(field.replace(/_/g, " "))}</dt>
+                        <dt>${escapeHtml(fieldLabel(group.key, field))}</dt>
                         <dd>${escapeHtml(formatTechnicalValue(field, value))}</dd>
                       </div>`,
                   )
@@ -412,7 +529,7 @@ function renderTimeline() {
 }
 
 function renderClientAppointments() {
-  const container = document.getElementById("clientProfileAppointments");
+  const container = $("clientProfileAppointments");
   if (!container) return;
 
   if (!profileAppointments.length) {
@@ -426,7 +543,7 @@ function renderClientAppointments() {
         <article class="profile-appointment">
           <div class="profile-appointment__header">
             <strong>${escapeHtml(appointment.service_name || "Servicio")}</strong>
-            <span class="status-badge">${escapeHtml(appointment.status || "Sin estado")}</span>
+            <span class="status-badge status-badge--${slugify(appointment.status || "")}">${escapeHtml(appointment.status || "Sin estado")}</span>
           </div>
           <div class="profile-appointment__meta">
             <time>${escapeHtml(formatProfileDate(appointment.date, false))} · ${escapeHtml(String(appointment.time_start || "").slice(0, 5))}${appointment.time_end ? `–${escapeHtml(String(appointment.time_end).slice(0, 5))}` : ""}</time>
@@ -437,17 +554,26 @@ function renderClientAppointments() {
     .join("");
 }
 
+function renderProfileError(container, error, fallback) {
+  if (!container) return;
+
+  container.innerHTML = `
+    <p class="history-error" role="alert">${escapeHtml(getErrorMessage(error, fallback))}</p>
+    <button type="button" class="btn btn--ghost btn--sm" data-action="retry-profile">Reintentar</button>`;
+}
+
 async function loadClientProfileData(client, requestId) {
-  const historyContainer = document.getElementById("clientProfileHistory");
-  const appointmentsContainer = document.getElementById(
-    "clientProfileAppointments",
-  );
+  const historyContainer = $("clientProfileHistory");
+  const appointmentsContainer = $("clientProfileAppointments");
 
   let records;
   try {
     const response = await fetchClientTimeline(client.id);
     if (!response?.success || !Array.isArray(response.data)) {
-      throw new TypeError("La respuesta del historial no tiene un formato válido.");
+      throw new ApiError(
+        response?.error || "El historial llegó con un formato inesperado.",
+        { kind: "invalid-response" },
+      );
     }
     if (requestId !== profileRequestId) return;
     records = response.data;
@@ -456,14 +582,16 @@ async function loadClientProfileData(client, requestId) {
   } catch (error) {
     if (requestId !== profileRequestId) return;
     console.error("Error al cargar historial técnico:", error);
-    if (historyContainer) {
-      historyContainer.innerHTML =
-        '<p class="history-error">No se pudo cargar el historial técnico.</p>';
-    }
-    if (appointmentsContainer) {
-      appointmentsContainer.innerHTML =
-        '<p class="history-error">No se pudieron cargar los turnos asociados.</p>';
-    }
+    renderProfileError(
+      historyContainer,
+      error,
+      "No se pudo cargar el historial técnico.",
+    );
+    renderProfileError(
+      appointmentsContainer,
+      error,
+      "No se pudieron cargar los turnos asociados.",
+    );
     return;
   }
 
@@ -501,237 +629,351 @@ async function loadClientProfileData(client, requestId) {
   } catch (error) {
     if (requestId !== profileRequestId) return;
     console.error("Error al cargar turnos del cliente:", error);
-    if (appointmentsContainer) {
-      appointmentsContainer.innerHTML =
-        '<p class="history-error">No se pudieron cargar los turnos asociados.</p>';
-    }
+    renderProfileError(
+      appointmentsContainer,
+      error,
+      "No se pudieron cargar los turnos asociados.",
+    );
   }
 }
 
 function initTimelineEvents() {
-  document
-    .getElementById("historySearch")
-    ?.addEventListener("input", (event) => {
-      timelineState.search = event.target.value.trim();
-      renderTimeline();
-    });
+  $("historySearch")?.addEventListener("input", (event) => {
+    timelineState.search = event.target.value.trim();
+    renderTimeline();
+  });
 
-  // Eventos de los filtros (Píldoras)
-  document.querySelectorAll("#historyFilters .btn-filter").forEach((button) => {
+  // Filtros del historial
+  const historyButtons = Array.from(
+    document.querySelectorAll("#historyFilters .btn-filter"),
+  );
+
+  historyButtons.forEach((button) => {
     button.addEventListener("click", () => {
       timelineState.filter = button.dataset.historyFilter;
-      document
-        .querySelectorAll("#historyFilters .btn-filter")
-        .forEach((btn) => {
-          btn.classList.toggle("active", btn === button);
-        });
+      setActiveFilter(historyButtons, button);
       renderTimeline();
     });
   });
 }
 
-async function saveClient() {
-  const id = document.getElementById("managedClientId").value;
-  const data = formData();
+// ============================================================
+// PERFIL DEL CLIENTE
+// ============================================================
 
-  if (!data.alias) {
-    alert("El alias o nombre de referencia es obligatorio.");
-    return;
+function closeClientProfile() {
+  profileRequestId += 1;
+  const panel = $("clientProfilePanel");
+  const overlay = $("clientProfileOverlay");
+  const tableBody = $("clientsTableBody");
+
+  panel?.classList.remove("is-open");
+  panel?.setAttribute("aria-hidden", "true");
+  overlay?.classList.remove("is-open");
+
+  if (tableBody) {
+    tableBody
+      .querySelectorAll("tr[data-client-id]")
+      .forEach((row) => row.classList.remove("client-row--selected"));
   }
 
+  if (profileOpener && profileOpener.isConnected) {
+    profileOpener.focus({ preventScroll: true });
+  }
+  profileOpener = null;
+  profileClient = null;
+}
+
+function openClientProfile(client) {
+  const panel = $("clientProfilePanel");
+  const overlay = $("clientProfileOverlay");
+
+  if (!panel || !client) return;
+
+  profileOpener = document.activeElement;
+  profileClient = client;
+
+  const active = isActive(client);
+  $("clientProfileName").textContent = client.alias || "Cliente";
+  $("clientProfileCode").textContent = client.internal_code || "Sin código";
+
+  const status = $("clientProfileStatus");
+  status.textContent = active ? "Activo" : "Inactivo";
+  status.className = `status-badge status-badge--${active ? "activo" : "inactivo"}`;
+
+  $("clientProfileNotes").textContent =
+    client.notes || "Sin notas permanentes.";
+  $("clientProfileBase").textContent = client.natural_base_tone || "—";
+  $("clientProfileHair").textContent = client.hair_type || "—";
+  $("clientProfileGrey").textContent =
+    client.grey_hair === null ||
+    client.grey_hair === undefined ||
+    client.grey_hair === ""
+      ? "—"
+      : `${client.grey_hair}%`;
+  $("clientProfileAllergies").textContent = client.allergies || "—";
+
+  $("clientProfileAvatar").textContent = String(client.alias || "C")
+    .trim()
+    .toUpperCase()
+    .slice(0, 2);
+
+  const tableBody = $("clientsTableBody");
+  if (tableBody) {
+    tableBody
+      .querySelectorAll("tr[data-client-id]")
+      .forEach((row) =>
+        row.classList.toggle(
+          "client-row--selected",
+          String(row.dataset.clientId) === String(client.id),
+        ),
+      );
+  }
+
+  panel.classList.add("is-open");
+  panel.setAttribute("aria-hidden", "false");
+  overlay?.classList.add("is-open");
+
+  timelineState.records = [];
+  timelineState.filter = "todos";
+  timelineState.search = "";
+  profileAppointments = [];
+  $("historySearch").value = "";
+
+  const historyButtons = Array.from(
+    document.querySelectorAll("#historyFilters .btn-filter"),
+  );
+  setActiveFilter(
+    historyButtons,
+    historyButtons.find((button) => button.dataset.historyFilter === "todos"),
+  );
+
+  $("clientProfileHistory").innerHTML =
+    '<p class="history-placeholder" role="status">Cargando historial técnico...</p>';
+  $("clientProfileAppointments").innerHTML =
+    '<p class="history-placeholder" role="status">Cargando turnos...</p>';
+
+  profileRequestId += 1;
+  void loadClientProfileData(client, profileRequestId);
+
+  requestAnimationFrame(() => panel.focus({ preventScroll: true }));
+}
+
+// "Editar perfil": cierra el perfil y abre el formulario del cliente.
+function editProfileClient() {
+  const client = profileClient;
+  if (!client) return;
+
+  closeClientProfile();
+  showClientModal(client);
+}
+
+// "Nuevo turno": va a la agenda y abre el formulario con el cliente elegido.
+function scheduleForProfileClient() {
+  const client = profileClient;
+  if (!client) return;
+
+  closeClientProfile();
+
+  document.querySelector('.nav-item[data-view="appointments"]')?.click();
+  document.dispatchEvent(
+    new CustomEvent("appointment:new", { detail: { client } }),
+  );
+}
+
+// ============================================================
+// ACCIONES DE LA TABLA
+// ============================================================
+
+async function runAction(button, task, successMessage, failureMessage) {
+  setBusy(button, true);
+
   try {
-    const result = id
-      ? await handleUpdateClient(id, data)
-      : await handleCreateClient(data);
-    if (!result.success)
-      throw new Error(result.error || "No se pudo guardar el cliente.");
-    closeClientModal();
-    renderClientsList();
+    const result = await task();
+
+    if (!result.success) {
+      throw new ApiError(result.error || failureMessage, { kind: "request" });
+    }
+
+    notify.success(successMessage);
+    await refreshAfterChange();
   } catch (error) {
-    console.error("Error al guardar cliente:", error);
-    alert(error.message);
+    console.error(failureMessage, error);
+    notify.error(getErrorMessage(error, failureMessage));
+  } finally {
+    setBusy(button, false);
   }
 }
 
 async function handleTableAction(event) {
   const button = event.target.closest("button[data-action]");
+
+  // Un clic en cualquier parte de la fila abre el perfil.
   if (!button) {
     const row = event.target.closest("tr[data-client-id]");
     if (!row) return;
 
-    const id = row.dataset.clientId;
-    const client = clientsState.clients.find((item) => String(item.id) === id);
+    const client = clientsState.clients.find(
+      (item) => String(item.id) === row.dataset.clientId,
+    );
     if (client) {
       openClientProfile(client);
     }
     return;
   }
 
+  const action = button.dataset.action;
+
+  if (action === "new") {
+    showClientModal();
+    return;
+  }
+
+  if (action === "retry") {
+    await loadClientsList();
+    return;
+  }
+
   const id = button.dataset.id;
   const client = clientsState.clients.find((item) => String(item.id) === id);
 
-  try {
-    if (button.dataset.action === "edit") {
-      showClientModal(client);
-      return;
-    }
+  if (!client) return;
 
-    if (button.dataset.action === "delete") {
-      if (!confirm("¿Eliminar este cliente?")) return;
-      const result = await handleDeleteClient(id);
-      if (!result.success)
-        throw new Error(result.error || "No se pudo eliminar el cliente.");
-    }
+  if (action === "profile") {
+    openClientProfile(client);
+    return;
+  }
 
-    if (button.dataset.action === "activate") {
-      const result = await handleActivateClient(id);
-      if (!result.success)
-        throw new Error(result.error || "No se pudo activar el cliente.");
-    }
+  if (action === "edit") {
+    showClientModal(client);
+    return;
+  }
 
-    if (button.dataset.action === "deactivate") {
-      const result = await handleDeactivateClient(id);
-      if (!result.success)
-        throw new Error(result.error || "No se pudo desactivar el cliente.");
-    }
+  if (action === "delete") {
+    const confirmed = await confirmAction({
+      title: "Eliminar cliente",
+      message: `Vas a eliminar a «${client.alias}». Esta acción no se puede deshacer. Si ya tiene turnos asociados no se podrá eliminar: en ese caso desactivalo.`,
+      confirmLabel: "Eliminar",
+      danger: true,
+    });
 
-    renderClientsList();
-  } catch (error) {
-    console.error("Error al modificar cliente:", error);
-    alert(error.message);
+    if (!confirmed) return;
+
+    await runAction(
+      button,
+      () => deleteClient(id),
+      "Cliente eliminado.",
+      "No se pudo eliminar el cliente.",
+    );
+    return;
+  }
+
+  if (action === "activate") {
+    await runAction(
+      button,
+      () => activateClient(id),
+      "Cliente activado.",
+      "No se pudo activar el cliente.",
+    );
+    return;
+  }
+
+  if (action === "deactivate") {
+    await runAction(
+      button,
+      () => deactivateClient(id),
+      "Cliente desactivado.",
+      "No se pudo desactivar el cliente.",
+    );
   }
 }
 
-async function loadClients() {
-  const firstPage = await fetchAllClients();
-  if (!Array.isArray(firstPage?.data)) {
-    throw new TypeError("La respuesta de clientes no contiene una lista válida.");
-  }
-
-  const clients = [...firstPage.data];
-  const perPage = Number(firstPage.per_page);
-  const totalPages = Math.ceil(Number(firstPage.total) / perPage);
-
-  for (let page = 2; page <= totalPages; page += 1) {
-    const result = await fetchAllClients(page, perPage);
-    if (!Array.isArray(result?.data)) {
-      throw new TypeError("La respuesta de clientes no contiene una lista válida.");
-    }
-    clients.push(...result.data);
-  }
-
-  clientsState.clients = clients;
-  return clientsState.clients;
-}
-
-export async function loadClientsList() {
-  const body = document.getElementById("clientsTableBody");
-  try {
-    await loadClients();
-    renderClientsList();
-  } catch (error) {
-    console.error("Error al cargar clientes:", error);
-    if (body)
-      body.innerHTML =
-        '<tr><td colspan="5" class="panel-empty">Error al cargar clientes.</td></tr>';
-  }
-}
-
-async function handleCreateClient(data) {
-  const result = await createClient(data);
-  await loadClients();
-  return result;
-}
-
-async function handleUpdateClient(id, data) {
-  const result = await updateClient(id, data);
-  await loadClients();
-  return result;
-}
-
-async function handleActivateClient(id) {
-  const result = await activateClient(id);
-  await loadClients();
-  return result;
-}
-
-async function handleDeactivateClient(id) {
-  const result = await deactivateClient(id);
-  await loadClients();
-  return result;
-}
-
-async function handleDeleteClient(id) {
-  const result = await deleteClient(id);
-  await loadClients();
-  return result;
-}
+// ============================================================
+// INICIALIZACIÓN
+// ============================================================
 
 export function initClients() {
   if (initialized) return;
   initialized = true;
   initTimelineEvents();
 
-  document
-    .getElementById("btnAddClient")
-    ?.addEventListener("click", () => showClientModal());
-  document
-    .getElementById("clientListSearch")
-    ?.addEventListener("input", (event) => {
-      clientsState.search = event.target.value;
-      renderClientsList();
-    });
-  document
-    .getElementById("clientsTableBody")
-    ?.addEventListener("click", handleTableAction);
+  const panel = $("clientFormPanel");
 
-  document
-    .getElementById("clientProfileClose")
-    ?.addEventListener("click", closeClientProfile);
-  document
-    .getElementById("clientProfileOverlay")
-    ?.addEventListener("click", closeClientProfile);
+  if (panel) {
+    feedback = createFeedback(panel);
+    dirty = createDirtyTracker(panel);
+    clearInvalidOnInput(panel);
+    panel.addEventListener("input", () => feedback.clear("dirty"));
+  } else {
+    // Sin el panel no hay formulario: se evitan errores al abrirlo.
+    feedback = { show() {}, clear() {}, invalidate() {}, clearInvalid() {} };
+    dirty = { reset() {}, isDirty: () => false };
+  }
+
+  $("btnAddClient")?.addEventListener("click", () => showClientModal());
+
+  $("clientListSearch")?.addEventListener("input", (event) => {
+    clientsState.search = event.target.value;
+    renderClientsList();
+  });
+
+  $("clientsTableBody")?.addEventListener("click", handleTableAction);
+
+  // Perfil
+  $("clientProfileClose")?.addEventListener("click", closeClientProfile);
+  $("clientProfileOverlay")?.addEventListener("click", closeClientProfile);
+  $("clientProfileEdit")?.addEventListener("click", editProfileClient);
+  $("clientProfileSchedule")?.addEventListener(
+    "click",
+    scheduleForProfileClient,
+  );
+
+  // Reintentar la carga del historial
+  $("clientProfilePanel")?.addEventListener("click", (event) => {
+    if (!event.target.closest("[data-action='retry-profile']")) return;
+    if (!profileClient) return;
+
+    $("clientProfileHistory").innerHTML =
+      '<p class="history-placeholder" role="status">Cargando historial técnico...</p>';
+    $("clientProfileAppointments").innerHTML =
+      '<p class="history-placeholder" role="status">Cargando turnos...</p>';
+
+    profileRequestId += 1;
+    void loadClientProfileData(profileClient, profileRequestId);
+  });
+
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    if (
-      document
-        .getElementById("clientProfilePanel")
-        ?.classList.contains("is-open")
-    ) {
+
+    if ($("clientProfilePanel")?.classList.contains("is-open")) {
       closeClientProfile();
       return;
     }
-    if (
-      document.getElementById("clientFormPanel")?.classList.contains("is-open")
-    ) {
-      closeClientModal();
+
+    if ($("clientFormPanel")?.classList.contains("is-open")) {
+      requestCloseClientModal();
     }
   });
 
-  document
-    .querySelectorAll("#viewClients .btn-filter[data-filter]")
-    .forEach((button) => {
-      button.addEventListener("click", () => {
-        clientsState.filter = button.dataset.filter;
-        document
-          .querySelectorAll("#viewClients .btn-filter[data-filter]")
-          .forEach((item) => {
-            item.classList.toggle("active", item === button);
-          });
-        renderClientsList();
-      });
-    });
+  // Filtros de estado
+  const filterButtons = Array.from(
+    document.querySelectorAll("#viewClients .btn-filter[data-filter]"),
+  );
 
-  document
-    .getElementById("clientModalClose")
-    ?.addEventListener("click", closeClientModal);
-  document
-    .getElementById("clientModalCancel")
-    ?.addEventListener("click", closeClientModal);
-  document
-    .getElementById("clientModalSave")
-    ?.addEventListener("click", saveClient);
-  document
-    .getElementById("clientModalOverlay")
-    ?.addEventListener("click", closeClientModal);
+  filterButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      clientsState.filter = button.dataset.filter;
+      setActiveFilter(filterButtons, button);
+      renderClientsList();
+    });
+  });
+
+  $("clientModalClose")?.addEventListener("click", closeClientModal);
+  $("clientModalCancel")?.addEventListener("click", closeClientModal);
+  $("clientModalOverlay")?.addEventListener("click", requestCloseClientModal);
+
+  $("clientForm")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    saveClient();
+  });
 }

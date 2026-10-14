@@ -29,6 +29,18 @@ $monthNames = [
 $dayNames   = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
 $today      = date('Y-m-d');
 
+// Valores numéricos garantizados antes de imprimirlos o armar fechas
+$month     = (int)$month;
+$year      = (int)$year;
+$monthName = $monthNames[$month] ?? '';
+
+// El calendario siempre muestra 6 semanas (42 celdas), sin importar el mes
+$totalCalendarCells = 42;
+
+/** Indica si un evento corresponde a un turno RESERVADO. */
+$isReservado = static fn(array $dayEvent): bool =>
+mb_strtolower((string)($dayEvent['status'] ?? ''), 'UTF-8') === 'reservado';
+
 $monthTotalReservados = 0;
 $busyDays = 0;
 
@@ -36,8 +48,8 @@ $busyDays = 0;
 foreach ($events as $dayEvents) {
     $hasReservations = false;
     foreach ($dayEvents as $dayEvent) {
-        if (mb_strtolower($dayEvent['status'], 'UTF-8') === 'reservado') {
-            $monthTotalReservados += (int)$dayEvent['total'];
+        if ($isReservado($dayEvent)) {
+            $monthTotalReservados += (int)($dayEvent['total'] ?? 0);
             $hasReservations = true;
         }
     }
@@ -46,18 +58,18 @@ foreach ($events as $dayEvents) {
     }
 }
 ?>
-<div class="admin-view">
-    <main class="calendar-wrapper">
+<div class="admin-view admin-view--calendar">
+    <section class="calendar-wrapper" aria-label="Calendario de turnos">
         <div class="calendar">
             <div class="calendar__header">
                 <h2 class="calendar__title">
-                    <span class="calendar__month"><?= $monthNames[$month] ?></span>
+                    <span class="calendar__month"><?= $monthName ?></span>
                     <span class="calendar__year"><?= $year ?></span>
                 </h2>
                 <div class="calendar__nav">
-                    <a href="?month=<?= $prevMonth ?>&year=<?= $prevYear ?>" class="nav-btn" aria-label="Mes anterior">&#8249;</a>
-                    <a href="?month=<?= (int)date('n') ?>&year=<?= (int)date('Y') ?>" class="nav-btn nav-btn--today" aria-label="Ir a hoy">HOY</a>
-                    <a href="?month=<?= $nextMonth ?>&year=<?= $nextYear ?>" class="nav-btn" aria-label="Mes siguiente">&#8250;</a>
+                    <a href="?month=<?= (int)$prevMonth ?>&amp;year=<?= (int)$prevYear ?>" class="nav-btn" aria-label="Mes anterior">&#8249;</a>
+                    <a href="?month=<?= (int)date('n') ?>&amp;year=<?= (int)date('Y') ?>" class="nav-btn nav-btn--today" aria-label="Ir a hoy">HOY</a>
+                    <a href="?month=<?= (int)$nextMonth ?>&amp;year=<?= (int)$nextYear ?>" class="nav-btn" aria-label="Mes siguiente">&#8250;</a>
                 </div>
             </div>
             <div class="calendar__grid">
@@ -84,8 +96,8 @@ foreach ($events as $dayEvents) {
                     $reservadosCount = 0;
                     if (isset($events[$dateKey])) {
                         foreach ($events[$dateKey] as $dayEvent) {
-                            if (mb_strtolower($dayEvent['status'], 'UTF-8') === 'reservado') {
-                                $reservadosCount += (int)$dayEvent['total'];
+                            if ($isReservado($dayEvent)) {
+                                $reservadosCount += (int)($dayEvent['total'] ?? 0);
                             }
                         }
                     }
@@ -98,7 +110,7 @@ foreach ($events as $dayEvents) {
                     <div class="<?= $classes ?>" data-date="<?= $dateKey ?>"
                         role="button" tabindex="0"
                         <?= $isToday ? 'aria-current="date"' : '' ?>
-                        aria-label="<?= $d ?> de <?= $monthNames[$month] ?><?= $hasEvent ? ', ' . $reservadosCount . ($reservadosCount === 1 ? ' reserva' : ' reservas') : '' ?>">
+                        aria-label="<?= $d ?> de <?= $monthName ?><?= $hasEvent ? ', ' . $reservadosCount . ($reservadosCount === 1 ? ' reserva' : ' reservas') : '' ?>">
                         <span class="cell__number"><?= $d ?></span>
 
                         <?php if ($hasEvent): ?>
@@ -115,9 +127,7 @@ foreach ($events as $dayEvents) {
                 <?php endfor; ?>
 
                 <?php
-                $totalCells = $offset + $daysInMonth;
-                $visibleCells = (int)ceil($totalCells / 7) * 7;
-                $remaining = $visibleCells - $totalCells;
+                $remaining = max(0, $totalCalendarCells - ($offset + $daysInMonth));
                 for ($i = 1; $i <= $remaining; $i++):
                 ?>
                     <div class="calendar__cell calendar__cell--ghost" aria-hidden="true">
@@ -127,18 +137,18 @@ foreach ($events as $dayEvents) {
             </div>
 
             <!-- Resumen limpio y enfocado únicamente en la carga de reservas -->
-            <div class="calendar__summary" aria-label="Resumen del mes">
-                <span class="summary__item"><b class="summary__num"><?= $monthTotalReservados ?></b> reservas activas</span>
-                <span class="summary__item"><b class="summary__num"><?= $busyDays ?></b> días con agenda ocupada</span>
+            <div class="calendar__summary" role="group" aria-label="Resumen del mes">
+                <span class="summary__item"><b class="summary__num" data-summary="reservas"><?= $monthTotalReservados ?></b> reservas activas</span>
+                <span class="summary__item"><b class="summary__num" data-summary="dias"><?= $busyDays ?></b> días con agenda ocupada</span>
             </div>
 
             <ul class="calendar__legend" aria-label="Leyenda de estados">
                 <li class="legend__item">
-                    <span class="legend__swatch cell__status-badge--reservado"></span> Turnos Reservados (Pendientes de atención)
+                    <span class="legend__swatch cell__status-badge--reservado" aria-hidden="true"></span> Turnos Reservados (Pendientes de atención)
                 </li>
             </ul>
         </div>
-    </main>
+    </section>
 </div>
 
 <!-- =====================================================
@@ -147,7 +157,8 @@ foreach ($events as $dayEvents) {
 
 <div class="side-drawer-overlay" id="dayPanelOverlay"></div>
 
-<aside class="side-drawer side-drawer--wide" id="dayPanel" aria-hidden="true">
+<aside class="side-drawer side-drawer--wide" id="dayPanel"
+    role="dialog" aria-modal="true" aria-labelledby="panelDate" aria-hidden="true" tabindex="-1">
     <div class="day-panel__header">
         <span class="day-panel__date" id="panelDate"></span>
         <div class="day-panel__actions">

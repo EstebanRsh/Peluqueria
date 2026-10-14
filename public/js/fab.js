@@ -29,7 +29,7 @@ const ICONS = {
 //  - run:     función personalizada
 const actions = {
   newAppointment: (ctx) => ({
-    label: "Nuevo Turno",
+    label: "Nuevo turno",
     icon: "appointment",
     accent: true,
     run: () => {
@@ -43,26 +43,26 @@ const actions = {
     },
   }),
   newHistory: () => ({
-    label: "Nueva Historia",
+    label: "Nueva ficha",
     icon: "history",
     run: () => document.dispatchEvent(new CustomEvent("quickentry:open")),
   }),
   newClient: () => ({
-    label: "Nuevo Cliente",
+    label: "Nuevo cliente",
     icon: "client",
     accent: true,
     view: "clients",
     trigger: "btnAddClient",
   }),
   newProduct: () => ({
-    label: "Nuevo Producto",
+    label: "Nuevo producto",
     icon: "product",
     accent: true,
     view: "products",
     trigger: "btnAddProduct",
   }),
   newService: () => ({
-    label: "Nuevo Servicio",
+    label: "Nuevo servicio",
     icon: "service",
     accent: true,
     view: "services",
@@ -90,7 +90,7 @@ export function initFab({ appState, navItems, getCurrentView }) {
   const setOpen = (isOpen) => {
     root.classList.toggle("is-open", isOpen);
     toggle.setAttribute("aria-expanded", String(isOpen));
-    backdrop?.classList.toggle("is-visible", isOpen);
+    backdrop?.classList.toggle("is-open", isOpen);
     menu.querySelectorAll(".fab-actions__item").forEach((item) => {
       item.tabIndex = isOpen ? 0 : -1;
     });
@@ -134,9 +134,12 @@ export function initFab({ appState, navItems, getCurrentView }) {
     setOpen(!root.classList.contains("is-open")),
   );
   backdrop?.addEventListener("click", () => setOpen(false));
+  // Escape cierra el menú y devuelve el foco al botón que lo abrió
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && root.classList.contains("is-open"))
+    if (e.key === "Escape" && root.classList.contains("is-open")) {
       setOpen(false);
+      toggle.focus();
+    }
   });
 
   return { setView };

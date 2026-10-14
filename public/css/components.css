@@ -2,7 +2,10 @@
    COMPONENTES UI (BOTONES, BADGES, MODALES Y FORMULARIOS)
    ========================================================================== */
 
-/* Botones */
+/* ==========================================================================
+   BOTONES
+   ========================================================================== */
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -19,12 +22,12 @@
 }
 .btn--primary {
   background: var(--color-text);
-  color: #fff;
+  color: var(--color-on-dark);
   border-color: var(--color-text);
 }
 .btn--primary:hover {
-  background: #2b2620;
-  border-color: #2b2620;
+  background: var(--color-text-hover);
+  border-color: var(--color-text-hover);
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
@@ -47,12 +50,106 @@
 }
 .btn--danger {
   background: none;
-  color: #dc2626;
-  border-color: #fee2e2;
+  color: var(--color-danger);
+  border-color: var(--color-danger-soft);
 }
 .btn--danger:hover {
-  background: #fef2f2;
-  border-color: #dc2626;
+  background: var(--color-cancelado-bg);
+  border-color: var(--color-danger);
+}
+
+/* Botón deshabilitado o en proceso (el JS debe además bloquear el reenvío) */
+.btn:disabled,
+.btn[aria-disabled="true"],
+.btn.is-loading {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.btn:disabled:hover,
+.btn[aria-disabled="true"]:hover,
+.btn.is-loading:hover {
+  transform: none;
+  box-shadow: none;
+}
+.btn--primary:disabled:hover,
+.btn--primary[aria-disabled="true"]:hover,
+.btn--primary.is-loading:hover {
+  background: var(--color-text);
+  border-color: var(--color-text);
+}
+.btn--ghost:disabled:hover,
+.btn--ghost[aria-disabled="true"]:hover,
+.btn--ghost.is-loading:hover {
+  background: none;
+  border-color: var(--color-border);
+}
+.btn--danger:disabled:hover,
+.btn--danger[aria-disabled="true"]:hover,
+.btn--danger.is-loading:hover {
+  background: none;
+  border-color: var(--color-danger-soft);
+}
+
+.btn.is-loading {
+  pointer-events: none;
+}
+.btn.is-loading::before {
+  content: "";
+  width: 0.9em;
+  height: 0.9em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: btn-spin 0.7s linear infinite;
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn.is-loading::before {
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+   BOTONES DE ÍCONO (NAVEGACIÓN DEL CALENDARIO Y CIERRE DE PANELES / DETALLE)
+   El tamaño se ajusta con --icon-btn-size (por defecto 2.25rem).
+   ========================================================================== */
+
+.nav-btn,
+.day-panel__close,
+.appointment-detail-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--icon-btn-size, 2.25rem);
+  height: var(--icon-btn-size, 2.25rem);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font);
+  font-size: 0.85rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background var(--t-fast) ease,
+    border-color var(--t-fast) ease,
+    color var(--t-fast) ease;
+}
+
+.nav-btn:hover,
+.day-panel__close:hover,
+.appointment-detail-close:hover {
+  background: var(--color-hover-strong);
+  border-color: var(--color-gold);
+  color: var(--color-text);
 }
 
 /* ==========================================================================
@@ -71,12 +168,15 @@
   gap: 0.85rem;
 }
 
+/* Cerrado: visibility evita que los ítems invisibles reciban foco de teclado */
 .fab-actions__menu {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 0.6rem;
   pointer-events: none;
+  visibility: hidden;
+  transition: visibility 0s linear var(--t-slow);
 }
 
 .fab-actions__item {
@@ -86,7 +186,7 @@
   width: var(--fab-item-width);
   padding: 0.65rem 1.1rem 0.65rem 0.85rem;
   background: var(--color-text);
-  color: #fff;
+  color: var(--color-on-dark);
   border: 1px solid var(--color-text);
   border-radius: 999px;
   font-family: var(--font);
@@ -116,7 +216,7 @@
 }
 
 .fab-actions__item:hover {
-  background: #2b2620;
+  background: var(--color-text-hover);
 }
 
 .fab-actions__item--accent {
@@ -126,7 +226,7 @@
 }
 
 .fab-actions__item--accent:hover {
-  background: #b6913f;
+  background: var(--color-gold-dark);
 }
 
 .fab-actions__menu .fab-actions__item:nth-child(1) {
@@ -144,6 +244,8 @@
 
 .fab-actions.is-open .fab-actions__menu {
   pointer-events: all;
+  visibility: visible;
+  transition-delay: 0s;
 }
 
 .fab-actions.is-open .fab-actions__item {
@@ -159,7 +261,7 @@
   height: 56px;
   border-radius: 50%;
   background: var(--color-text);
-  color: #fff;
+  color: var(--color-on-dark);
   border: none;
   cursor: pointer;
   box-shadow: var(--shadow-lg);
@@ -169,7 +271,7 @@
 }
 
 .fab-actions__toggle:hover {
-  background: #2b2620;
+  background: var(--color-text-hover);
 }
 
 .fab-actions__toggle-icon {
@@ -192,7 +294,7 @@
 .fab-actions-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(28, 21, 16, 0.25);
+  background: var(--overlay-fab);
   backdrop-filter: blur(2px);
   z-index: calc(var(--z-fab) - 1);
   opacity: 0;
@@ -200,7 +302,7 @@
   transition: opacity var(--t-base) var(--ease-out);
 }
 
-.fab-actions-backdrop.is-visible {
+.fab-actions-backdrop.is-open {
   opacity: 1;
   pointer-events: all;
 }
@@ -223,7 +325,10 @@
   }
 }
 
-/* Badges */
+/* ==========================================================================
+   BADGES DE ESTADO (las marcas compactas del calendario viven en app-core.css)
+   ========================================================================== */
+
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -235,74 +340,45 @@
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
-/*
-   Badge compacto para el calendario: se usa como barra con el número centrado en
-   el cuerpo. La idea es mantener la información visible y accesible sin sumar
-   una columna extra de contadores a la derecha del calendario.
-*/
-.cell__status-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 1rem;
-  padding: 0 0.25rem;
-  border-radius: 4px;
-  border-left: 3px solid currentColor;
-  flex-shrink: 0;
-  font-size: 0.65rem;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  box-shadow: none;
-}
 .status-badge--activo {
-  background-color: var(--color-finalizado-bg);
-  color: var(--color-finalizado-text);
+  background-color: var(--color-atencion-bg);
+  color: var(--color-atencion-text);
 }
 .status-badge--inactivo {
   background-color: var(--color-reservado-bg);
   color: var(--color-reservado-text);
 }
-.status-badge--reservado,
-.cell__status-badge--reservado {
+.status-badge--reservado {
   background-color: var(--color-reservado-bg);
   color: var(--color-reservado-text);
 }
-.status-badge--en-sala-de-espera,
-.cell__status-badge--en-sala-de-espera {
+.status-badge--en-sala-de-espera {
   background-color: var(--color-espera-bg);
   color: var(--color-espera-text);
 }
-.status-badge--en-atencion,
-.cell__status-badge--en-atencion {
+.status-badge--en-atencion {
   background-color: var(--color-atencion-bg);
   color: var(--color-atencion-text);
 }
-.status-badge--finalizado,
-.cell__status-badge--finalizado {
+.status-badge--finalizado {
   background-color: var(--color-finalizado-bg);
   color: var(--color-finalizado-text);
 }
-.status-badge--cancelado,
-.cell__status-badge--cancelado {
+.status-badge--cancelado {
   background-color: var(--color-cancelado-bg);
   color: var(--color-cancelado-text);
 }
-.status-badge--ausente,
-.cell__status-badge--ausente {
+.status-badge--ausente {
   background-color: var(--color-ausente-bg);
   color: var(--color-ausente-text);
 }
 
-.calendar__grid .cell__status-badge:hover {
-  filter: saturate(1.2);
-  transform: translateY(-1px);
-}
+/* ==========================================================================
+   FILTROS RÁPIDOS
+   ========================================================================== */
 
-/* Filtros rápidos */
 .btn-filter {
-  background: #ffffff;
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   color: var(--color-text-muted);
   font-family: var(--font);
@@ -318,7 +394,7 @@
   border-color: var(--color-text-muted);
   color: var(--color-text);
 }
-.btn-filter.active {
+.btn-filter.is-active {
   background: var(--color-text);
   border-color: var(--color-text);
   color: var(--color-surface);
@@ -326,13 +402,13 @@
 }
 
 /* ==========================================================================
-   PANEL LATERAL DE PERFIL DE CLIENTE (DRAWER)
+   PANEL LATERAL (DRAWER)
    ========================================================================== */
 
 .side-drawer-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(28, 21, 16, 0.35);
+  background: var(--overlay-drawer);
   backdrop-filter: blur(4px);
   z-index: var(--z-drawer);
   opacity: 0;
@@ -345,10 +421,12 @@
   pointer-events: all;
 }
 
+/* Cerrado: visibility evita que su contenido reciba foco de teclado */
 .side-drawer {
   position: fixed;
   top: 0;
   right: 0;
+  height: 100vh;
   height: 100dvh;
   width: min(420px, 100vw);
   background: var(--color-surface);
@@ -358,15 +436,34 @@
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
-  transition: transform var(--t-slow) var(--ease-out);
+  visibility: hidden;
+  transition:
+    transform var(--t-slow) var(--ease-out),
+    visibility 0s linear var(--t-slow);
 }
 
 .side-drawer.is-open {
   transform: translateX(0);
+  visibility: visible;
+  transition-delay: 0s;
 }
 
 .side-drawer--wide {
   width: min(760px, 100vw);
+}
+
+/* Panel abierto desde otro panel (formulario de turno, detalle): queda por encima y oscurece el de abajo */
+.side-drawer-overlay--nested {
+  z-index: var(--z-drawer-nested);
+}
+
+.side-drawer--nested {
+  z-index: calc(var(--z-drawer-nested) + 1);
+}
+
+/* Oscurece la pantalla detrás de un diálogo de confirmación */
+.side-drawer-overlay--modal {
+  z-index: calc(var(--z-modal) - 1);
 }
 
 .side-drawer .day-panel__body {
@@ -377,6 +474,23 @@
   flex-direction: column;
   gap: 1.25rem;
 }
+
+/* <form> que envuelve cuerpo y botones de un drawer */
+.drawer-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.drawer-form > .alert,
+.side-drawer > .alert {
+  margin: 0 1.5rem 1rem;
+}
+
+/* ==========================================================================
+   PERFIL DE CLIENTE
+   ========================================================================== */
 
 .profile-drawer__identity {
   display: flex;
@@ -434,9 +548,13 @@
 
 .client-row--selected {
   background: var(--color-hover);
-  outline: 2px solid var(--color-today-bg);
+  outline: 2px solid var(--color-selected);
   outline-offset: -2px;
 }
+
+/* ==========================================================================
+   CONTROLES DE PANEL (BÚSQUEDA Y FILTROS)
+   ========================================================================== */
 
 .panel-controls {
   margin-bottom: 1rem;
@@ -449,23 +567,7 @@
 }
 
 .panel-search {
-  width: 100%;
-  min-height: 46px;
-  font-family: var(--font);
-  font-size: 0.95rem;
-  padding: 0.95rem 1rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text);
-  transition:
-    border-color var(--t-fast) var(--ease-out),
-    box-shadow var(--t-fast) var(--ease-out);
-}
-
-.panel-search:focus {
-  border-color: var(--color-today-bg);
-  box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.14);
+  min-height: 2.75rem;
 }
 
 .panel-filters {
@@ -487,7 +589,38 @@
   font-weight: 600;
 }
 
-/* Formularios */
+/* ==========================================================================
+   ESTADOS DE PANEL: VACÍO, CARGA Y ERROR
+   Un único patrón para paneles y registros de historial.
+   ========================================================================== */
+
+.panel-empty,
+.panel-loading,
+.panel-error,
+.history-placeholder,
+.history-empty,
+.history-error {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.panel-empty,
+.panel-loading,
+.panel-error {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.panel-error,
+.history-error {
+  color: var(--color-danger);
+}
+
+/* ==========================================================================
+   FORMULARIOS
+   ========================================================================== */
+
 .form-privacy-note {
   display: flex;
   align-items: flex-start;
@@ -517,7 +650,8 @@
 .form-group--full {
   flex: 1 0 100%;
 }
-.form-group label {
+.form-group label,
+.form-group .form-label {
   font-size: 0.72rem;
   font-weight: 700;
   color: var(--color-text-muted);
@@ -527,7 +661,9 @@
 .form-group input,
 .form-group textarea,
 .form-select,
-.input-base {
+.input-base,
+.panel-search,
+.select-flujo-cambio {
   font-family: var(--font);
   font-size: 0.9rem;
   background: var(--color-surface);
@@ -542,30 +678,177 @@
 .form-group input:focus,
 .form-group textarea:focus,
 .form-select:focus,
-.input-base:focus {
+.input-base:focus,
+.panel-search:focus,
+.select-flujo-cambio:focus {
   border-color: var(--color-today-bg);
-  box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.14);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.form-group textarea {
+  min-height: 4.5rem;
+  resize: vertical;
+}
+
+/* Campo obligatorio y texto de ayuda */
+.form-group.is-required > label::after {
+  content: " *";
+  color: var(--color-danger);
+}
+
+.form-hint {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--color-text-muted);
 }
 
 /* El <select> nativo conserva el "chrome" del sistema operativo (fondo,
    flecha, a veces hasta el border-radius) si no se le resetea la
    apariencia explícitamente. Sin esto, en Safari/Chrome el control se ve
    sin el estilo de la app aunque las reglas de arriba estén definidas. */
-select.form-select {
+select.form-select,
+select.select-flujo-cambio {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
   cursor: pointer;
   padding-right: 2.5rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a6f61' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-image: var(--icon-chevron);
   background-repeat: no-repeat;
   background-position: right 0.9rem center;
   background-size: 14px;
 }
 
-select.form-select:focus {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c5a059' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+select.form-select:focus,
+select.select-flujo-cambio:focus {
+  background-image: var(--icon-chevron-focus);
 }
+
+/* Selector de estado de turno: variante compacta de .form-select */
+.select-flujo-cambio {
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+}
+
+.select-flujo-cambio--reservado {
+  background-color: var(--color-reservado-bg);
+  color: var(--color-reservado-text);
+}
+
+.select-flujo-cambio--en-sala-de-espera {
+  background-color: var(--color-espera-bg);
+  color: var(--color-espera-text);
+}
+
+.select-flujo-cambio--en-atencion {
+  background-color: var(--color-atencion-bg);
+  color: var(--color-atencion-text);
+}
+
+.select-flujo-cambio--finalizado {
+  background-color: var(--color-finalizado-bg);
+  color: var(--color-finalizado-text);
+}
+
+.select-flujo-cambio--cancelado {
+  background-color: var(--color-cancelado-bg);
+  color: var(--color-cancelado-text);
+}
+
+.select-flujo-cambio--ausente {
+  background-color: var(--color-ausente-bg);
+  color: var(--color-ausente-text);
+}
+
+/* Campos deshabilitados */
+.form-group input:disabled,
+.form-group textarea:disabled,
+.form-select:disabled,
+.input-base:disabled,
+.select-flujo-cambio:disabled,
+.panel-search:disabled {
+  background-color: var(--color-bg);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+/* Campos inválidos: .is-invalid en el grupo o aria-invalid="true" en el campo */
+:is(
+  .form-group.is-invalid input,
+  .form-group.is-invalid textarea,
+  .form-group.is-invalid .form-select,
+  [aria-invalid="true"]
+) {
+  border-color: var(--color-danger);
+}
+
+:is(
+  .form-group.is-invalid input,
+  .form-group.is-invalid textarea,
+  .form-group.is-invalid .form-select,
+  [aria-invalid="true"]
+):focus {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px var(--color-danger-ring);
+}
+
+.form-error {
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-danger);
+}
+
+.form-error:empty {
+  display: none;
+}
+
+/* ==========================================================================
+   ALERTAS Y MENSAJES DE RESULTADO
+   ========================================================================== */
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+}
+
+.alert--success {
+  background: var(--color-atencion-bg);
+  color: var(--color-atencion-text);
+  border-left-color: currentColor;
+}
+
+.alert--warning {
+  background: var(--color-espera-bg);
+  color: var(--color-espera-text);
+  border-left-color: currentColor;
+}
+
+.alert--error {
+  background: var(--color-cancelado-bg);
+  color: var(--color-cancelado-text);
+  border-left-color: currentColor;
+}
+
+.alert--info {
+  background: var(--color-reservado-bg);
+  color: var(--color-reservado-text);
+  border-left-color: currentColor;
+}
+
+/* ==========================================================================
+   DETALLE DE TURNO
+   ========================================================================== */
 
 .appointment-detail-header {
   display: flex;
@@ -583,29 +866,6 @@ select.form-select:focus {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 0.25rem;
-}
-
-.appointment-detail-close,
-.appointment-detail-close-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition:
-    background var(--t-fast) var(--ease-out),
-    color var(--t-fast) var(--ease-out);
-}
-
-.appointment-detail-close:hover,
-.appointment-detail-close-btn:hover {
-  background: var(--color-hover);
-  color: var(--color-text);
 }
 
 .appointment-detail-body {
@@ -626,7 +886,7 @@ select.form-select:focus {
   gap: 0.35rem;
   padding: 0.9rem 1rem;
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(28, 21, 16, 0.09);
+  border: 1px solid var(--color-border-subtle);
   background: var(--color-bg);
 }
 
@@ -690,21 +950,28 @@ select.form-select:focus {
 }
 
 .timeline-header,
-.profile-appointment__header,
-.profile-appointment__meta {
+.profile-appointment__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
 }
 
-.timeline-header,
-.profile-appointment__meta {
+.timeline-header {
   flex-wrap: wrap;
 }
 
-.timeline-date,
 .profile-appointment__meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+.timeline-date {
   color: var(--color-text-muted);
   font-size: 0.82rem;
 }
@@ -743,38 +1010,12 @@ select.form-select:focus {
 
 .timeline-field dt {
   color: var(--color-text-muted);
-  text-transform: capitalize;
 }
 
 .timeline-field dd {
   min-width: 0;
   margin: 0;
   overflow-wrap: anywhere;
-}
-
-.profile-appointment__meta {
-  justify-content: flex-start;
-}
-
-.history-items::-webkit-scrollbar {
-  width: 8px;
-}
-
-.history-items::-webkit-scrollbar-thumb {
-  background: rgba(28, 21, 16, 0.14);
-  border-radius: 999px;
-}
-
-.history-placeholder,
-.history-empty,
-.history-error {
-  color: var(--color-text-muted);
-  margin: 0;
-  font-size: 0.85rem;
-}
-
-.history-error {
-  color: var(--color-danger);
 }
 
 .appointment-detail-footer {
@@ -786,6 +1027,10 @@ select.form-select:focus {
   border-top: 1px solid var(--color-border);
   background: var(--color-bg);
 }
+
+/* ==========================================================================
+   DIÁLOGO DE CONFIRMACIÓN
+   ========================================================================== */
 
 .confirm-dialog {
   display: none;
@@ -806,14 +1051,17 @@ select.form-select:focus {
   display: block;
 }
 
-#noClientOverlay.is-open {
-  z-index: calc(var(--z-modal) - 1);
+.confirm-dialog__icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+  color: var(--color-espera-solid);
+  line-height: 1;
 }
 
-.confirm-dialog__icon {
-  margin-bottom: 0.5rem;
-  font-size: 2rem;
-  line-height: 1;
+.confirm-dialog__icon svg {
+  width: 2rem;
+  height: 2rem;
 }
 
 .confirm-dialog__title {
@@ -838,6 +1086,7 @@ select.form-select:focus {
 /* ==========================================================================
    TABLA DE DATOS (LISTADOS ADMINISTRATIVOS)
    ========================================================================== */
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -955,6 +1204,11 @@ select.form-select:focus {
     padding: 0.4rem 0.9rem;
   }
 
+  .day-panel__close,
+  .appointment-detail-close {
+    --icon-btn-size: 2.75rem;
+  }
+
   .form-row {
     flex-direction: column;
     gap: 0.85rem;
@@ -968,6 +1222,12 @@ select.form-select:focus {
     padding: 0.8rem 0.85rem;
   }
 
+  /* 16px evita el zoom automático de iOS al enfocar el campo */
+  .panel-search,
+  .select-flujo-cambio {
+    font-size: 16px;
+  }
+
   .appointment-detail-header {
     padding: 1.25rem;
     padding-top: max(1.25rem, env(safe-area-inset-top));
@@ -979,7 +1239,6 @@ select.form-select:focus {
 
   .appointment-detail-footer {
     padding: 1rem 1.25rem;
-    border-radius: 0;
     flex-direction: column-reverse;
     gap: 0.75rem;
   }
@@ -1078,111 +1337,6 @@ select.form-select:focus {
 }
 
 /* --------------------------------------------------------------------------
-   SLIDERS + CAMPO NUMÉRICO
-   -------------------------------------------------------------------------- */
-
-.label-with-val {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.label-with-val > span {
-  flex-shrink: 0;
-  min-width: 3.4rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-}
-
-.range-value-input {
-  flex: 0 0 5rem;
-  width: 5rem;
-}
-
-.range-value-input input {
-  text-align: center;
-  padding: 0.5rem 0.35rem;
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
-
-/* Las flechas del spinner sobran: el slider ya cubre el ajuste fino. */
-.range-value-input input::-webkit-outer-spin-button,
-.range-value-input input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.form-group input[type="range"],
-.slider-base {
-  flex: 1;
-  min-width: 0;
-  width: 100%;
-  height: 22px;
-  padding: 0;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  cursor: pointer;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-.form-group input[type="range"]:focus,
-.slider-base:focus {
-  border: none;
-  box-shadow: none;
-}
-
-.slider-base::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 999px;
-  background: var(--color-border);
-}
-
-.slider-base::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
-  margin-top: -7px;
-  border-radius: 50%;
-  background: var(--color-today-bg);
-  border: 2px solid var(--color-surface);
-  box-shadow: var(--shadow-sm);
-  transition: transform var(--t-fast) var(--ease-out);
-}
-
-.slider-base:active::-webkit-slider-thumb {
-  transform: scale(1.12);
-}
-
-.slider-base::-moz-range-track {
-  height: 4px;
-  border-radius: 999px;
-  background: var(--color-border);
-}
-
-.slider-base::-moz-range-progress {
-  height: 4px;
-  border-radius: 999px;
-  background: var(--color-today-bg);
-}
-
-.slider-base::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--color-today-bg);
-  border: 2px solid var(--color-surface);
-  box-shadow: var(--shadow-sm);
-}
-
-/* --------------------------------------------------------------------------
    AUTOCOMPLETADO DE CLIENTE
    -------------------------------------------------------------------------- */
 
@@ -1217,25 +1371,279 @@ select.form-select:focus {
 }
 
 .autocomplete-list li:hover,
-.autocomplete-list li.is-active {
+.autocomplete-list li.is-active,
+.autocomplete-list li[aria-selected="true"] {
   background: var(--color-hover);
 }
 
+.autocomplete-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.autocomplete-item__title {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.autocomplete-item__title mark {
+  background: var(--color-gold-tint);
+  color: inherit;
+  font-weight: 700;
+}
+
+.autocomplete-item__meta {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.autocomplete-item--action {
+  margin-top: 0.25rem;
+  padding-top: 0.7rem;
+  border-top: 1px dashed var(--color-border);
+}
+
+.autocomplete-item--action .autocomplete-item__title {
+  color: var(--color-gold-text);
+}
+
+.autocomplete-list li.autocomplete-status {
+  cursor: default;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  background: transparent;
+}
+
+.autocomplete-list li.autocomplete-status--error {
+  color: var(--color-danger);
+}
+
+/* ==========================================================================
+   CLIENTE SELECCIONADO (CHIP CON ACCIÓN "CAMBIAR")
+   ========================================================================== */
+
+.selected-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-gold);
+  border-radius: var(--radius-sm);
+}
+
+.selected-chip__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.selected-chip__title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selected-chip__meta {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+/* ==========================================================================
+   AVISOS NO BLOQUEANTES (TOASTS)
+   ========================================================================== */
+
+.toast-region {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: min(420px, calc(100vw - 2rem));
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  background: var(--color-text);
+  color: var(--color-on-dark);
+  border-left: 3px solid var(--color-gold);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.88rem;
+  line-height: 1.4;
+  pointer-events: auto;
+  animation: toast-in var(--t-base) var(--ease-out);
+}
+
+.toast--success {
+  border-left-color: var(--color-atencion-solid);
+}
+
+.toast--warning {
+  border-left-color: var(--color-espera-solid);
+}
+
+.toast--error {
+  border-left-color: var(--color-cancelado-solid);
+}
+
+.toast.is-leaving {
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity var(--t-base) var(--ease-out),
+    transform var(--t-base) var(--ease-out);
+}
+
+.toast__message {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.toast__close {
+  flex-shrink: 0;
+  padding: 0 0.25rem;
+  background: none;
+  border: 0;
+  color: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.toast__close:hover {
+  opacity: 1;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}
+
 @media (max-width: 768px) {
-  .label-with-val {
-    gap: 0.5rem;
+  /* Deja libre el botón flotante de acciones */
+  .toast-region {
+    bottom: calc(6.5rem + env(safe-area-inset-bottom));
   }
+}
 
-  .label-with-val > span {
-    min-width: 2.8rem;
-  }
+/* ==========================================================================
+   TABLAS: ENLACE EN LA CELDA, ESTADOS VACÍO / ERROR CON ACCIÓN
+   ========================================================================== */
 
-  .range-value-input {
-    flex: 0 0 4.5rem;
-    width: 4.5rem;
-  }
+/* Texto con aspecto de dato que se puede activar con teclado */
+.table-link {
+  padding: 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--t-fast) ease;
+}
 
-  .form-group input[type="range"] {
-    padding: 0;
+.table-link:hover {
+  border-bottom-color: var(--color-gold);
+}
+
+.panel-empty__action {
+  margin-top: 0.75rem;
+}
+
+/* ==========================================================================
+   PERFIL DE CLIENTE: CONTROLES DEL HISTORIAL
+   ========================================================================== */
+
+.history-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+/* ==========================================================================
+   FICHA DE SERVICIO: CAMPO CON UNIDAD, VALORES FRECUENTES E INDICADOR
+   ========================================================================== */
+
+.input-with-unit {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.input-with-unit input {
+  flex: 1;
+  min-width: 0;
+}
+
+.input-with-unit > span {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.preset-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.preset-chip {
+  padding: 0.2rem 0.65rem;
+  font-size: 0.75rem;
+}
+
+/* Punto dorado: la categoría ya tiene datos cargados */
+.quick-cat-btn.has-data::after {
+  content: "";
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-left: 0.45rem;
+  background: var(--color-gold);
+  border-radius: var(--radius-sm);
+  vertical-align: middle;
+}
+
+.selected-chip__actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.4rem;
+}
+
+@media (max-width: 768px) {
+  .selected-chip {
+    flex-wrap: wrap;
   }
 }

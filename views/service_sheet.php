@@ -1,12 +1,13 @@
 <!-- =====================================================
-    REGISTRO DE SERVICIO RÁPIDO
+    FICHA DE SERVICIO
 ====================================================== -->
 <div class="side-drawer-overlay" id="quickEntryOverlay"></div>
 
-<aside class="side-drawer side-drawer--wide" id="quickEntryPanel" aria-hidden="true">
+<aside class="side-drawer side-drawer--wide" id="quickEntryPanel"
+    role="dialog" aria-modal="true" aria-labelledby="quickEntryTitle" aria-hidden="true" tabindex="-1">
 
     <div class="day-panel__header">
-        <h3 class="day-panel__date">Ficha de Servicio</h3>
+        <h3 class="day-panel__date" id="quickEntryTitle">Ficha de servicio</h3>
         <div class="day-panel__actions">
             <button type="button" class="day-panel__close" id="quickEntryClose" aria-label="Cerrar">×</button>
         </div>
@@ -14,53 +15,68 @@
 
     <div class="day-panel__body">
 
-        <!-- CLIENT SEARCH -->
-        <div class="form-row">
-            <div class="form-group form-group--full">
-                <label for="quickEntryClientSearch">Cliente</label>
-                <input type="text" id="quickEntryClientSearch" class="input-base" placeholder="Buscar por nombre o alias..." autocomplete="off">
-                <ul class="autocomplete-list" id="clientSuggestions"></ul>
-                <input type="hidden" id="quickEntryClientId">
-            </div>
-        </div>
+        <!-- CLIENTE: búsqueda o alias en un solo campo -->
         <div class="form-group">
-            <label id="quickCatLabel">Servicios realizados</label>
+            <label for="quickEntryClientSearch">Cliente</label>
+
+            <div class="selected-chip" id="quickClientSelected" role="group" aria-label="Cliente elegido" hidden>
+                <div class="selected-chip__main">
+                    <span class="selected-chip__title" id="quickClientChipTitle"></span>
+                    <span class="selected-chip__meta" id="quickClientChipMeta"></span>
+                </div>
+                <div class="selected-chip__actions">
+                    <button type="button" class="btn btn--ghost btn--sm" id="quickRepeatLast" hidden>Copiar última ficha</button>
+                    <button type="button" class="btn btn--ghost btn--sm" id="quickClientChange">Cambiar</button>
+                </div>
+            </div>
+
+            <input type="text" id="quickEntryClientSearch" class="input-base" placeholder="Buscar por nombre o código, o escribir un alias" aria-describedby="quickClientHelp" autocomplete="off">
+            <ul class="autocomplete-list" id="clientSuggestions"></ul>
+            <input type="hidden" id="quickEntryClientId">
+
+            <p class="form-hint" id="quickClientHelp">Elegí un cliente registrado o usá lo que escribas como alias.</p>
+        </div>
+
+        <!-- CATEGORÍAS -->
+        <div class="form-group">
+            <span class="form-label" id="quickCatLabel">Servicios realizados</span>
             <div
                 class="panel-filters quick-categories"
                 id="quickCategories"
                 role="tablist"
                 aria-labelledby="quickCatLabel">
 
-                <button type="button" class="btn-filter quick-cat-btn" data-category="general"
+                <button type="button" class="btn-filter quick-cat-btn" data-category="general" id="quickTabGeneral"
                     role="tab" aria-selected="false" aria-controls="panelGeneral">
                     General
                 </button>
 
-                <button type="button" class="btn-filter quick-cat-btn" data-category="color"
+                <button type="button" class="btn-filter quick-cat-btn" data-category="color" id="quickTabColor"
                     role="tab" aria-selected="false" aria-controls="panelColor">
                     Color
                 </button>
 
-                <button type="button" class="btn-filter quick-cat-btn" data-category="treatment"
+                <button type="button" class="btn-filter quick-cat-btn" data-category="treatment" id="quickTabTreatment"
                     role="tab" aria-selected="false" aria-controls="panelTreatment">
                     Tratamiento
                 </button>
 
-                <button type="button" class="btn-filter quick-cat-btn" data-category="cut"
+                <button type="button" class="btn-filter quick-cat-btn" data-category="cut" id="quickTabCut"
                     role="tab" aria-selected="false" aria-controls="panelCut">
                     Corte
                 </button>
 
             </div>
+            <p class="form-hint">Podés completar más de una categoría. Un punto marca las que ya tienen datos.</p>
         </div>
 
         <!-- PANEL: COLOR -->
         <div id="panelColor" class="dynamic-panel" data-panel-title="Color"
-            data-category="color" role="tabpanel" tabindex="-1">
+            data-category="color" role="tabpanel" aria-labelledby="quickTabColor" tabindex="-1">
             <div class="form-row">
                 <div class="form-group">
                     <label for="colorType">Tipo de color</label>
-                    <input type="text" id="colorType" class="input-base" placeholder="Ej: caoba, chocolate, rubio ceniza, etc.">
+                    <input type="text" id="colorType" class="input-base" placeholder="Ej: caoba, chocolate, rubio ceniza">
                 </div>
                 <div class="form-group">
                     <label for="colorOxidantRatio">Proporción</label>
@@ -70,85 +86,87 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="colorFormula">Fórmula / Tono</label>
+                    <label for="colorFormula">Fórmula / tono</label>
                     <input type="text" id="colorFormula" class="input-base" placeholder="Ej: 60g 7.1 + 30g 8.1">
                 </div>
 
                 <div class="form-group">
-                    <label for="colorBrand">Marca / Línea</label>
+                    <label for="colorBrand">Marca / línea</label>
                     <input type="text" id="colorBrand" class="input-base" placeholder="Ej: Wella Koleston">
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="colorQuantityRange">Cantidad de color</label>
-                    <div class="label-with-val">
-                        <input type="range" id="colorQuantityRange" min="10" max="150" step="5" value="50" class="slider-base">
-                        <div class="range-value-input">
-                            <input type="number" id="colorQuantityValue" class="input-base" min="1" step="1" value="50" aria-label="Cantidad de color en gramos">
-                        </div>
-                        <span>gr</span>
+                    <label for="colorQuantityValue">Cantidad de color</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="colorQuantityValue" class="input-base" min="1" step="1" inputmode="numeric" placeholder="Ej: 50" data-presets="30,40,50,60,80">
+                        <span>g</span>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="colorOxidantRange">Oxidante</label>
-                    <div class="label-with-val">
-                        <input type="range" id="colorOxidantRange" min="6" max="40" step="1" value="20" class="slider-base">
-                        <div class="range-value-input">
-                            <input type="number" id="colorOxidantValue" class="input-base" min="1" step="1" value="20" aria-label="Volumen de oxidante">
-                        </div>
-                        <span>Vol</span>
+                    <label for="colorOxidantValue">Oxidante</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="colorOxidantValue" class="input-base" min="1" step="1" inputmode="numeric" placeholder="Ej: 20" data-presets="10,20,30,40">
+                        <span>vol</span>
                     </div>
                 </div>
             </div>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="colorTimeRange">Exposición</label>
-                    <div class="label-with-val">
-                        <input type="range" id="colorTimeRange" min="5" max="90" step="5" value="35" class="slider-base">
-                        <div class="range-value-input">
-                            <input type="number" id="colorTimeValue" class="input-base" min="1" step="1" value="35" aria-label="Tiempo de exposición en minutos">
-                        </div>
-                        <span>min</span>
-                    </div>
+            <div class="form-group">
+                <label for="colorTimeValue">Exposición</label>
+                <div class="input-with-unit">
+                    <input type="number" id="colorTimeValue" class="input-base" min="1" step="1" inputmode="numeric" placeholder="Ej: 35" data-presets="20,30,35,45,60">
+                    <span>min</span>
                 </div>
             </div>
 
             <div class="form-group">
                 <label for="colorApplication">Aplicación</label>
-                <input type="text" id="colorApplication" class="input-base" placeholder="Ej: Raíz, Mechas, Balayage, Global...">
+                <input type="text" id="colorApplication" class="input-base" list="colorApplicationOptions" placeholder="Elegí una opción o escribí otra">
+                <datalist id="colorApplicationOptions">
+                    <option value="Raíz"></option>
+                    <option value="Global"></option>
+                    <option value="Mechas"></option>
+                    <option value="Balayage"></option>
+                    <option value="Puntas"></option>
+                    <option value="Baño de color"></option>
+                </datalist>
             </div>
 
             <div class="form-group">
                 <label for="colorResult">Resultado / corrección</label>
-                <input type="text" id="colorResult" class="input-base" placeholder="Ej: tono cálido, raíz más clara, corrección de amarillo, etc.">
+                <input type="text" id="colorResult" class="input-base" placeholder="Ej: tono cálido, raíz más clara, corrección de amarillo">
             </div>
         </div>
 
-        <!-- PANEL: TREATMENT -->
+        <!-- PANEL: TRATAMIENTO -->
         <div id="panelTreatment" class="dynamic-panel" data-panel-title="Tratamiento"
-            data-category="treatment" role="tabpanel" tabindex="-1">
+            data-category="treatment" role="tabpanel" aria-labelledby="quickTabTreatment" tabindex="-1">
             <div class="form-group">
                 <label for="treatmentType">Tipo de tratamiento</label>
-                <input type="text" id="treatmentType" class="input-base" placeholder="Ej: Alisado, hidratación, reconstrucción, etc.">
+                <input type="text" id="treatmentType" class="input-base" list="treatmentTypeOptions" placeholder="Elegí una opción o escribí otra">
+                <datalist id="treatmentTypeOptions">
+                    <option value="Alisado"></option>
+                    <option value="Hidratación"></option>
+                    <option value="Nutrición"></option>
+                    <option value="Reconstrucción"></option>
+                    <option value="Keratina"></option>
+                    <option value="Botox capilar"></option>
+                </datalist>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="treatmentProduct">Producto / Línea</label>
+                    <label for="treatmentProduct">Producto / línea</label>
                     <input type="text" id="treatmentProduct" class="input-base" placeholder="Ej: Alisado Láser Orgánico">
                 </div>
 
                 <div class="form-group">
-                    <label for="treatmentMlRange">Cantidad aplicada</label>
-                    <div class="label-with-val">
-                        <input type="range" id="treatmentMlRange" min="10" max="300" step="5" value="60" class="slider-base">
-                        <div class="range-value-input">
-                            <input type="number" id="treatmentMlValue" class="input-base" min="1" step="1" value="60" aria-label="Cantidad aplicada en mililitros">
-                        </div>
+                    <label for="treatmentMlValue">Cantidad aplicada</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="treatmentMlValue" class="input-base" min="1" step="1" inputmode="numeric" placeholder="Ej: 60" data-presets="30,60,100,150">
                         <span>ml</span>
                     </div>
                 </div>
@@ -156,23 +174,17 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="treatmentTempRange">Temperatura de plancha</label>
-                    <div class="label-with-val">
-                        <input type="range" id="treatmentTempRange" min="120" max="230" step="5" value="200" class="slider-base">
-                        <div class="range-value-input">
-                            <input type="number" id="treatmentTempValue" class="input-base" min="1" step="1" value="200" aria-label="Temperatura de plancha en grados Celsius">
-                        </div>
+                    <label for="treatmentTempValue">Temperatura de plancha</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="treatmentTempValue" class="input-base" min="1" step="1" inputmode="numeric" placeholder="Ej: 200" data-presets="160,180,200,210">
                         <span>°C</span>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="treatmentPassesRange">Pasadas por mecha</label>
-                    <div class="label-with-val">
-                        <input type="range" id="treatmentPassesRange" min="1" max="20" step="1" value="10" class="slider-base">
-                        <div class="range-value-input">
-                            <input type="number" id="treatmentPassesValue" class="input-base" min="1" step="1" value="10" aria-label="Cantidad de pasadas por mecha">
-                        </div>
+                    <label for="treatmentPassesValue">Pasadas por mecha</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="treatmentPassesValue" class="input-base" min="1" step="1" inputmode="numeric" placeholder="Ej: 10" data-presets="5,8,10,12">
                         <span>pasadas</span>
                     </div>
                 </div>
@@ -180,21 +192,34 @@
 
             <div class="form-group">
                 <label for="treatmentProcess">Proceso realizado</label>
-                <input type="text" id="treatmentProcess" class="input-base" placeholder="Ej: Lavado previo, Secado, Planchado por secciones...">
+                <input type="text" id="treatmentProcess" class="input-base" list="treatmentProcessOptions" placeholder="Ej: lavado previo, secado, planchado por secciones">
+                <datalist id="treatmentProcessOptions">
+                    <option value="Lavado previo"></option>
+                    <option value="Secado"></option>
+                    <option value="Planchado por secciones"></option>
+                    <option value="Enjuague"></option>
+                </datalist>
             </div>
 
             <div class="form-group">
                 <label for="treatmentResult">Resultado</label>
-                <input type="text" id="treatmentResult" class="input-base" placeholder="Ej: Brillo, Suavidad, Reducción de frizz, Alisado...">
+                <input type="text" id="treatmentResult" class="input-base" placeholder="Ej: brillo, suavidad, menos frizz">
             </div>
         </div>
 
-        <!-- PANEL: CUT -->
+        <!-- PANEL: CORTE -->
         <div id="panelCut" class="dynamic-panel" data-panel-title="Corte"
-            data-category="cut" role="tabpanel" tabindex="-1">
+            data-category="cut" role="tabpanel" aria-labelledby="quickTabCut" tabindex="-1">
             <div class="form-group">
                 <label for="cutType">Tipo de corte</label>
-                <input type="text" id="cutType" class="input-base" placeholder="Ej: degradé, recto, capas, bob, pixie, etc.">
+                <input type="text" id="cutType" class="input-base" list="cutTypeOptions" placeholder="Elegí una opción o escribí otra">
+                <datalist id="cutTypeOptions">
+                    <option value="Degradé"></option>
+                    <option value="Recto"></option>
+                    <option value="Capas"></option>
+                    <option value="Bob"></option>
+                    <option value="Pixie"></option>
+                </datalist>
             </div>
 
             <div class="form-row">
@@ -205,50 +230,63 @@
 
                 <div class="form-group">
                     <label for="cutCondition">Condición</label>
-                    <input type="text" id="cutCondition" class="input-base" placeholder="Ej: puntas abiertas, cabello fino, cabello grueso, etc.">
+                    <input type="text" id="cutCondition" class="input-base" placeholder="Ej: puntas abiertas, cabello fino">
                 </div>
             </div>
 
             <div class="form-group">
                 <label for="cutTools">Técnicas / herramientas</label>
-                <input type="text" id="cutTools" class="input-base" placeholder="Ej: tijera, navaja, texturizado, desfilado, etc.">
+                <input type="text" id="cutTools" class="input-base" list="cutToolsOptions" placeholder="Elegí una opción o escribí otra">
+                <datalist id="cutToolsOptions">
+                    <option value="Tijera"></option>
+                    <option value="Navaja"></option>
+                    <option value="Máquina"></option>
+                    <option value="Texturizado"></option>
+                    <option value="Desfilado"></option>
+                </datalist>
             </div>
 
             <div class="form-group">
                 <label for="cutFinish">Terminación</label>
-                <input type="text" id="cutFinish" class="input-base" placeholder="Ej: secado natural, blow dry, planchado, ondas con tenaza, etc.">
+                <input type="text" id="cutFinish" class="input-base" list="cutFinishOptions" placeholder="Elegí una opción o escribí otra">
+                <datalist id="cutFinishOptions">
+                    <option value="Secado natural"></option>
+                    <option value="Brushing"></option>
+                    <option value="Planchado"></option>
+                    <option value="Ondas con tenaza"></option>
+                </datalist>
             </div>
         </div>
 
-        <!-- PANEL: GENERAL (MINI POS) -->
-        <div id="panelGeneral" class="dynamic-panel" data-panel-title="General / Productos"
-            data-category="general" role="tabpanel" tabindex="-1">
+        <!-- PANEL: GENERAL (PRODUCTOS Y OBSERVACIONES) -->
+        <div id="panelGeneral" class="dynamic-panel" data-panel-title="General y productos"
+            data-category="general" role="tabpanel" aria-labelledby="quickTabGeneral" tabindex="-1">
             <div class="form-group">
                 <div class="panel-controls panel-controls--autocomplete">
-                    <label for="quickEntryProductSearch" class="is-hidden">Buscar Producto</label>
+                    <label for="quickEntryProductSearch">Productos usados</label>
                     <input
                         class="panel-search"
                         type="text"
                         id="quickEntryProductSearch"
-                        placeholder="Buscar por nombre o marca..."
+                        placeholder="Buscar producto por nombre o marca"
                         autocomplete="off">
                     <ul class="autocomplete-list" id="quickEntryProductSuggestions"></ul>
                 </div>
                 <table class="data-table" id="quickEntryProductsTable">
+                    <caption class="sr-only">Productos usados en la sesión</caption>
                     <thead>
                         <tr>
-                            <th>Cantidad</th>
-                            <th>Unidad</th>
-                            <th>Nombre</th>
-                            <th>Marca</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
+                            <th scope="col">Cantidad</th>
+                            <th scope="col">Unidad</th>
+                            <th scope="col">Nombre</th>
+                            <th scope="col">Marca</th>
+                            <th scope="col">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="quickEntryProductsTableBody">
                         <tr>
-                            <td colspan="6" class="panel-loading">
-                                Por favor, cargue productos...
+                            <td colspan="5" class="panel-empty">
+                                Todavía no agregaste productos.
                             </td>
                         </tr>
                     </tbody>
@@ -257,12 +295,12 @@
 
             <div class="form-group">
                 <label for="sessionNotes">Observaciones de la sesión</label>
-                <textarea id="sessionNotes" class="input-base" rows="3" placeholder="Detalles que conviene conservar: reacción del cabello, fórmula complementaria, preferencias de la clienta, zonas a cuidar, etc."></textarea>
+                <textarea id="sessionNotes" class="input-base" rows="3" placeholder="Reacción del cabello, fórmula complementaria, zonas a cuidar"></textarea>
             </div>
 
             <div class="form-group">
                 <label for="nextVisitNotes">Para la próxima visita</label>
-                <textarea id="nextVisitNotes" class="input-base" rows="2" placeholder="Ej: mantener fórmula, retocar raíz, continuar tratamiento, no cortar flequillo..."></textarea>
+                <textarea id="nextVisitNotes" class="input-base" rows="2" placeholder="Ej: mantener fórmula, retocar raíz, no cortar flequillo"></textarea>
             </div>
         </div>
 
@@ -274,38 +312,8 @@
             Cancelar
         </button>
         <button type="button" class="btn btn--primary" id="quickEntrySave">
-            Guardar Ficha
+            Guardar ficha
         </button>
     </div>
 
 </aside>
-
-<!-- =====================================================
-    CONFIRMACIÓN: GUARDAR FICHA SIN CLIENTE REGISTRADO
-    Se muestra solo cuando se intenta guardar sin haber
-    seleccionado un cliente de la búsqueda (clientId vacío).
-====================================================== -->
-<div class="side-drawer-overlay" id="noClientOverlay"></div>
-
-<div class="confirm-dialog" id="noClientDialog" role="alertdialog" aria-modal="true"
-    aria-labelledby="noClientTitle" aria-describedby="noClientDesc" aria-hidden="true">
-
-    <div class="confirm-dialog__icon" aria-hidden="true">⚠️</div>
-
-    <h3 class="confirm-dialog__title" id="noClientTitle">Cliente no seleccionado</h3>
-
-    <p class="confirm-dialog__desc" id="noClientDesc">
-        No seleccionaste un cliente registrado para esta ficha. Si continuás,
-        el registro va a quedar guardado sin vínculo con un cliente de la base,
-        lo que puede dificultar encontrarlo más adelante.
-    </p>
-
-    <div class="confirm-dialog__actions">
-        <button type="button" class="btn btn--ghost" id="noClientBack">
-            Volver a buscar cliente
-        </button>
-        <button type="button" class="btn btn--primary" id="noClientConfirm">
-            Guardar sin cliente
-        </button>
-    </div>
-</div>

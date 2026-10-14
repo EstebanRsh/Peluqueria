@@ -1,11 +1,24 @@
 import {
+  ApiError,
+  collectPages,
   fetchAllProducts,
   createProduct,
   updateProduct,
   activateProduct,
   deactivateProduct,
   deleteProduct,
+  getErrorMessage,
+  isAbortError,
 } from "./api.js";
+import { escapeHtml, isActive, setActiveFilter } from "./dom.js";
+import {
+  clearInvalidOnInput,
+  createDirtyTracker,
+  createFeedback,
+  setBusy,
+} from "./feedback.js";
+import { confirmAction } from "./confirm.js";
+import { notify } from "./toast.js";
 
 const productsState = {
   products: [],
@@ -13,7 +26,20 @@ const productsState = {
   search: "",
 };
 
+const SEARCH_DEBOUNCE_MS = 200;
+
 let initialized = false;
+let isSaving = false;
+let modalOpener = null;
+let feedback = null;
+let dirty = null;
+
+// Control de la lista: se cancela el pedido anterior al buscar de nuevo.
+let loadController = null;
+let loadToken = 0;
+let searchTimer = null;
+
+const $ = (id) => document.getElementById(id);
 
 const UNIT_LABELS = {
   ml: "Mililitros (ml)",
@@ -21,24 +47,30 @@ const UNIT_LABELS = {
   unidad: "Unidad",
 };
 
+// Texto de las etiquetas del formulario según la unidad elegida.
+const UNIT_FIELD_TEXT = {
+  ml: { stock: "Stock disponible (ml)", cost: "Costo por ml ($)" },
+  g: { stock: "Stock disponible (g)", cost: "Costo por g ($)" },
+  unidad: {
+    stock: "Stock disponible (unidades)",
+    cost: "Costo por unidad ($)",
+  },
+};
+
 function setUnitValue(value) {
-  const unitSelect = document.getElementById("productUnit");
+  const unitSelect = $("productUnit");
   if (unitSelect) {
     unitSelect.value = UNIT_LABELS[value] ? value : "ml";
   }
+  updateUnitLabels();
 }
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
+function updateUnitLabels() {
+  const unit = $("productUnit")?.value;
+  const text = UNIT_FIELD_TEXT[unit] || UNIT_FIELD_TEXT.ml;
 
-function isActive(product) {
-  return product.active === true || Number(product.active) === 1;
+  if ($("productStockLabel")) $("productStockLabel").textContent = text.stock;
+  if ($("productCostLabel")) $("productCostLabel").textContent = text.cost;
 }
 
 function formatStock(product) {
@@ -49,15 +81,35 @@ function formatCost(product) {
   return `$${Number(product.unit_cost).toFixed(2)} / ${product.measurement_unit}`;
 }
 
+// ============================================================
+// LISTADO
+// ============================================================
+
+function renderMessageRow(body, html) {
+  body.innerHTML = `<tr><td colspan="6">${html}</td></tr>`;
+}
+
 function renderProductsList() {
-  const body = document.querySelector("#viewProducts #adminProductsTableBody");
+  const body = $("adminProductsTableBody");
   if (!body) return;
 
   const products = productsState.products;
 
   if (!products.length) {
-    body.innerHTML =
-      '<tr><td colspan="6" class="panel-empty">No se encontraron productos.</td></tr>';
+    const hasCriteria =
+      productsState.search !== "" || productsState.filter !== "todos";
+
+    renderMessageRow(
+      body,
+      hasCriteria
+        ? '<div class="panel-empty" role="status">No hay productos que coincidan con la búsqueda o el filtro.</div>'
+        : `<div class="panel-empty" role="status">
+            <div>Todavía no cargaste productos.</div>
+            <div class="panel-empty__action">
+              <button type="button" class="btn btn--primary btn--sm" data-action="new">Nuevo producto</button>
+            </div>
+          </div>`,
+    );
     return;
   }
 
@@ -66,85 +118,250 @@ function renderProductsList() {
       const active = isActive(product);
       const action = active ? "deactivate" : "activate";
       const label = active ? "Desactivar" : "Activar";
+      const name = escapeHtml(product.name);
+      const id = escapeHtml(product.id);
 
       return `
-      <tr data-product-id="${escapeHtml(product.id)}">
-        <td data-label="Nombre">${escapeHtml(product.name)}</td>
+      <tr data-product-id="${id}">
+        <td data-label="Nombre">${name}</td>
         <td data-label="Marca">${escapeHtml(product.brand || "—")}</td>
         <td data-label="Stock">${escapeHtml(formatStock(product))}</td>
         <td data-label="Costo">${escapeHtml(formatCost(product))}</td>
         <td data-label="Estado"><span class="status-badge status-badge--${active ? "activo" : "inactivo"}">${active ? "Activo" : "Inactivo"}</span></td>
         <td data-label="Acciones"><div class="data-table__actions">
-          <button class="btn btn--ghost btn--sm" data-action="edit" data-id="${escapeHtml(product.id)}">Editar</button>
-          <button class="btn btn--ghost btn--sm" data-action="${action}" data-id="${escapeHtml(product.id)}">${label}</button>
-          <button class="btn btn--danger btn--sm" data-action="delete" data-id="${escapeHtml(product.id)}">Eliminar</button>
+          <button type="button" class="btn btn--ghost btn--sm" data-action="edit" data-id="${id}" aria-label="Editar ${name}">Editar</button>
+          <button type="button" class="btn btn--ghost btn--sm" data-action="${action}" data-id="${id}" aria-label="${label} ${name}">${label}</button>
+          <button type="button" class="btn btn--danger btn--sm" data-action="delete" data-id="${id}" aria-label="Eliminar ${name}">Eliminar</button>
         </div></td>
       </tr>`;
     })
     .join("");
 }
 
+function renderLoadError(error) {
+  const body = $("adminProductsTableBody");
+  if (!body) return;
+
+  renderMessageRow(
+    body,
+    `<div class="panel-error" role="alert">
+      <div>${escapeHtml(getErrorMessage(error, "No se pudieron cargar los productos."))}</div>
+      <div class="panel-empty__action">
+        <button type="button" class="btn btn--ghost btn--sm" data-action="retry">Reintentar</button>
+      </div>
+    </div>`,
+  );
+}
+
+// Carga la lista con los criterios actuales. Un pedido nuevo cancela el anterior.
+export async function loadProductsList() {
+  loadController?.abort();
+
+  const controller = new AbortController();
+  loadController = controller;
+  const token = ++loadToken;
+  const table = $("productsTable");
+
+  table?.setAttribute("aria-busy", "true");
+
+  try {
+    const products = await collectPages(
+      (page, perPage) =>
+        fetchAllProducts(
+          productsState.search,
+          productsState.filter,
+          controller.signal,
+          page,
+          perPage,
+        ),
+      "productos",
+    );
+
+    if (token !== loadToken) return;
+
+    productsState.products = products;
+    renderProductsList();
+  } catch (error) {
+    if (isAbortError(error) || token !== loadToken) return;
+
+    console.error("Error al cargar productos:", error);
+    renderLoadError(error);
+  } finally {
+    if (token === loadToken) {
+      table?.removeAttribute("aria-busy");
+    }
+  }
+}
+
+// ============================================================
+// PANEL DE ALTA / EDICIÓN
+// ============================================================
+
 function showProductModal(product = null) {
-  const overlay = document.getElementById("productModalOverlay");
-  const panel = document.getElementById("productFormPanel");
+  const overlay = $("productModalOverlay");
+  const panel = $("productFormPanel");
   if (!overlay || !panel) return;
 
-  document.getElementById("managedProductId").value = product?.id || "";
-  document.getElementById("productName").value = product?.name || "";
-  document.getElementById("productBrand").value = product?.brand || "";
+  modalOpener = document.activeElement;
+
+  $("managedProductId").value = product?.id || "";
+  $("productName").value = product?.name || "";
+  $("productBrand").value = product?.brand || "";
   setUnitValue(product?.measurement_unit || "ml");
-  document.getElementById("productStock").value = product
-    ? Number(product.stock)
-    : "";
-  document.getElementById("productCost").value = product
-    ? Number(product.unit_cost)
-    : "";
-  document.getElementById("productModalTitle").textContent = product
+  $("productStock").value = product ? Number(product.stock) : "";
+  $("productCost").value = product ? Number(product.unit_cost) : "";
+  $("productModalTitle").textContent = product
     ? "Editar producto"
     : "Nuevo producto";
+
+  feedback.clear();
+  feedback.clearInvalid();
+  dirty.reset();
 
   overlay.classList.add("is-open");
   panel.classList.add("is-open");
   panel.setAttribute("aria-hidden", "false");
+
+  requestAnimationFrame(() => $("productName").focus({ preventScroll: true }));
 }
 
 function closeProductModal() {
-  document.getElementById("productModalOverlay")?.classList.remove("is-open");
-  const panel = document.getElementById("productFormPanel");
+  $("productModalOverlay")?.classList.remove("is-open");
+  const panel = $("productFormPanel");
   panel?.classList.remove("is-open");
   panel?.setAttribute("aria-hidden", "true");
+
+  if (modalOpener && modalOpener.isConnected) {
+    modalOpener.focus({ preventScroll: true });
+  }
+  modalOpener = null;
+}
+
+// Un clic fuera del panel o Escape no deben borrar lo ya escrito.
+function requestCloseProductModal() {
+  if (dirty.isDirty()) {
+    feedback.show(
+      "warning",
+      "Hay datos sin guardar. Usá Cancelar o × para descartarlos.",
+      "dirty",
+    );
+    return;
+  }
+
+  closeProductModal();
 }
 
 function formData() {
   return {
-    name: document.getElementById("productName").value.trim(),
-    brand: document.getElementById("productBrand").value.trim() || null,
-    measurement_unit: document.getElementById("productUnit").value,
-    stock: Number(document.getElementById("productStock").value) || 0,
-    unit_cost: Number(document.getElementById("productCost").value) || 0,
+    name: $("productName").value.trim(),
+    brand: $("productBrand").value.trim() || null,
+    measurement_unit: $("productUnit").value,
+    stock: Number($("productStock").value) || 0,
+    unit_cost: Number($("productCost").value) || 0,
   };
 }
 
-async function saveProduct() {
-  const id = document.getElementById("managedProductId").value;
-  const data = formData();
+function validateForm(data) {
+  const errors = [];
 
   if (!data.name) {
-    alert("El nombre del producto es obligatorio.");
+    errors.push({
+      message: "Ingresá el nombre del producto.",
+      fields: ["productName"],
+    });
+  }
+
+  if (data.stock < 0) {
+    errors.push({
+      message: "El stock no puede ser negativo.",
+      fields: ["productStock"],
+    });
+  }
+
+  if (data.unit_cost < 0) {
+    errors.push({
+      message: "El costo no puede ser negativo.",
+      fields: ["productCost"],
+    });
+  }
+
+  return errors;
+}
+
+async function saveProduct() {
+  if (isSaving) return;
+
+  feedback.clear();
+  feedback.clearInvalid();
+
+  const id = $("managedProductId").value;
+  const data = formData();
+  const errors = validateForm(data);
+
+  if (errors.length > 0) {
+    errors.forEach((error) => feedback.invalidate(error.fields));
+    feedback.show(
+      "error",
+      errors.length === 1
+        ? errors[0].message
+        : "Completá los campos marcados para continuar.",
+    );
+    document.querySelector("#productFormPanel [aria-invalid='true']")?.focus();
     return;
   }
 
+  const saveButton = $("productModalSave");
+  isSaving = true;
+  setBusy(saveButton, true);
+
   try {
     const result = id
-      ? await handleUpdateProduct(id, data)
-      : await handleCreateProduct(data);
-    if (!result.success)
-      throw new Error(result.error || "No se pudo guardar el producto.");
+      ? await updateProduct(id, data)
+      : await createProduct(data);
+
+    if (!result.success) {
+      throw new ApiError(result.error || "No se pudo guardar el producto.", {
+        kind: "request",
+      });
+    }
+
     closeProductModal();
-    renderProductsList();
+    notify.success(id ? "Producto actualizado." : "Producto creado.");
+
+    await loadProductsList();
   } catch (error) {
     console.error("Error al guardar producto:", error);
-    alert(error.message);
+    feedback.show(
+      "error",
+      getErrorMessage(error, "No se pudo guardar el producto."),
+    );
+  } finally {
+    isSaving = false;
+    setBusy(saveButton, false);
+  }
+}
+
+// ============================================================
+// ACCIONES DE LA TABLA
+// ============================================================
+
+async function runAction(button, task, successMessage, failureMessage) {
+  setBusy(button, true);
+
+  try {
+    const result = await task();
+
+    if (!result.success) {
+      throw new ApiError(result.error || failureMessage, { kind: "request" });
+    }
+
+    notify.success(successMessage);
+    await loadProductsList();
+  } catch (error) {
+    console.error(failureMessage, error);
+    notify.error(getErrorMessage(error, failureMessage));
+  } finally {
+    setBusy(button, false);
   }
 }
 
@@ -152,121 +369,87 @@ async function handleTableAction(event) {
   const button = event.target.closest("button[data-action]");
   if (!button) return;
 
+  const action = button.dataset.action;
+
+  if (action === "new") {
+    showProductModal();
+    return;
+  }
+
+  if (action === "retry") {
+    await loadProductsList();
+    return;
+  }
+
   const id = button.dataset.id;
   const product = productsState.products.find((item) => String(item.id) === id);
 
-  try {
-    if (button.dataset.action === "edit") {
-      showProductModal(product);
-      return;
-    }
+  if (!product) return;
 
-    if (button.dataset.action === "delete") {
-      if (!confirm("¿Eliminar este producto?")) return;
-      const result = await handleDeleteProduct(id);
-      if (!result.success)
-        throw new Error(result.error || "No se pudo eliminar el producto.");
-    }
-
-    if (button.dataset.action === "activate") {
-      const result = await handleActivateProduct(id);
-      if (!result.success)
-        throw new Error(result.error || "No se pudo activar el producto.");
-    }
-
-    if (button.dataset.action === "deactivate") {
-      const result = await handleDeactivateProduct(id);
-      if (!result.success)
-        throw new Error(result.error || "No se pudo desactivar el producto.");
-    }
-
-    renderProductsList();
-  } catch (error) {
-    console.error("Error al modificar producto:", error);
-    alert(error.message);
-  }
-}
-
-async function loadProducts(signal = null) {
-  const firstPage = await fetchAllProducts(
-    productsState.search,
-    productsState.filter,
-    signal,
-  );
-
-  if (!Array.isArray(firstPage?.data)) {
-    throw new TypeError("La respuesta de productos no contiene una lista válida.");
+  if (action === "edit") {
+    showProductModal(product);
+    return;
   }
 
-  const products = [...firstPage.data];
-  const perPage = Number(firstPage.per_page);
-  const totalPages = Math.ceil(Number(firstPage.total) / perPage);
+  if (action === "delete") {
+    const confirmed = await confirmAction({
+      title: "Eliminar producto",
+      message: `Vas a eliminar «${product.name}». Esta acción no se puede deshacer. Si ya se usó en alguna ficha no se podrá eliminar: en ese caso desactivalo.`,
+      confirmLabel: "Eliminar",
+      danger: true,
+    });
 
-  for (let page = 2; page <= totalPages; page += 1) {
-    const result = await fetchAllProducts(
-      productsState.search,
-      productsState.filter,
-      signal,
-      page,
-      perPage,
+    if (!confirmed) return;
+
+    await runAction(
+      button,
+      () => deleteProduct(id),
+      "Producto eliminado.",
+      "No se pudo eliminar el producto.",
     );
-    if (!Array.isArray(result?.data)) {
-      throw new TypeError("La respuesta de productos no contiene una lista válida.");
-    }
-    products.push(...result.data);
+    return;
   }
 
-  productsState.products = products;
-  return productsState.products;
-}
+  if (action === "activate") {
+    await runAction(
+      button,
+      () => activateProduct(id),
+      "Producto activado.",
+      "No se pudo activar el producto.",
+    );
+    return;
+  }
 
-export async function loadProductsList(signal = null) {
-  const body = document.querySelector("#viewProducts #adminProductsTableBody");
-  try {
-    await loadProducts(signal);
-    renderProductsList();
-  } catch (error) {
-    if (error.name === "AbortError") return;
-    console.error("Error al cargar productos:", error);
-    if (body)
-      body.innerHTML =
-        '<tr><td colspan="6" class="panel-empty">Error al cargar productos.</td></tr>';
+  if (action === "deactivate") {
+    await runAction(
+      button,
+      () => deactivateProduct(id),
+      "Producto desactivado.",
+      "No se pudo desactivar el producto.",
+    );
   }
 }
 
-async function handleCreateProduct(data) {
-  const result = await createProduct(data);
-  await loadProducts();
-  return result;
-}
-
-async function handleUpdateProduct(id, data) {
-  const result = await updateProduct(id, data);
-  await loadProducts();
-  return result;
-}
-
-async function handleActivateProduct(id) {
-  const result = await activateProduct(id);
-  await loadProducts();
-  return result;
-}
-
-async function handleDeactivateProduct(id) {
-  const result = await deactivateProduct(id);
-  await loadProducts();
-  return result;
-}
-
-async function handleDeleteProduct(id) {
-  const result = await deleteProduct(id);
-  await loadProducts();
-  return result;
-}
+// ============================================================
+// INICIALIZACIÓN
+// ============================================================
 
 export function initProducts() {
   if (initialized) return;
   initialized = true;
+
+  const panel = $("productFormPanel");
+
+  if (panel) {
+    feedback = createFeedback(panel);
+    dirty = createDirtyTracker(panel);
+    clearInvalidOnInput(panel);
+    panel.addEventListener("input", () => feedback.clear("dirty"));
+  } else {
+    // Sin el panel no hay formulario: se evitan errores al abrirlo.
+    feedback = { show() {}, clear() {}, invalidate() {}, clearInvalid() {} };
+    dirty = { reset() {}, isDirty: () => false };
+  }
 
   const refreshProducts = () => {
     void loadProductsList();
@@ -280,72 +463,46 @@ export function initProducts() {
     refreshProducts();
   }
 
-  document
-    .querySelector("#viewProducts #btnAddProduct")
-    ?.addEventListener("click", () => showProductModal());
+  $("btnAddProduct")?.addEventListener("click", () => showProductModal());
 
-  // Variables para la cancelación de peticiones
-  let adminSearchDebounce = null;
-  let adminSearchController = null;
+  // Búsqueda remota con espera breve; cada pedido cancela el anterior.
+  $("adminProductSearch")?.addEventListener("input", (event) => {
+    productsState.search = String(event.target.value ?? "").trim();
 
-  // Listener para el input de búsqueda (remota)
-  document
-    .querySelector("#viewProducts #adminProductSearch")
-    ?.addEventListener("input", (event) => {
-      productsState.search = String(event.target.value ?? "").trim();
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(loadProductsList, SEARCH_DEBOUNCE_MS);
+  });
 
-      clearTimeout(adminSearchDebounce);
+  $("adminProductsTableBody")?.addEventListener("click", handleTableAction);
 
-      if (adminSearchController) {
-        adminSearchController.abort();
-      }
-      adminSearchController = new AbortController();
+  // Los filtros de estado disparan una carga remota.
+  const filterButtons = Array.from(
+    document.querySelectorAll("#viewProducts .btn-filter[data-filter]"),
+  );
 
-      adminSearchDebounce = setTimeout(async () => {
-        await loadProductsList(adminSearchController.signal);
-      }, 150);
+  filterButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      productsState.filter = button.dataset.filter;
+      setActiveFilter(filterButtons, button);
+      loadProductsList();
     });
+  });
 
-  document
-    .querySelector("#viewProducts #adminProductsTableBody")
-    ?.addEventListener("click", handleTableAction);
+  $("productUnit")?.addEventListener("change", updateUnitLabels);
+
+  $("productModalClose")?.addEventListener("click", closeProductModal);
+  $("productModalCancel")?.addEventListener("click", closeProductModal);
+  $("productModalOverlay")?.addEventListener("click", requestCloseProductModal);
+
+  $("productForm")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    saveProduct();
+  });
 
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    if (
-      document.getElementById("productFormPanel")?.classList.contains("is-open")
-    ) {
-      closeProductModal();
+    if ($("productFormPanel")?.classList.contains("is-open")) {
+      requestCloseProductModal();
     }
   });
-
-  // Listener para los botones de estado (dispara carga remota)
-  document
-    .querySelectorAll("#viewProducts .btn-filter[data-filter]")
-    .forEach((button) => {
-      button.addEventListener("click", async () => {
-        productsState.filter = button.dataset.filter;
-
-        document
-          .querySelectorAll("#viewProducts .btn-filter[data-filter]")
-          .forEach((item) => {
-            item.classList.toggle("active", item === button);
-          });
-
-        await loadProductsList();
-      });
-    });
-
-  document
-    .getElementById("productModalClose")
-    ?.addEventListener("click", closeProductModal);
-  document
-    .getElementById("productModalCancel")
-    ?.addEventListener("click", closeProductModal);
-  document
-    .getElementById("productModalSave")
-    ?.addEventListener("click", saveProduct);
-  document
-    .getElementById("productModalOverlay")
-    ?.addEventListener("click", closeProductModal);
 }

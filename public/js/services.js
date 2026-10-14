@@ -1,12 +1,24 @@
 import {
+  ApiError,
+  collectPages,
   fetchAllServices,
   createService,
   updateService,
   activateService,
   deactivateService,
   deleteService,
+  getErrorMessage,
 } from "./api.js";
 import { matchesSearch } from "./utils.js";
+import { escapeHtml, isActive, setActiveFilter } from "./dom.js";
+import {
+  clearInvalidOnInput,
+  createDirtyTracker,
+  createFeedback,
+  setBusy,
+} from "./feedback.js";
+import { confirmAction } from "./confirm.js";
+import { notify } from "./toast.js";
 
 const servicesState = {
   services: [],
@@ -15,19 +27,16 @@ const servicesState = {
 };
 
 let initialized = false;
+let isSaving = false;
+let modalOpener = null;
+let feedback = null;
+let dirty = null;
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
+const $ = (id) => document.getElementById(id);
 
-function isActive(service) {
-  return service.active === true || Number(service.active) === 1;
-}
+// ============================================================
+// LISTADO
+// ============================================================
 
 function visibleServices() {
   return servicesState.services.filter((service) => {
@@ -42,14 +51,33 @@ function visibleServices() {
   });
 }
 
+function renderMessageRow(body, html) {
+  body.innerHTML = `<tr><td colspan="5">${html}</td></tr>`;
+}
+
 function renderServicesList() {
-  const body = document.getElementById("servicesTableBody");
+  const body = $("servicesTableBody");
   if (!body) return;
 
   const services = visibleServices();
+
   if (!services.length) {
-    body.innerHTML =
-      '<tr><td colspan="5" class="panel-empty">No se encontraron servicios.</td></tr>';
+    if (servicesState.services.length === 0) {
+      renderMessageRow(
+        body,
+        `<div class="panel-empty" role="status">
+          <div>Todavía no cargaste servicios.</div>
+          <div class="panel-empty__action">
+            <button type="button" class="btn btn--primary btn--sm" data-action="new">Nuevo servicio</button>
+          </div>
+        </div>`,
+      );
+    } else {
+      renderMessageRow(
+        body,
+        '<div class="panel-empty" role="status">No hay servicios que coincidan con la búsqueda o el filtro.</div>',
+      );
+    }
     return;
   }
 
@@ -58,79 +86,242 @@ function renderServicesList() {
       const active = isActive(service);
       const action = active ? "deactivate" : "activate";
       const label = active ? "Desactivar" : "Activar";
+      const name = escapeHtml(service.name);
+      const id = escapeHtml(service.id);
 
       return `
       <tr>
-        <td data-label="Nombre">${escapeHtml(service.name)}</td>
+        <td data-label="Nombre">${name}</td>
         <td data-label="Duración">${escapeHtml(service.duration)} min</td>
         <td data-label="Precio">$${escapeHtml(service.price)}</td>
         <td data-label="Estado"><span class="status-badge status-badge--${active ? "activo" : "inactivo"}">${active ? "Activo" : "Inactivo"}</span></td>
         <td data-label="Acciones"><div class="data-table__actions">
-          <button class="btn btn--ghost btn--sm" data-action="edit" data-id="${escapeHtml(service.id)}">Editar</button>
-          <button class="btn btn--ghost btn--sm" data-action="${action}" data-id="${escapeHtml(service.id)}">${label}</button>
-          <button class="btn btn--danger btn--sm" data-action="delete" data-id="${escapeHtml(service.id)}">Eliminar</button>
+          <button type="button" class="btn btn--ghost btn--sm" data-action="edit" data-id="${id}" aria-label="Editar ${name}">Editar</button>
+          <button type="button" class="btn btn--ghost btn--sm" data-action="${action}" data-id="${id}" aria-label="${label} ${name}">${label}</button>
+          <button type="button" class="btn btn--danger btn--sm" data-action="delete" data-id="${id}" aria-label="Eliminar ${name}">Eliminar</button>
         </div></td>
       </tr>`;
     })
     .join("");
 }
 
+function renderLoadError(error) {
+  const body = $("servicesTableBody");
+  if (!body) return;
+
+  renderMessageRow(
+    body,
+    `<div class="panel-error" role="alert">
+      <div>${escapeHtml(getErrorMessage(error, "No se pudieron cargar los servicios."))}</div>
+      <div class="panel-empty__action">
+        <button type="button" class="btn btn--ghost btn--sm" data-action="retry">Reintentar</button>
+      </div>
+    </div>`,
+  );
+}
+
+async function loadServices() {
+  servicesState.services = await collectPages(
+    (page, perPage) => fetchAllServices(page, perPage),
+    "servicios",
+  );
+
+  return servicesState.services;
+}
+
+export async function loadServicesList() {
+  try {
+    await loadServices();
+    renderServicesList();
+  } catch (error) {
+    console.error("Error al cargar servicios:", error);
+    renderLoadError(error);
+  }
+}
+
+// ============================================================
+// PANEL DE ALTA / EDICIÓN
+// ============================================================
+
 function showServiceModal(service = null) {
-  const overlay = document.getElementById("serviceModalOverlay");
-  const panel = document.getElementById("serviceFormPanel");
+  const overlay = $("serviceModalOverlay");
+  const panel = $("serviceFormPanel");
   if (!overlay || !panel) return;
 
-  document.getElementById("managedServiceId").value = service?.id || "";
-  document.getElementById("serviceName").value = service?.name || "";
-  document.getElementById("serviceDescription").value =
-    service?.description || "";
-  document.getElementById("serviceDuration").value = service?.duration || "";
-  document.getElementById("servicePrice").value = service?.price || "";
-  document.getElementById("serviceModalTitle").textContent = service
+  modalOpener = document.activeElement;
+
+  $("managedServiceId").value = service?.id || "";
+  $("serviceName").value = service?.name || "";
+  $("serviceDescription").value = service?.description || "";
+  $("serviceDuration").value = service?.duration || "";
+  $("servicePrice").value = service ? (service.price ?? "") : "";
+  $("serviceModalTitle").textContent = service
     ? "Editar servicio"
     : "Nuevo servicio";
+
+  feedback.clear();
+  feedback.clearInvalid();
+  dirty.reset();
 
   overlay.classList.add("is-open");
   panel.classList.add("is-open");
   panel.setAttribute("aria-hidden", "false");
+
+  requestAnimationFrame(() => $("serviceName").focus({ preventScroll: true }));
 }
 
 function closeServiceModal() {
-  document.getElementById("serviceModalOverlay")?.classList.remove("is-open");
-  const panel = document.getElementById("serviceFormPanel");
+  $("serviceModalOverlay")?.classList.remove("is-open");
+  const panel = $("serviceFormPanel");
   panel?.classList.remove("is-open");
   panel?.setAttribute("aria-hidden", "true");
+
+  if (modalOpener && modalOpener.isConnected) {
+    modalOpener.focus({ preventScroll: true });
+  }
+  modalOpener = null;
 }
 
-function formData() {
-  return {
-    name: document.getElementById("serviceName").value.trim(),
-    description: document.getElementById("serviceDescription").value.trim(),
-    duration: Number(document.getElementById("serviceDuration").value),
-    price: Number(document.getElementById("servicePrice").value),
-  };
-}
-
-async function saveService() {
-  const id = document.getElementById("managedServiceId").value;
-  const data = formData();
-
-  if (!data.name || data.duration < 1 || data.price < 0) {
-    alert("Completa correctamente el nombre, la duración y el precio.");
+// Un clic fuera del panel o Escape no deben borrar lo ya escrito.
+function requestCloseServiceModal() {
+  if (dirty.isDirty()) {
+    feedback.show(
+      "warning",
+      "Hay datos sin guardar. Usá Cancelar o × para descartarlos.",
+      "dirty",
+    );
     return;
   }
 
+  closeServiceModal();
+}
+
+function readForm() {
+  return {
+    data: {
+      name: $("serviceName").value.trim(),
+      description: $("serviceDescription").value.trim(),
+      duration: Number($("serviceDuration").value),
+      price: Number($("servicePrice").value),
+    },
+    priceRaw: $("servicePrice").value,
+  };
+}
+
+function validateForm({ data, priceRaw }) {
+  const errors = [];
+
+  if (!data.name) {
+    errors.push({
+      message: "Ingresá el nombre del servicio.",
+      fields: ["serviceName"],
+    });
+  }
+
+  if (!Number.isInteger(data.duration) || data.duration < 1) {
+    errors.push({
+      message: "La duración debe ser un número entero de minutos (mínimo 1).",
+      fields: ["serviceDuration"],
+    });
+  }
+
+  if (priceRaw === "" || !Number.isFinite(data.price) || data.price < 0) {
+    errors.push({
+      message: "Indicá el precio (puede ser 0).",
+      fields: ["servicePrice"],
+    });
+  }
+
+  return errors;
+}
+
+async function saveService() {
+  if (isSaving) return;
+
+  feedback.clear();
+  feedback.clearInvalid();
+
+  const id = $("managedServiceId").value;
+  const form = readForm();
+  const errors = validateForm(form);
+
+  if (errors.length > 0) {
+    errors.forEach((error) => feedback.invalidate(error.fields));
+    feedback.show(
+      "error",
+      errors.length === 1
+        ? errors[0].message
+        : "Completá los campos marcados para continuar.",
+    );
+    document.querySelector("#serviceFormPanel [aria-invalid='true']")?.focus();
+    return;
+  }
+
+  const saveButton = $("serviceModalSave");
+  isSaving = true;
+  setBusy(saveButton, true);
+
   try {
     const result = id
-      ? await handleUpdateService(id, data)
-      : await handleCreateService(data);
-    if (!result.success)
-      throw new Error(result.error || "No se pudo guardar el servicio.");
+      ? await updateService(id, form.data)
+      : await createService(form.data);
+
+    if (!result.success) {
+      throw new ApiError(result.error || "No se pudo guardar el servicio.", {
+        kind: "request",
+      });
+    }
+
     closeServiceModal();
-    renderServicesList();
+    notify.success(id ? "Servicio actualizado." : "Servicio creado.");
+
+    await refreshAfterChange();
   } catch (error) {
     console.error("Error al guardar servicio:", error);
-    alert(error.message);
+    feedback.show(
+      "error",
+      getErrorMessage(error, "No se pudo guardar el servicio."),
+    );
+  } finally {
+    isSaving = false;
+    setBusy(saveButton, false);
+  }
+}
+
+// Vuelve a pedir la lista; si falla, avisa sin dar por perdido el cambio.
+async function refreshAfterChange() {
+  try {
+    await loadServices();
+    renderServicesList();
+  } catch (error) {
+    console.error("Error al actualizar la lista de servicios:", error);
+    notify.warning(
+      "El cambio se guardó, pero no se pudo actualizar la lista. Recargá la sección.",
+    );
+  }
+}
+
+// ============================================================
+// ACCIONES DE LA TABLA
+// ============================================================
+
+async function runAction(button, task, successMessage, failureMessage) {
+  setBusy(button, true);
+
+  try {
+    const result = await task();
+
+    if (!result.success) {
+      throw new ApiError(result.error || failureMessage, { kind: "request" });
+    }
+
+    notify.success(successMessage);
+    await refreshAfterChange();
+  } catch (error) {
+    console.error(failureMessage, error);
+    notify.error(getErrorMessage(error, failureMessage));
+  } finally {
+    setBusy(button, false);
   }
 }
 
@@ -138,157 +329,124 @@ async function handleTableAction(event) {
   const button = event.target.closest("button[data-action]");
   if (!button) return;
 
+  const action = button.dataset.action;
+
+  if (action === "new") {
+    showServiceModal();
+    return;
+  }
+
+  if (action === "retry") {
+    await loadServicesList();
+    return;
+  }
+
   const id = button.dataset.id;
   const service = servicesState.services.find((item) => String(item.id) === id);
 
-  try {
-    if (button.dataset.action === "edit") {
-      showServiceModal(service);
-      return;
-    }
+  if (!service) return;
 
-    if (button.dataset.action === "delete") {
-      if (!confirm("¿Eliminar este servicio?")) return;
-      const result = await handleDeleteService(id);
-      if (!result.success)
-        throw new Error(result.error || "No se pudo eliminar el servicio.");
-    }
+  if (action === "edit") {
+    showServiceModal(service);
+    return;
+  }
 
-    if (button.dataset.action === "activate") {
-      const result = await handleActivateService(id);
-      if (!result.success)
-        throw new Error(result.error || "No se pudo activar el servicio.");
-    }
+  if (action === "delete") {
+    const confirmed = await confirmAction({
+      title: "Eliminar servicio",
+      message: `Vas a eliminar «${service.name}». Esta acción no se puede deshacer. Si ya tiene turnos asociados no se podrá eliminar: en ese caso desactivalo.`,
+      confirmLabel: "Eliminar",
+      danger: true,
+    });
 
-    if (button.dataset.action === "deactivate") {
-      const result = await handleDeactivateService(id);
-      if (!result.success)
-        throw new Error(result.error || "No se pudo desactivar el servicio.");
-    }
+    if (!confirmed) return;
 
-    renderServicesList();
-  } catch (error) {
-    console.error("Error al modificar servicio:", error);
-    alert(error.message);
+    await runAction(
+      button,
+      () => deleteService(id),
+      "Servicio eliminado.",
+      "No se pudo eliminar el servicio.",
+    );
+    return;
+  }
+
+  if (action === "activate") {
+    await runAction(
+      button,
+      () => activateService(id),
+      "Servicio activado.",
+      "No se pudo activar el servicio.",
+    );
+    return;
+  }
+
+  if (action === "deactivate") {
+    await runAction(
+      button,
+      () => deactivateService(id),
+      "Servicio desactivado.",
+      "No se pudo desactivar el servicio.",
+    );
   }
 }
 
-async function loadServices() {
-  const firstPage = await fetchAllServices();
-  if (!Array.isArray(firstPage?.data)) {
-    throw new TypeError("La respuesta de servicios no contiene una lista válida.");
-  }
-
-  const services = [...firstPage.data];
-  const perPage = Number(firstPage.per_page);
-  const totalPages = Math.ceil(Number(firstPage.total) / perPage);
-
-  for (let page = 2; page <= totalPages; page += 1) {
-    const result = await fetchAllServices(page, perPage);
-    if (!Array.isArray(result?.data)) {
-      throw new TypeError("La respuesta de servicios no contiene una lista válida.");
-    }
-    services.push(...result.data);
-  }
-
-  servicesState.services = services;
-  return servicesState.services;
-}
-
-export async function loadServicesList() {
-  const body = document.getElementById("servicesTableBody");
-  try {
-    await loadServices();
-    renderServicesList();
-  } catch (error) {
-    console.error("Error al cargar servicios:", error);
-    if (body)
-      body.innerHTML =
-        '<tr><td colspan="5" class="panel-empty">Error al cargar servicios.</td></tr>';
-  }
-}
-
-async function handleCreateService(data) {
-  const result = await createService(data);
-  await loadServices();
-  return result;
-}
-
-async function handleUpdateService(id, data) {
-  const result = await updateService(id, data);
-  await loadServices();
-  return result;
-}
-
-async function handleActivateService(id) {
-  const result = await activateService(id);
-  await loadServices();
-  return result;
-}
-
-async function handleDeactivateService(id) {
-  const result = await deactivateService(id);
-  await loadServices();
-  return result;
-}
-
-async function handleDeleteService(id) {
-  const result = await deleteService(id);
-  await loadServices();
-  return result;
-}
+// ============================================================
+// INICIALIZACIÓN
+// ============================================================
 
 export function initServices() {
   if (initialized) return;
   initialized = true;
 
-  document
-    .getElementById("btnAddService")
-    ?.addEventListener("click", () => showServiceModal());
-  document
-    .getElementById("serviceSearch")
-    ?.addEventListener("input", (event) => {
-      servicesState.search = event.target.value;
-      renderServicesList();
-    });
-  document
-    .getElementById("servicesTableBody")
-    ?.addEventListener("click", handleTableAction);
+  const panel = $("serviceFormPanel");
+
+  if (panel) {
+    feedback = createFeedback(panel);
+    dirty = createDirtyTracker(panel);
+    clearInvalidOnInput(panel);
+    panel.addEventListener("input", () => feedback.clear("dirty"));
+  } else {
+    // Sin el panel no hay formulario: se evitan errores al abrirlo.
+    feedback = { show() {}, clear() {}, invalidate() {}, clearInvalid() {} };
+    dirty = { reset() {}, isDirty: () => false };
+  }
+
+  $("btnAddService")?.addEventListener("click", () => showServiceModal());
+
+  $("serviceSearch")?.addEventListener("input", (event) => {
+    servicesState.search = event.target.value;
+    renderServicesList();
+  });
+
+  $("servicesTableBody")?.addEventListener("click", handleTableAction);
 
   // Acotado a #viewServices para no interferir con los mismos
-  // botones .btn-filter que usa el panel de clientes.
-  document
-    .querySelectorAll("#viewServices .btn-filter[data-filter]")
-    .forEach((button) => {
-      button.addEventListener("click", () => {
-        servicesState.filter = button.dataset.filter;
-        document
-          .querySelectorAll("#viewServices .btn-filter[data-filter]")
-          .forEach((item) => {
-            item.classList.toggle("active", item === button);
-          });
-        renderServicesList();
-      });
-    });
+  // botones .btn-filter que usan los demás paneles.
+  const filterButtons = Array.from(
+    document.querySelectorAll("#viewServices .btn-filter[data-filter]"),
+  );
 
-  document
-    .getElementById("serviceModalClose")
-    ?.addEventListener("click", closeServiceModal);
-  document
-    .getElementById("serviceModalCancel")
-    ?.addEventListener("click", closeServiceModal);
-  document
-    .getElementById("serviceModalSave")
-    ?.addEventListener("click", saveService);
-  document
-    .getElementById("serviceModalOverlay")
-    ?.addEventListener("click", closeServiceModal);
+  filterButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      servicesState.filter = button.dataset.filter;
+      setActiveFilter(filterButtons, button);
+      renderServicesList();
+    });
+  });
+
+  $("serviceModalClose")?.addEventListener("click", closeServiceModal);
+  $("serviceModalCancel")?.addEventListener("click", closeServiceModal);
+  $("serviceModalOverlay")?.addEventListener("click", requestCloseServiceModal);
+
+  $("serviceForm")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    saveService();
+  });
+
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    if (
-      document.getElementById("serviceFormPanel")?.classList.contains("is-open")
-    ) {
-      closeServiceModal();
+    if ($("serviceFormPanel")?.classList.contains("is-open")) {
+      requestCloseServiceModal();
     }
   });
 }
