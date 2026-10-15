@@ -155,8 +155,6 @@ async function handleJsonResponse(response) {
       } catch {
         serverMessage = "";
       }
-    } else {
-      console.error("Error del servidor (texto plano):", await response.text());
     }
 
     throw new ApiError(serverMessage || messageForStatus(response.status), {
@@ -171,12 +169,7 @@ async function handleJsonResponse(response) {
   }
 
   if (!isJson) {
-    const rawText = await response.text();
-
-    console.group("Respuesta no JSON detectada");
-    console.error("Se esperaba JSON pero se recibió otra cosa.");
-    console.warn("Contenido bruto del backend:\n", rawText);
-    console.groupEnd();
+    console.error("Se esperaba JSON y el servidor respondió otra cosa.");
 
     throw new ApiError(
       "El servidor devolvió una respuesta inesperada. Intentá de nuevo en unos minutos.",
@@ -288,6 +281,23 @@ async function postJson(action, data = {}, signal = null) {
 }
 
 // ============================================================
+// LISTADOS PAGINADOS (CLIENTES, SERVICIOS Y PRODUCTOS)
+// ============================================================
+
+export const LIST_PAGE_SIZE = 25;
+
+function fetchListPage(
+  action,
+  { search = "", filter = "todos", page = 1, perPage = LIST_PAGE_SIZE, signal = null },
+) {
+  return getJson(
+    action,
+    { q: search, filter, page, per_page: perPage },
+    signal,
+  );
+}
+
+// ============================================================
 // TURNOS
 // ============================================================
 
@@ -329,10 +339,8 @@ export function fetchServices() {
   return getJson("services");
 }
 
-// Obtiene todos los servicios, activos e inactivos.
-// Se utiliza en el panel administrativo.
-export function fetchAllServices(page = 1, perPage = 100) {
-  return getJson("services_all", { page, per_page: perPage });
+export function fetchAllServices(params) {
+  return fetchListPage("services_all", params);
 }
 
 // Crea un nuevo servicio.
@@ -365,55 +373,8 @@ export function deleteService(id) {
 // CLIENTES
 // ============================================================
 
-// Recorre todas las páginas de un listado paginado ({ data, per_page, total }).
-// fetchPage(page, perPage) debe devolver la respuesta de una página.
-export async function collectPages(fetchPage, label = "datos") {
-  const invalid = () =>
-    new ApiError(`La lista de ${label} llegó con un formato inesperado.`, {
-      kind: "invalid-response",
-    });
-
-  const firstPage = await fetchPage(1);
-
-  if (!Array.isArray(firstPage?.data)) {
-    throw invalid();
-  }
-
-  const perPage = Number(firstPage.per_page) || firstPage.data.length || 100;
-  const total = Number(firstPage.total);
-  const totalPages = Number.isFinite(total) ? Math.ceil(total / perPage) : 1;
-
-  if (totalPages <= 1) {
-    return [...firstPage.data];
-  }
-
-  const remainingPages = await Promise.all(
-    Array.from({ length: totalPages - 1 }, (_, index) =>
-      fetchPage(index + 2, perPage),
-    ),
-  );
-
-  remainingPages.forEach((page) => {
-    if (!Array.isArray(page?.data)) {
-      throw invalid();
-    }
-  });
-
-  return [firstPage, ...remainingPages].flatMap((page) => page.data);
-}
-
-// Obtiene todos los clientes activos recorriendo todas las páginas.
-export function fetchClients() {
-  return collectPages(
-    (page, perPage) => fetchAllClients(page, perPage, "activos"),
-    "clientes",
-  );
-}
-
-// Obtiene todos los clientes, activos e inactivos.
-// Se utiliza en el panel administrativo.
-export function fetchAllClients(page = 1, perPage = 100, filter = "todos") {
-  return getJson("clients_all", { page, per_page: perPage, filter });
+export function fetchAllClients(params) {
+  return fetchListPage("clients_all", params);
 }
 
 // Obtiene la línea de tiempo técnica de un cliente.
@@ -456,20 +417,8 @@ export function deleteClient(id) {
 // PRODUCTOS
 // ============================================================
 
-// Obtiene los productos para el panel administrativo
-// (con filtros, búsqueda y abort signal).
-export function fetchAllProducts(
-  search = "",
-  filter = "todos",
-  signal = null,
-  page = 1,
-  perPage = 100,
-) {
-  return getJson(
-    "products_all",
-    { q: search, filter, page, per_page: perPage },
-    signal,
-  );
+export function fetchAllProducts(params) {
+  return fetchListPage("products_all", params);
 }
 
 // Busca productos por nombre con soporte para cancelaciones (AbortSignal).

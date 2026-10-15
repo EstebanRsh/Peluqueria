@@ -9,8 +9,9 @@ import {
   searchClients,
   getErrorMessage,
 } from "./api.js";
+import { $ } from "./dom.js";
 import { formatDate } from "./utils.js";
-import { appState } from "./main.js";
+import { appState } from "./state.js";
 import { loadAppointments, syncCalendarDay } from "./ui.js";
 import { createAutocomplete } from "./autocomplete.js";
 import { notify } from "./toast.js";
@@ -18,8 +19,6 @@ import { notify } from "./toast.js";
 // ============================================================
 // ELEMENTOS DEL MODAL
 // ============================================================
-
-const $ = (id) => document.getElementById(id);
 
 const modalOverlay = $("modalOverlay");
 const modalPanel = $("appointmentFormPanel");
@@ -233,8 +232,7 @@ export function initModal() {
     element?.addEventListener("click", closeModal);
   });
 
-  // Un clic accidental fuera del panel no debe borrar lo ya escrito.
-  modalOverlay.addEventListener("click", () => {
+  const requestCloseModal = () => {
     if (isFormDirty()) {
       showFeedback(
         "warning",
@@ -245,13 +243,14 @@ export function initModal() {
     }
 
     closeModal();
-  });
+  };
 
-  // Cerrar con Escape.
+  modalOverlay.addEventListener("click", requestCloseModal);
+
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
     if (modalPanel.classList.contains("is-open")) {
-      closeModal();
+      requestCloseModal();
     }
   });
 
@@ -442,6 +441,18 @@ async function loadServices() {
     availableServices = Array.isArray(services)
       ? services.filter(isActiveRecord)
       : [];
+
+    if (availableServices.length === 0) {
+      serviceSelect.innerHTML =
+        '<option value="">No hay servicios cargados</option>';
+
+      showFeedback(
+        "warning",
+        "Todavía no cargaste servicios. Creá uno en la sección Servicios para poder agendar turnos.",
+        "services-load",
+      );
+      return;
+    }
 
     serviceSelect.innerHTML = '<option value="">Seleccionar servicio</option>';
 

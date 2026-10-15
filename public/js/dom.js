@@ -2,6 +2,8 @@
 // UTILIDADES COMPARTIDAS DE INTERFAZ
 // ============================================================
 
+export const $ = (id) => document.getElementById(id);
+
 // Escapa un valor para insertarlo de forma segura en HTML.
 export function escapeHtml(value) {
   return String(value ?? "")

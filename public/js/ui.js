@@ -11,9 +11,11 @@ import {
   getErrorMessage,
 } from "./api.js";
 
+import { escapeHtml } from "./dom.js";
 import { formatDate, slugify } from "./utils.js";
+import { debounce } from "./list.js";
 import { notify } from "./toast.js";
-import { appState } from "./main.js";
+import { appState } from "./state.js";
 
 // ============================================================
 // ELEMENTOS PRINCIPALES
@@ -41,7 +43,6 @@ let panelOpener = null;
 // CONFIGURACIÓN Y ESTADO DE FILTROS
 // ============================================================
 
-const SEARCH_DEBOUNCE_MS = 250;
 const TOOLTIP_TTL_MS = 30000;
 const FEEDBACK_SUCCESS_MS = 3000;
 
@@ -66,25 +67,11 @@ const STATUS_OPTIONS = [
 
 let appointmentSearchQuery = "";
 let appointmentFilterStatus = "todos";
-let searchTimer = null;
 let loadToken = 0;
 
 // ============================================================
 // UTILIDADES
 // ============================================================
-
-function escapeHtml(value) {
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 function formatTime(value) {
   return String(value ?? "").substring(0, 5);
@@ -121,11 +108,10 @@ export function openPanelForDate(cell, date, statusFilter) {
 
   // Reiniciar búsqueda.
   appointmentSearchQuery = "";
-  clearTimeout(searchTimer);
 
   // Mostrar fecha en la cabecera del panel.
   const dateFormatted = formatDate(date);
-  panelDate.innerHTML = dateFormatted;
+  panelDate.textContent = dateFormatted;
 
   renderPanelShell();
 
@@ -148,7 +134,6 @@ export function closePanel() {
   panel.classList.remove("is-open");
   panel.setAttribute("aria-hidden", "true");
   panelOverlay?.classList.remove("is-open");
-  clearTimeout(searchTimer);
 
   document.querySelectorAll(".calendar__cell--selected").forEach((cell) => {
     cell.classList.remove("calendar__cell--selected");
@@ -420,17 +405,17 @@ panelBody?.addEventListener("keydown", (event) => {
   openAppointmentDetailModal(row.closest(".appointment-card")?.dataset.id);
 });
 
+const reloadAppointmentsSoon = debounce(() =>
+  loadAppointments(appState.activeDay, { showLoading: false }),
+);
+
 panelBody?.addEventListener("input", (event) => {
   if (event.target.id !== "appointmentSearch") {
     return;
   }
 
   appointmentSearchQuery = event.target.value;
-
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    loadAppointments(appState.activeDay, { showLoading: false });
-  }, SEARCH_DEBOUNCE_MS);
+  reloadAppointmentsSoon();
 });
 
 // ============================================================
@@ -458,7 +443,7 @@ export async function loadAppointments(date, { showLoading = true } = {}) {
   try {
     const appointments = await fetchAppointments(
       date,
-      appointmentSearchQuery,
+      appointmentSearchQuery.trim(),
       appointmentFilterStatus,
     );
 

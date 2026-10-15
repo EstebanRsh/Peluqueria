@@ -1,6 +1,5 @@
 import {
   ApiError,
-  collectPages,
   fetchAppointments,
   fetchAllClients,
   fetchClientTimeline,
@@ -11,24 +10,20 @@ import {
   deleteClient,
   getErrorMessage,
 } from "./api.js";
-import { matchesSearch, slugify } from "./utils.js";
-import { escapeHtml, isActive, setActiveFilter, truncate } from "./dom.js";
+import { slugify } from "./utils.js";
+import { $, escapeHtml, isActive, setActiveFilter, truncate } from "./dom.js";
 import {
   clearInvalidOnInput,
   createDirtyTracker,
   createFeedback,
   setBusy,
 } from "./feedback.js";
+import { createListLoader, debounce, moreRowHtml } from "./list.js";
 import { confirmAction } from "./confirm.js";
 import { notify } from "./toast.js";
 
-const clientsState = {
-  clients: [],
-  filter: "todos",
-  search: "",
-};
+const list = createListLoader(fetchAllClients);
 
-let initialized = false;
 let isSaving = false;
 let profileRequestId = 0;
 let profileAppointments = [];
@@ -38,27 +33,9 @@ let modalOpener = null;
 let feedback = null;
 let dirty = null;
 
-const $ = (id) => document.getElementById(id);
-
 // ============================================================
 // LISTADO
 // ============================================================
-
-function visibleClients() {
-  return clientsState.clients.filter((client) => {
-    const matchesFilter =
-      clientsState.filter === "todos" ||
-      (clientsState.filter === "activos" && isActive(client)) ||
-      (clientsState.filter === "inactivos" && !isActive(client));
-
-    // Se busca por alias y código, no por notas: las notas son texto
-    // libre y con una sola letra terminarían trayendo clientes sin
-    // ninguna relación real con lo buscado.
-    const text = `${client.alias} ${client.internal_code || ""}`;
-
-    return matchesFilter && matchesSearch(text, clientsState.search);
-  });
-}
 
 function renderMessageRow(body, html) {
   body.innerHTML = `<tr><td colspan="5">${html}</td></tr>`;
@@ -68,10 +45,10 @@ function renderClientsList() {
   const body = $("clientsTableBody");
   if (!body) return;
 
-  const clients = visibleClients();
+  const clients = list.state.items;
 
   if (!clients.length) {
-    if (clientsState.clients.length === 0) {
+    if (list.isPristine()) {
       renderMessageRow(
         body,
         `<div class="panel-empty" role="status">
@@ -114,7 +91,8 @@ function renderClientsList() {
         </div></td>
       </tr>`;
     })
-    .join("");
+    .join("")
+    .concat(list.hasMore() ? moreRowHtml(5) : "");
 }
 
 function renderLoadError(error) {
@@ -132,30 +110,24 @@ function renderLoadError(error) {
   );
 }
 
-async function loadClients() {
-  clientsState.clients = await collectPages(
-    (page, perPage) => fetchAllClients(page, perPage),
-    "clientes",
-  );
-
-  return clientsState.clients;
-}
-
-export async function loadClientsList() {
+export async function loadClientsList({ append = false } = {}) {
   try {
-    await loadClients();
-    renderClientsList();
+    if (await list.load({ append })) renderClientsList();
   } catch (error) {
     console.error("Error al cargar clientes:", error);
-    renderLoadError(error);
+
+    if (append) {
+      notify.error(getErrorMessage(error, "No se pudieron cargar más clientes."));
+    } else {
+      renderLoadError(error);
+    }
   }
 }
 
 // Vuelve a pedir la lista; si falla, avisa sin dar por perdido el cambio.
 async function refreshAfterChange() {
   try {
-    await loadClients();
-    renderClientsList();
+    if (await list.load()) renderClientsList();
   } catch (error) {
     console.error("Error al actualizar la lista de clientes:", error);
     notify.warning(
@@ -813,7 +785,7 @@ async function handleTableAction(event) {
     const row = event.target.closest("tr[data-client-id]");
     if (!row) return;
 
-    const client = clientsState.clients.find(
+    const client = list.state.items.find(
       (item) => String(item.id) === row.dataset.clientId,
     );
     if (client) {
@@ -834,8 +806,15 @@ async function handleTableAction(event) {
     return;
   }
 
+  if (action === "more") {
+    setBusy(button, true);
+    await loadClientsList({ append: true });
+    setBusy(button, false);
+    return;
+  }
+
   const id = button.dataset.id;
-  const client = clientsState.clients.find((item) => String(item.id) === id);
+  const client = list.state.items.find((item) => String(item.id) === id);
 
   if (!client) return;
 
@@ -893,28 +872,22 @@ async function handleTableAction(event) {
 // ============================================================
 
 export function initClients() {
-  if (initialized) return;
-  initialized = true;
   initTimelineEvents();
 
   const panel = $("clientFormPanel");
 
-  if (panel) {
-    feedback = createFeedback(panel);
-    dirty = createDirtyTracker(panel);
-    clearInvalidOnInput(panel);
-    panel.addEventListener("input", () => feedback.clear("dirty"));
-  } else {
-    // Sin el panel no hay formulario: se evitan errores al abrirlo.
-    feedback = { show() {}, clear() {}, invalidate() {}, clearInvalid() {} };
-    dirty = { reset() {}, isDirty: () => false };
-  }
+  feedback = createFeedback(panel);
+  dirty = createDirtyTracker(panel);
+  clearInvalidOnInput(panel);
+  panel.addEventListener("input", () => feedback.clear("dirty"));
 
   $("btnAddClient")?.addEventListener("click", () => showClientModal());
 
+  const reloadSoon = debounce(() => loadClientsList());
+
   $("clientListSearch")?.addEventListener("input", (event) => {
-    clientsState.search = event.target.value;
-    renderClientsList();
+    list.state.search = event.target.value;
+    reloadSoon();
   });
 
   $("clientsTableBody")?.addEventListener("click", handleTableAction);
@@ -962,9 +935,9 @@ export function initClients() {
 
   filterButtons.forEach((button) => {
     button.addEventListener("click", () => {
-      clientsState.filter = button.dataset.filter;
+      list.state.filter = button.dataset.filter;
       setActiveFilter(filterButtons, button);
-      renderClientsList();
+      loadClientsList();
     });
   });
 

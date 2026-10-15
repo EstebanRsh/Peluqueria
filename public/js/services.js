@@ -1,6 +1,5 @@
 import {
   ApiError,
-  collectPages,
   fetchAllServices,
   createService,
   updateService,
@@ -9,47 +8,27 @@ import {
   deleteService,
   getErrorMessage,
 } from "./api.js";
-import { matchesSearch } from "./utils.js";
-import { escapeHtml, isActive, setActiveFilter } from "./dom.js";
+import { $, escapeHtml, isActive, setActiveFilter } from "./dom.js";
 import {
   clearInvalidOnInput,
   createDirtyTracker,
   createFeedback,
   setBusy,
 } from "./feedback.js";
+import { createListLoader, debounce, moreRowHtml } from "./list.js";
 import { confirmAction } from "./confirm.js";
 import { notify } from "./toast.js";
 
-const servicesState = {
-  services: [],
-  filter: "todos",
-  search: "",
-};
+const list = createListLoader(fetchAllServices);
 
-let initialized = false;
 let isSaving = false;
 let modalOpener = null;
 let feedback = null;
 let dirty = null;
 
-const $ = (id) => document.getElementById(id);
-
 // ============================================================
 // LISTADO
 // ============================================================
-
-function visibleServices() {
-  return servicesState.services.filter((service) => {
-    const matchesFilter =
-      servicesState.filter === "todos" ||
-      (servicesState.filter === "activos" && isActive(service)) ||
-      (servicesState.filter === "inactivos" && !isActive(service));
-
-    const text = `${service.name} ${service.description || ""}`;
-
-    return matchesFilter && matchesSearch(text, servicesState.search);
-  });
-}
 
 function renderMessageRow(body, html) {
   body.innerHTML = `<tr><td colspan="5">${html}</td></tr>`;
@@ -59,10 +38,10 @@ function renderServicesList() {
   const body = $("servicesTableBody");
   if (!body) return;
 
-  const services = visibleServices();
+  const services = list.state.items;
 
   if (!services.length) {
-    if (servicesState.services.length === 0) {
+    if (list.isPristine()) {
       renderMessageRow(
         body,
         `<div class="panel-empty" role="status">
@@ -102,7 +81,8 @@ function renderServicesList() {
         </div></td>
       </tr>`;
     })
-    .join("");
+    .join("")
+    .concat(list.hasMore() ? moreRowHtml(5) : "");
 }
 
 function renderLoadError(error) {
@@ -120,22 +100,17 @@ function renderLoadError(error) {
   );
 }
 
-async function loadServices() {
-  servicesState.services = await collectPages(
-    (page, perPage) => fetchAllServices(page, perPage),
-    "servicios",
-  );
-
-  return servicesState.services;
-}
-
-export async function loadServicesList() {
+export async function loadServicesList({ append = false } = {}) {
   try {
-    await loadServices();
-    renderServicesList();
+    if (await list.load({ append })) renderServicesList();
   } catch (error) {
     console.error("Error al cargar servicios:", error);
-    renderLoadError(error);
+
+    if (append) {
+      notify.error(getErrorMessage(error, "No se pudieron cargar más servicios."));
+    } else {
+      renderLoadError(error);
+    }
   }
 }
 
@@ -291,8 +266,7 @@ async function saveService() {
 // Vuelve a pedir la lista; si falla, avisa sin dar por perdido el cambio.
 async function refreshAfterChange() {
   try {
-    await loadServices();
-    renderServicesList();
+    if (await list.load()) renderServicesList();
   } catch (error) {
     console.error("Error al actualizar la lista de servicios:", error);
     notify.warning(
@@ -341,8 +315,15 @@ async function handleTableAction(event) {
     return;
   }
 
+  if (action === "more") {
+    setBusy(button, true);
+    await loadServicesList({ append: true });
+    setBusy(button, false);
+    return;
+  }
+
   const id = button.dataset.id;
-  const service = servicesState.services.find((item) => String(item.id) === id);
+  const service = list.state.items.find((item) => String(item.id) === id);
 
   if (!service) return;
 
@@ -395,27 +376,20 @@ async function handleTableAction(event) {
 // ============================================================
 
 export function initServices() {
-  if (initialized) return;
-  initialized = true;
-
   const panel = $("serviceFormPanel");
 
-  if (panel) {
-    feedback = createFeedback(panel);
-    dirty = createDirtyTracker(panel);
-    clearInvalidOnInput(panel);
-    panel.addEventListener("input", () => feedback.clear("dirty"));
-  } else {
-    // Sin el panel no hay formulario: se evitan errores al abrirlo.
-    feedback = { show() {}, clear() {}, invalidate() {}, clearInvalid() {} };
-    dirty = { reset() {}, isDirty: () => false };
-  }
+  feedback = createFeedback(panel);
+  dirty = createDirtyTracker(panel);
+  clearInvalidOnInput(panel);
+  panel.addEventListener("input", () => feedback.clear("dirty"));
 
   $("btnAddService")?.addEventListener("click", () => showServiceModal());
 
+  const reloadSoon = debounce(() => loadServicesList());
+
   $("serviceSearch")?.addEventListener("input", (event) => {
-    servicesState.search = event.target.value;
-    renderServicesList();
+    list.state.search = event.target.value;
+    reloadSoon();
   });
 
   $("servicesTableBody")?.addEventListener("click", handleTableAction);
@@ -428,9 +402,9 @@ export function initServices() {
 
   filterButtons.forEach((button) => {
     button.addEventListener("click", () => {
-      servicesState.filter = button.dataset.filter;
+      list.state.filter = button.dataset.filter;
       setActiveFilter(filterButtons, button);
-      renderServicesList();
+      loadServicesList();
     });
   });
 

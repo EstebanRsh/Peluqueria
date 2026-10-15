@@ -1,6 +1,5 @@
 import {
   ApiError,
-  collectPages,
   fetchAllProducts,
   createProduct,
   updateProduct,
@@ -8,38 +7,24 @@ import {
   deactivateProduct,
   deleteProduct,
   getErrorMessage,
-  isAbortError,
 } from "./api.js";
-import { escapeHtml, isActive, setActiveFilter } from "./dom.js";
+import { $, escapeHtml, isActive, setActiveFilter } from "./dom.js";
 import {
   clearInvalidOnInput,
   createDirtyTracker,
   createFeedback,
   setBusy,
 } from "./feedback.js";
+import { createListLoader, debounce, moreRowHtml } from "./list.js";
 import { confirmAction } from "./confirm.js";
 import { notify } from "./toast.js";
 
-const productsState = {
-  products: [],
-  filter: "todos",
-  search: "",
-};
+const list = createListLoader(fetchAllProducts);
 
-const SEARCH_DEBOUNCE_MS = 200;
-
-let initialized = false;
 let isSaving = false;
 let modalOpener = null;
 let feedback = null;
 let dirty = null;
-
-// Control de la lista: se cancela el pedido anterior al buscar de nuevo.
-let loadController = null;
-let loadToken = 0;
-let searchTimer = null;
-
-const $ = (id) => document.getElementById(id);
 
 const UNIT_LABELS = {
   ml: "Mililitros (ml)",
@@ -69,8 +54,8 @@ function updateUnitLabels() {
   const unit = $("productUnit")?.value;
   const text = UNIT_FIELD_TEXT[unit] || UNIT_FIELD_TEXT.ml;
 
-  if ($("productStockLabel")) $("productStockLabel").textContent = text.stock;
-  if ($("productCostLabel")) $("productCostLabel").textContent = text.cost;
+  $("productStockLabel").textContent = text.stock;
+  $("productCostLabel").textContent = text.cost;
 }
 
 function formatStock(product) {
@@ -93,22 +78,19 @@ function renderProductsList() {
   const body = $("adminProductsTableBody");
   if (!body) return;
 
-  const products = productsState.products;
+  const products = list.state.items;
 
   if (!products.length) {
-    const hasCriteria =
-      productsState.search !== "" || productsState.filter !== "todos";
-
     renderMessageRow(
       body,
-      hasCriteria
-        ? '<div class="panel-empty" role="status">No hay productos que coincidan con la búsqueda o el filtro.</div>'
-        : `<div class="panel-empty" role="status">
+      list.isPristine()
+        ? `<div class="panel-empty" role="status">
             <div>Todavía no cargaste productos.</div>
             <div class="panel-empty__action">
               <button type="button" class="btn btn--primary btn--sm" data-action="new">Nuevo producto</button>
             </div>
-          </div>`,
+          </div>`
+        : '<div class="panel-empty" role="status">No hay productos que coincidan con la búsqueda o el filtro.</div>',
     );
     return;
   }
@@ -135,7 +117,8 @@ function renderProductsList() {
         </div></td>
       </tr>`;
     })
-    .join("");
+    .join("")
+    .concat(list.hasMore() ? moreRowHtml(6) : "");
 }
 
 function renderLoadError(error) {
@@ -153,42 +136,16 @@ function renderLoadError(error) {
   );
 }
 
-// Carga la lista con los criterios actuales. Un pedido nuevo cancela el anterior.
-export async function loadProductsList() {
-  loadController?.abort();
-
-  const controller = new AbortController();
-  loadController = controller;
-  const token = ++loadToken;
-  const table = $("productsTable");
-
-  table?.setAttribute("aria-busy", "true");
-
+export async function loadProductsList({ append = false } = {}) {
   try {
-    const products = await collectPages(
-      (page, perPage) =>
-        fetchAllProducts(
-          productsState.search,
-          productsState.filter,
-          controller.signal,
-          page,
-          perPage,
-        ),
-      "productos",
-    );
-
-    if (token !== loadToken) return;
-
-    productsState.products = products;
-    renderProductsList();
+    if (await list.load({ append })) renderProductsList();
   } catch (error) {
-    if (isAbortError(error) || token !== loadToken) return;
-
     console.error("Error al cargar productos:", error);
-    renderLoadError(error);
-  } finally {
-    if (token === loadToken) {
-      table?.removeAttribute("aria-busy");
+
+    if (append) {
+      notify.error(getErrorMessage(error, "No se pudieron cargar más productos."));
+    } else {
+      renderLoadError(error);
     }
   }
 }
@@ -381,8 +338,15 @@ async function handleTableAction(event) {
     return;
   }
 
+  if (action === "more") {
+    setBusy(button, true);
+    await loadProductsList({ append: true });
+    setBusy(button, false);
+    return;
+  }
+
   const id = button.dataset.id;
-  const product = productsState.products.find((item) => String(item.id) === id);
+  const product = list.state.items.find((item) => String(item.id) === id);
 
   if (!product) return;
 
@@ -435,21 +399,12 @@ async function handleTableAction(event) {
 // ============================================================
 
 export function initProducts() {
-  if (initialized) return;
-  initialized = true;
-
   const panel = $("productFormPanel");
 
-  if (panel) {
-    feedback = createFeedback(panel);
-    dirty = createDirtyTracker(panel);
-    clearInvalidOnInput(panel);
-    panel.addEventListener("input", () => feedback.clear("dirty"));
-  } else {
-    // Sin el panel no hay formulario: se evitan errores al abrirlo.
-    feedback = { show() {}, clear() {}, invalidate() {}, clearInvalid() {} };
-    dirty = { reset() {}, isDirty: () => false };
-  }
+  feedback = createFeedback(panel);
+  dirty = createDirtyTracker(panel);
+  clearInvalidOnInput(panel);
+  panel.addEventListener("input", () => feedback.clear("dirty"));
 
   const refreshProducts = () => {
     void loadProductsList();
@@ -465,24 +420,22 @@ export function initProducts() {
 
   $("btnAddProduct")?.addEventListener("click", () => showProductModal());
 
-  // Búsqueda remota con espera breve; cada pedido cancela el anterior.
-  $("adminProductSearch")?.addEventListener("input", (event) => {
-    productsState.search = String(event.target.value ?? "").trim();
+  const reloadSoon = debounce(() => loadProductsList());
 
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(loadProductsList, SEARCH_DEBOUNCE_MS);
+  $("adminProductSearch")?.addEventListener("input", (event) => {
+    list.state.search = event.target.value;
+    reloadSoon();
   });
 
   $("adminProductsTableBody")?.addEventListener("click", handleTableAction);
 
-  // Los filtros de estado disparan una carga remota.
   const filterButtons = Array.from(
     document.querySelectorAll("#viewProducts .btn-filter[data-filter]"),
   );
 
   filterButtons.forEach((button) => {
     button.addEventListener("click", () => {
-      productsState.filter = button.dataset.filter;
+      list.state.filter = button.dataset.filter;
       setActiveFilter(filterButtons, button);
       loadProductsList();
     });

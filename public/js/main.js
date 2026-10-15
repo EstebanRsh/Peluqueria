@@ -11,14 +11,10 @@ import { initProducts, loadProductsList } from "./products.js";
 import { initQuickEntry } from "./quickEntry.js";
 import { initLogout } from "./auth.js";
 import { initFab } from "./fab.js";
+import { appState } from "./state.js";
 
 const panel = document.getElementById("dayPanel");
 const closeBtn = document.getElementById("panelClose");
-
-export const appState = {
-  activeDay: null,
-  activeView: "appointments",
-};
 
 // ============================================================
 // CALENDARIO: CELDAS (CLIC Y TECLADO)
@@ -196,11 +192,7 @@ function notifyUnexpectedError(message) {
 }
 
 window.addEventListener("error", (event) => {
-  console.group("ERROR GLOBAL");
-  console.error(event.message);
-  console.error(event.filename);
-  console.error(event.lineno);
-  console.groupEnd();
+  console.error("Error no controlado:", event.message);
 
   // Aviso benigno del navegador: no afecta al usuario.
   if (String(event.message).startsWith("ResizeObserver")) {
@@ -216,9 +208,7 @@ window.addEventListener("unhandledrejection", (event) => {
     return;
   }
 
-  console.group("PROMESA RECHAZADA");
-  console.error(event.reason);
-  console.groupEnd();
+  console.error("Promesa rechazada sin manejar:", event.reason);
 
   notifyUnexpectedError(
     event.reason instanceof ApiError
