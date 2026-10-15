@@ -32,8 +32,8 @@
                 class="panel-search"
                 type="text"
                 id="clientListSearch"
-                aria-label="Buscar clientes por alias o código"
-                placeholder="Buscar por alias o código"
+                aria-label="Buscar clientes por alias"
+                placeholder="Buscar por alias"
                 autocomplete="off">
 
             <div class="panel-filters" role="group" aria-label="Filtrar clientes por estado">

@@ -268,7 +268,7 @@
                         class="panel-search"
                         type="text"
                         id="quickEntryProductSearch"
-                        placeholder="Buscar producto por nombre o marca"
+                        placeholder="Buscar producto por nombre"
                         autocomplete="off">
                     <ul class="autocomplete-list" id="quickEntryProductSuggestions"></ul>
                 </div>

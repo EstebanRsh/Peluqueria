@@ -42,7 +42,7 @@ class ProductModel
     }
 
     // Listado paginado para el panel de administración.
-    // Busca por nombre o marca (contiene el texto).
+    // Busca por nombre (empieza con el texto).
     public function paginate(int $ownerId, string $query, string $filter, int $page, int $perPage): array
     {
         $where = ['owner_id = ?'];
@@ -57,10 +57,9 @@ class ProductModel
 
         $query = trim($query);
         if ($query !== '') {
-            $like = '%' . $this->escapeLike($query) . '%';
-            $where[] = '(name LIKE ? OR brand LIKE ?)';
-            $types .= 'ss';
-            array_push($params, $like, $like);
+            $where[] = 'name LIKE ?';
+            $types .= 's';
+            $params[] = $this->escapeLike($query) . '%';
         }
 
         $whereSql = implode(' AND ', $where);
@@ -108,7 +107,7 @@ class ProductModel
         return $stmt->get_result()->fetch_assoc() ?: null;
     }
 
-    // Autocompletado: productos activos por nombre o marca, máximo 15.
+    // Autocompletado: productos activos cuyo nombre empieza con el texto, máximo 15.
     public function search(int $ownerId, string $query): array
     {
         $query = trim($query);
@@ -122,13 +121,13 @@ class ProductModel
             FROM products
             WHERE owner_id = ?
               AND active = 1
-              AND (name LIKE ? OR brand LIKE ?)
+              AND name LIKE ?
             ORDER BY name ASC
             LIMIT 15
         ");
 
-        $term = '%' . $this->escapeLike($query) . '%';
-        $stmt->bind_param('iss', $ownerId, $term, $term);
+        $term = $this->escapeLike($query) . '%';
+        $stmt->bind_param('is', $ownerId, $term);
         $stmt->execute();
 
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);

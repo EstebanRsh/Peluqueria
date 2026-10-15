@@ -34,7 +34,7 @@ Esta aplicación esta siendo desarrollada para solucionar esto: ordenar la agend
 - Buscador y filtros por estado dentro de ese panel, para encontrar un turno rápido sin scrollear toda la lista.
 - Alta de un turno, con o sin cliente asociado (para cuando alguien llega sin estar registrado todavía).
 - El turno se valida antes de guardarse: cliente, servicio, fecha y horarios de inicio y fin.
-- Búsqueda de turnos por nombre o alias del cliente, código interno.
+- Búsqueda de turnos por el comienzo del nombre o alias del cliente, del código interno o del profesional.
 - El estado de un turno se puede mover entre: **Reservado → En sala de espera → En atención → Finalizado**, o marcarlo como **Cancelado** o **Ausente**.
 - Cada cambio de estado queda registrado con fecha y hora, formando una pequeña línea de tiempo del turno.
 - Eliminación de turnos.
@@ -42,7 +42,7 @@ Esta aplicación esta siendo desarrollada para solucionar esto: ordenar la agend
 ### 👤 Clientes
 
 - Alta y edición de clientes, con alias, código interno y notas.
-- Búsqueda por alias o código.
+- Búsqueda por el comienzo del alias, resuelta en el servidor y de a 25 resultados.
 - Activar, desactivar o eliminar un cliente (solo si no tiene turnos asociados, para no perder información).
 - Listado de clientes activos e inactivos.
 

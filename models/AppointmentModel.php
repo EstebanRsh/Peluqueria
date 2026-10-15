@@ -56,7 +56,7 @@ class AppointmentModel
         $types = 'is';
         $params = [$ownerId, $date];
 
-        // Búsqueda por cliente, código interno o profesional (filtrado dentro del día)
+        // Búsqueda por cliente, código interno o profesional: empieza con el texto (dentro del día)
         if ($search !== '') {
             $query .= "
                 AND (
@@ -66,7 +66,7 @@ class AppointmentModel
                 )
             ";
 
-            $like = '%' . addcslashes($search, '%_\\') . '%';
+            $like = addcslashes($search, '%_\\') . '%';
             $types .= 'sss';
             array_push($params, $like, $like, $like);
         }

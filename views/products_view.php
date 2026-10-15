@@ -32,8 +32,8 @@
                 class="panel-search"
                 type="text"
                 id="adminProductSearch"
-                aria-label="Buscar productos por nombre o marca"
-                placeholder="Buscar por nombre o marca"
+                aria-label="Buscar productos por nombre"
+                placeholder="Buscar por nombre"
                 autocomplete="off">
 
             <div class="panel-filters" role="group" aria-label="Filtrar productos por estado">
