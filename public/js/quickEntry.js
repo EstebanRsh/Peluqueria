@@ -11,7 +11,7 @@ import {
   searchProducts,
 } from "./api.js";
 import { createAutocomplete } from "./autocomplete.js";
-import { escapeHtml } from "./dom.js";
+import { $, escapeHtml } from "./dom.js";
 import { clearInvalidOnInput, createFeedback, setBusy } from "./feedback.js";
 import { confirmAction } from "./confirm.js";
 import { notify } from "./toast.js";
@@ -58,8 +58,6 @@ const DETAIL_FIELDS = {
     finish: "cutFinish",
   },
 };
-
-const $ = (id) => document.getElementById(id);
 
 const isEnabled = (record) =>
   record.active === undefined ||
@@ -390,7 +388,6 @@ export function initQuickEntry() {
       existing.quantity += 1;
     } else {
       cartItems.push({
-        item_id: Date.now(),
         product_id: product.id,
         name: product.name,
         brand: product.brand || null,

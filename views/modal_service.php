@@ -36,6 +36,7 @@
                 <input
                     type="text"
                     id="serviceName"
+                    aria-required="true"
                     maxlength="100"
                     placeholder="Ej: Corte de cabello">
             </div>
@@ -56,6 +57,7 @@
                     <input
                         type="number"
                         id="serviceDuration"
+                        aria-required="true"
                         min="1"
                         step="1"
                         inputmode="numeric"
@@ -68,6 +70,7 @@
                     <input
                         type="number"
                         id="servicePrice"
+                        aria-required="true"
                         min="0"
                         step="0.01"
                         inputmode="decimal"

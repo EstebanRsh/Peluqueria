@@ -44,7 +44,7 @@ export function formatDate(dateStr) {
 // adecuada para utilizar como clase CSS, identificador
 // o valor de comparación.
 //
-// Ejemplo: "En sala de espera" -> "en-sala-de-espera"
+// Ejemplo: "Cliente nuevo" -> "cliente-nuevo"
 export function slugify(text) {
   if (!text) {
     return "";

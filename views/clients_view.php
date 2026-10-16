@@ -113,23 +113,10 @@
         </div>
 
         <div class="profile-drawer__section">
-            <h4 class="history-title">Diagnóstico capilar</h4>
+            <h4 class="history-title">Alergias</h4>
             <div class="detail-grid">
-                <div class="detail-card">
-                    <span class="detail-label">Base natural</span>
-                    <span class="detail-value" id="clientProfileBase">—</span>
-                </div>
-                <div class="detail-card">
-                    <span class="detail-label">Tipo de cabello</span>
-                    <span class="detail-value" id="clientProfileHair">—</span>
-                </div>
-                <div class="detail-card">
-                    <span class="detail-label">Canas</span>
-                    <span class="detail-value" id="clientProfileGrey">—</span>
-                </div>
-                <div class="detail-card">
-                    <span class="detail-label">Alergias</span>
-                    <span class="detail-value" id="clientProfileAllergies">—</span>
+                <div class="detail-card detail-card-full">
+                    <span class="detail-value" id="clientProfileAllergies">Sin alergias registradas.</span>
                 </div>
             </div>
         </div>
@@ -159,7 +146,7 @@
         </div>
 
         <div class="profile-drawer__section">
-            <h4 class="history-title">Turnos</h4>
+            <h4 class="history-title">Turnos con ficha</h4>
             <div class="history-items" id="clientProfileAppointments">
                 <p class="history-empty">Sin turnos.</p>
             </div>

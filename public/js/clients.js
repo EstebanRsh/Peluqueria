@@ -151,6 +151,7 @@ function showClientModal(client = null) {
   $("clientAlias").value = client?.alias || "";
   $("clientCode").value = client?.internal_code || "";
   $("clientNotes").value = client?.notes || "";
+  $("clientAllergies").value = client?.allergies || "";
   $("clientModalTitle").textContent = client
     ? "Editar cliente"
     : "Nuevo cliente";
@@ -197,6 +198,7 @@ function formData() {
     alias: $("clientAlias").value.trim(),
     internal_code: $("clientCode").value.trim() || null,
     notes: $("clientNotes").value.trim(),
+    allergies: $("clientAllergies").value.trim(),
   };
 }
 
@@ -675,15 +677,8 @@ function openClientProfile(client) {
 
   $("clientProfileNotes").textContent =
     client.notes || "Sin notas permanentes.";
-  $("clientProfileBase").textContent = client.natural_base_tone || "—";
-  $("clientProfileHair").textContent = client.hair_type || "—";
-  $("clientProfileGrey").textContent =
-    client.grey_hair === null ||
-    client.grey_hair === undefined ||
-    client.grey_hair === ""
-      ? "—"
-      : `${client.grey_hair}%`;
-  $("clientProfileAllergies").textContent = client.allergies || "—";
+  $("clientProfileAllergies").textContent =
+    client.allergies || "Sin alergias registradas.";
 
   $("clientProfileAvatar").textContent = String(client.alias || "C")
     .trim()

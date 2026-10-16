@@ -8,25 +8,21 @@
 // ============================================================
 
 import { isAbortError } from "./api.js";
+import { escapeHtml } from "./dom.js";
 
 const ACCENT_MARKS = /[\u0300-\u036f]/g;
 
+const LOADING_MESSAGE = "Buscando...";
+const ERROR_MESSAGE = "No se pudo realizar la búsqueda. Intentá de nuevo.";
+
+// Se aplica carácter por carácter: no recorta, un espacio no debe desaparecer.
 function fold(value) {
   return String(value).normalize("NFD").replace(ACCENT_MARKS, "").toLowerCase();
 }
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
 // Devuelve el texto (escapado) con la coincidencia resaltada en <mark>.
 // Ignora mayúsculas y tildes al comparar.
-export function highlightMatch(text, query) {
+function highlightMatch(text, query) {
   const source = String(text ?? "");
   const needle = fold(query.trim());
 
@@ -87,9 +83,7 @@ export function createAutocomplete(config) {
     customOption = null,
     minChars = 2,
     debounceMs = 250,
-    loadingMessage = "Buscando...",
     emptyMessage = "No se encontraron resultados.",
-    errorMessage = "No se pudo realizar la búsqueda. Intentá de nuevo.",
   } = config;
 
   const uid = `ac${++instanceCounter}`;
@@ -179,11 +173,11 @@ export function createAutocomplete(config) {
     input.removeAttribute("aria-activedescendant");
 
     if (state === "loading") {
-      addStatus(loadingMessage);
+      addStatus(LOADING_MESSAGE);
     } else if (state === "empty") {
       addStatus(emptyMessage);
     } else if (state === "error") {
-      addStatus(errorMessage, true);
+      addStatus(ERROR_MESSAGE, true);
     }
 
     if (state === "results") {
@@ -214,7 +208,7 @@ export function createAutocomplete(config) {
       liveRegion.textContent = emptyMessage;
       if (optionNodes.length > 0) setActive(0);
     } else if (state === "error") {
-      liveRegion.textContent = errorMessage;
+      liveRegion.textContent = ERROR_MESSAGE;
     }
   }
 

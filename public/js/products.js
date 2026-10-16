@@ -213,8 +213,8 @@ function formData() {
     name: $("productName").value.trim(),
     brand: $("productBrand").value.trim() || null,
     measurement_unit: $("productUnit").value,
-    stock: Number($("productStock").value) || 0,
-    unit_cost: Number($("productCost").value) || 0,
+    stock: Number($("productStock").value),
+    unit_cost: Number($("productCost").value),
   };
 }
 
@@ -228,16 +228,16 @@ function validateForm(data) {
     });
   }
 
-  if (data.stock < 0) {
+  if ($("productStock").value === "" || !(data.stock >= 0)) {
     errors.push({
-      message: "El stock no puede ser negativo.",
+      message: "Indicá el stock (puede ser 0).",
       fields: ["productStock"],
     });
   }
 
-  if (data.unit_cost < 0) {
+  if ($("productCost").value === "" || !(data.unit_cost >= 0)) {
     errors.push({
-      message: "El costo no puede ser negativo.",
+      message: "Indicá el costo por unidad (puede ser 0).",
       fields: ["productCost"],
     });
   }
