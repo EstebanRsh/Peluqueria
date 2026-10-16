@@ -259,7 +259,7 @@ VALUES (
 
 -- 3. CLIENTES CON FICHA (26 clientes frecuentes)
 
--- Incluye el diagnóstico capilar base (tono natural, canas,
+-- Incluye el diagnóstico capilar base (tono natural,
 
 -- tipo de cabello y alergias).
 
@@ -276,7 +276,6 @@ INSERT INTO
         internal_code,
         alias,
         natural_base_tone,
-        grey_hair,
         hair_type,
         allergies,
         notes,
@@ -288,7 +287,6 @@ VALUES (
         'CLI-0001',
         'Roberto G.',
         'Castaño oscuro (3)',
-        30,
         'Grueso, liso',
         NULL,
         'Cliente habitual, corte clásico cada 3 semanas.',
@@ -300,7 +298,6 @@ VALUES (
         'CLI-0002',
         'Carla T.',
         'Castaño medio (4)',
-        5,
         'Fino, ondulado',
         'Keratina (reacción alérgica previa)',
         'Prefiere cortar solo puntas; evitar keratina por alergia.',
@@ -312,7 +309,6 @@ VALUES (
         'CLI-0003',
         'Mariana P.',
         'Castaño claro (5)',
-        0,
         'Medio, liso',
         NULL,
         'Le gusta el esmaltado semipermanente en tonos rojos.',
@@ -324,7 +320,6 @@ VALUES (
         'CLI-0004',
         'Lucía F.',
         'Castaño oscuro (3)',
-        0,
         'Grueso, ondulado, poroso',
         'Sensibilidad leve a PPD: hacer test de parche antes de cada coloración',
         'Balayage, siempre trae foto de referencia.',
@@ -336,7 +331,6 @@ VALUES (
         'CLI-0005',
         'Camila R.',
         'Castaño medio (4)',
-        10,
         'Grueso, muy largo y abundante',
         NULL,
         'Cabello muy largo, requiere turno extendido.',
@@ -348,7 +342,6 @@ VALUES (
         'CLI-0006',
         'Diego A.',
         'Negro (1)',
-        15,
         'Grueso, liso',
         NULL,
         'Corte rápido, viene en su hora de almuerzo.',
@@ -360,7 +353,6 @@ VALUES (
         'CLI-0007',
         'Marta B.',
         'Castaño medio (4)',
-        40,
         'Fino, liso',
         'Sensibilidad al amoníaco',
         'Retoque de raíces mensual, sensible al amoníaco.',
@@ -372,7 +364,6 @@ VALUES (
         'CLI-0008',
         'Fernando C.',
         'Castaño oscuro (3)',
-        50,
         'Medio, liso',
         NULL,
         'Cliente puntual, siempre pide el mismo estilista.',
@@ -384,7 +375,6 @@ VALUES (
         'CLI-0009',
         'Romina K.',
         'Rubio oscuro (6)',
-        10,
         'Poroso, con frizz',
         NULL,
         'Tratamiento de keratina cada 4 meses.',
@@ -396,7 +386,6 @@ VALUES (
         'CLI-0010',
         'Gustavo M.',
         'Negro (1)',
-        20,
         'Grueso, rizado',
         NULL,
         'Prefiere máquina, corte bajo.',
@@ -408,7 +397,6 @@ VALUES (
         'CLI-0011',
         'Florencia D.',
         'Castaño claro (5)',
-        0,
         'Fino, liso, sensibilizado post-decoloración',
         NULL,
         'Primera decoloración, seguimiento de cuidado post-color.',
@@ -420,7 +408,6 @@ VALUES (
         'CLI-0012',
         'Silvia Q.',
         'Rubio medio (7)',
-        35,
         'Medio, ondulado',
         NULL,
         'Le gusta charlar, conviene agendar con tiempo extra.',
@@ -432,7 +419,6 @@ VALUES (
         'CLI-0013',
         'Laura W.',
         'Castaño claro (5)',
-        0,
         'Medio, liso',
         NULL,
         'Eligió color rosa pastel en su última manicura.',
@@ -444,7 +430,6 @@ VALUES (
         'CLI-0014',
         'Rocío E.',
         'Castaño oscuro (3)',
-        0,
         'Medio, liso',
         NULL,
         'Diseño de cejas cada 3 semanas.',
@@ -456,7 +441,6 @@ VALUES (
         'CLI-0015',
         'Diana C.',
         'Castaño medio (4)',
-        25,
         'Medio, liso, seco',
         NULL,
         'Cliente VIP, prefiere turnos por la tarde.',
@@ -468,7 +452,6 @@ VALUES (
         'CLI-0016',
         'Oscar V.',
         'Castaño oscuro (3)',
-        10,
         'Grueso, liso',
         NULL,
         'Pasa rápido antes de entrar a trabajar.',
@@ -480,7 +463,6 @@ VALUES (
         'CLI-0017',
         'Micaela R.',
         'Rubio claro (8)',
-        0,
         'Fino, liso',
         NULL,
         'Peinados para eventos y casamientos.',
@@ -492,7 +474,6 @@ VALUES (
         'CLI-0018',
         'Ana F.',
         'Castaño oscuro (3)',
-        5,
         'Grueso, ondulado',
         NULL,
         'Servicio largo, coordinar con tiempo.',
@@ -504,7 +485,6 @@ VALUES (
         'CLI-0019',
         'Tomás P.',
         'Castaño medio (4)',
-        0,
         'Medio, ondulado',
         NULL,
         'Cliente nuevo, llegó recomendado.',
@@ -516,7 +496,6 @@ VALUES (
         'CLI-0020',
         'Victoria M.',
         'Castaño claro (5)',
-        0,
         'Fino, liso',
         NULL,
         'Cliente nueva, primer corte femenino.',
@@ -528,7 +507,6 @@ VALUES (
         'CLI-0021',
         'Julieta D.',
         'Castaño medio (4)',
-        0,
         'Medio, liso',
         NULL,
         'Renueva su semipermanente cada 3 semanas.',
@@ -540,7 +518,6 @@ VALUES (
         'CLI-0022',
         'Emiliano G.',
         'Negro (1)',
-        10,
         'Grueso, liso; barba densa',
         NULL,
         'Barba prolija, viene cada 2 semanas.',
@@ -552,7 +529,6 @@ VALUES (
         'CLI-0023',
         'Federico A.',
         'Castaño oscuro (3)',
-        45,
         'Medio, liso',
         NULL,
         'A veces trae a su hijo también.',
@@ -564,7 +540,6 @@ VALUES (
         'CLI-0024',
         'Cristian L.',
         'Castaño oscuro (3)',
-        20,
         'Grueso, liso',
         NULL,
         'Cliente de la zona, viene caminando.',
@@ -576,7 +551,6 @@ VALUES (
         'CLI-0025',
         'Gabriel O.',
         'Negro (1)',
-        5,
         'Grueso; barba gruesa',
         NULL,
         'Prefiere toalla caliente antes del recorte de barba.',
@@ -588,7 +562,6 @@ VALUES (
         'OWN2-0001',
         'Elena S.',
         'Rubio oscuro (6)',
-        15,
         'Fino, ondulado',
         NULL,
         'Cliente de prueba exclusiva de owner2.',
@@ -921,7 +894,7 @@ VALUES
     'Martín',
     10.00,
     '',
-    'En atención',
+    'Reservado',
     '2026-09-04',
     '10:20:00',
     '10:40:00'
@@ -935,7 +908,7 @@ VALUES
     'Sofia',
     20.00,
     'Eligió color rosa paste.',
-    'En atención',
+    'Reservado',
     '2026-09-04',
     '10:00:00',
     '11:00:00'
@@ -949,7 +922,7 @@ VALUES
     'Lucas',
     15.00,
     'Esperando tomando café.',
-    'En sala de espera',
+    'Reservado',
     '2026-09-04',
     '10:45:00',
     '11:15:00'
@@ -1311,20 +1284,6 @@ VALUES
     1,
     2,
     'Reservado',
-    'En sala de espera',
-    '2026-08-15 09:50:00'
-),
-(
-    1,
-    2,
-    'En sala de espera',
-    'En atención',
-    '2026-08-15 10:05:00'
-),
-(
-    1,
-    2,
-    'En atención',
     'Finalizado',
     '2026-08-15 10:35:00'
 ),
@@ -1342,20 +1301,6 @@ VALUES
     2,
     2,
     'Reservado',
-    'En sala de espera',
-    '2026-08-15 10:55:00'
-),
-(
-    2,
-    2,
-    'En sala de espera',
-    'En atención',
-    '2026-08-15 11:02:00'
-),
-(
-    2,
-    2,
-    'En atención',
     'Finalizado',
     '2026-08-15 11:50:00'
 ),
@@ -1373,13 +1318,6 @@ VALUES
     3,
     2,
     'Reservado',
-    'En atención',
-    '2026-08-16 14:00:00'
-),
-(
-    3,
-    2,
-    'En atención',
     'Finalizado',
     '2026-08-16 15:05:00'
 ),
@@ -1414,20 +1352,6 @@ VALUES
     5,
     2,
     'Reservado',
-    'En sala de espera',
-    '2026-08-17 08:50:00'
-),
-(
-    5,
-    2,
-    'En sala de espera',
-    'En atención',
-    '2026-08-17 09:00:00'
-),
-(
-    5,
-    2,
-    'En atención',
     'Finalizado',
     '2026-08-17 11:00:00'
 ),
@@ -1521,20 +1445,6 @@ VALUES
     11,
     2,
     'Reservado',
-    'En sala de espera',
-    '2026-09-01 09:55:00'
-),
-(
-    11,
-    2,
-    'En sala de espera',
-    'En atención',
-    '2026-09-01 10:00:00'
-),
-(
-    11,
-    2,
-    'En atención',
     'Finalizado',
     '2026-09-01 11:30:00'
 ),
@@ -1549,13 +1459,6 @@ VALUES
     12,
     2,
     'Reservado',
-    'En atención',
-    '2026-09-01 10:35:00'
-),
-(
-    12,
-    2,
-    'En atención',
     'Finalizado',
     '2026-09-01 11:05:00'
 ),
@@ -1657,20 +1560,6 @@ VALUES
     19,
     2,
     'Reservado',
-    'En sala de espera',
-    '2026-09-04 08:50:00'
-),
-(
-    19,
-    2,
-    'En sala de espera',
-    'En atención',
-    '2026-09-04 09:02:00'
-),
-(
-    19,
-    2,
-    'En atención',
     'Finalizado',
     '2026-09-04 09:35:00'
 ),
@@ -1685,13 +1574,6 @@ VALUES
     20,
     2,
     'Reservado',
-    'En atención',
-    '2026-09-04 09:30:00'
-),
-(
-    20,
-    2,
-    'En atención',
     'Finalizado',
     '2026-09-04 10:15:00'
 ),
@@ -1703,32 +1585,11 @@ VALUES
     '2026-09-03 17:00:00'
 ),
 (
-    21,
-    2,
-    'Reservado',
-    'En sala de espera',
-    '2026-09-04 10:10:00'
-),
-(
-    21,
-    2,
-    'En sala de espera',
-    'En atención',
-    '2026-09-04 10:20:00'
-),
-(
     22,
     2,
     NULL,
     'Reservado',
     '2026-09-03 18:00:00'
-),
-(
-    22,
-    2,
-    'Reservado',
-    'En atención',
-    '2026-09-04 10:00:00'
 ),
 (
     23,
@@ -1737,14 +1598,6 @@ VALUES
     'Reservado',
     '2026-09-03 19:00:00'
 ),
-(
-    23,
-    2,
-    'Reservado',
-    'En sala de espera',
-    '2026-09-04 10:30:00'
-),
-
 -- Creación inicial ("Reservado") para el resto de los turnos de hoy y futuros
 
 (
@@ -1914,13 +1767,6 @@ VALUES
     46,
     3,
     'Reservado',
-    'En atención',
-    '2026-09-06 11:00:00'
-),
-(
-    46,
-    3,
-    'En atención',
     'Finalizado',
     '2026-09-06 11:45:00'
 );

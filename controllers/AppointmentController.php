@@ -68,7 +68,7 @@ class AppointmentController extends BaseController
                 ]);
                 break;
 
-            // Cambiar de estado un turno existente (ej. de Reservado a En atención)
+            // Cambiar de estado un turno existente (ej. de Reservado a Finalizado)
             case 'update_status':
                 $input = $this->readInput();
                 $id = $this->validId($input['id'] ?? 0, 'turno');
@@ -118,7 +118,7 @@ class AppointmentController extends BaseController
     }
 
     // ============================================================
-    // FILTRO DE ESTADO (acepta "en-atencion" o "En atención")
+    // FILTRO DE ESTADO (acepta "finalizado" o "Finalizado")
     // ============================================================
 
     // Transforma slugs de URL al texto plano exacto que utiliza la BD

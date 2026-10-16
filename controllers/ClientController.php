@@ -186,23 +186,12 @@ class ClientController extends BaseController
             $code = $existing['internal_code'];
         }
 
-        // Igual que arriba, pero para el porcentaje de canas.
-        if ($keep('grey_hair')) {
-            $grey = $existing['grey_hair'] !== null ? (int)$existing['grey_hair'] : null;
-        } else {
-            $rawGrey = $input['grey_hair'] ?? null;
-            $grey = ($rawGrey === null || $rawGrey === '')
-                ? null
-                : filter_var($rawGrey, FILTER_VALIDATE_INT);
-        }
-
         return [
             'alias'             => $this->str($input['alias'] ?? null),
             'internal_code'     => $code,
             'natural_base_tone' => $keep('natural_base_tone')
                 ? $existing['natural_base_tone']
                 : ($this->str($input['natural_base_tone'] ?? null) ?: null),
-            'grey_hair'         => $grey,
             'hair_type'         => $keep('hair_type')
                 ? $existing['hair_type']
                 : ($this->str($input['hair_type'] ?? null) ?: null),
@@ -239,19 +228,16 @@ class ClientController extends BaseController
             }
         }
 
-        if (
-            $data['grey_hair'] !== null &&
-            ($data['grey_hair'] === false || $data['grey_hair'] < 0 || $data['grey_hair'] > 100)
-        ) {
-            return 'El porcentaje de canas debe ser un número entero entre 0 y 100.';
-        }
-
         if (mb_strlen($data['natural_base_tone'] ?? '') > 30) {
             return 'El tono natural no puede superar los 30 caracteres.';
         }
 
         if (mb_strlen($data['hair_type'] ?? '') > 100) {
             return 'El tipo de cabello no puede superar los 100 caracteres.';
+        }
+
+        if (mb_strlen($data['allergies'] ?? '') > 500) {
+            return 'Las alergias no pueden superar los 500 caracteres.';
         }
 
         return true;

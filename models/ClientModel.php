@@ -7,7 +7,7 @@ class ClientModel
     private mysqli $conn;
 
     private const COLUMNS = "
-        id, internal_code, alias, natural_base_tone, grey_hair,
+        id, internal_code, alias, natural_base_tone,
         hair_type, allergies, notes, active, created_at, updated_at
     ";
 
@@ -113,7 +113,7 @@ class ClientModel
     }
 
     // Inserta un cliente nuevo.
-    // $d: alias, internal_code, natural_base_tone, grey_hair, hair_type, allergies, notes
+    // $d: alias, internal_code, natural_base_tone, hair_type, allergies, notes
     public function create(int $ownerId, array $d): bool
     {
         $this->conn->begin_transaction();
@@ -121,17 +121,16 @@ class ClientModel
         try {
             $stmt = $this->conn->prepare("
                 INSERT INTO clients
-                    (owner_id, alias, internal_code, natural_base_tone, grey_hair, hair_type, allergies, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    (owner_id, alias, internal_code, natural_base_tone, hair_type, allergies, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             ");
 
             $stmt->bind_param(
-                'isssisss',
+                'issssss',
                 $ownerId,
                 $d['alias'],
                 $d['internal_code'],
                 $d['natural_base_tone'],
-                $d['grey_hair'],
                 $d['hair_type'],
                 $d['allergies'],
                 $d['notes']
@@ -166,7 +165,6 @@ class ClientModel
             SET alias = ?,
                 internal_code = ?,
                 natural_base_tone = ?,
-                grey_hair = ?,
                 hair_type = ?,
                 allergies = ?,
                 notes = ?
@@ -175,11 +173,10 @@ class ClientModel
         ");
 
         $stmt->bind_param(
-            'sssisssii',
+            'ssssssii',
             $d['alias'],
             $d['internal_code'],
             $d['natural_base_tone'],
-            $d['grey_hair'],
             $d['hair_type'],
             $d['allergies'],
             $d['notes'],

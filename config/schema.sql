@@ -55,7 +55,6 @@ CREATE TABLE IF NOT EXISTS clients (
     internal_code VARCHAR(40) UNIQUE COMMENT 'Código interno para búsqueda rápida',
     alias VARCHAR(100) NOT NULL COMMENT 'Nombre o apodo',
     natural_base_tone VARCHAR(30) NULL COMMENT 'Tono natural, ej: Castaño oscuro (3)',
-    grey_hair TINYINT NULL COMMENT 'Porcentaje de canas (0-100)',
     hair_type VARCHAR(100) NULL COMMENT 'Textura: Fino, grueso, poroso',
     allergies TEXT NULL COMMENT 'Alergias o sensibilidad',
     notes TEXT COMMENT 'Notas generales',
@@ -82,8 +81,6 @@ CREATE TABLE IF NOT EXISTS appointments (
     notes TEXT COMMENT 'Anotaciones particulares del turno',
     status ENUM(
         'Reservado',
-        'En sala de espera',
-        'En atención',
         'Finalizado',
         'Cancelado',
         'Ausente'

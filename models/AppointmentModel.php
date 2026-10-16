@@ -9,8 +9,6 @@ class AppointmentModel
     // Estados oficiales del turno dentro del flujo de la agenda
     public const STATUSES = [
         'Reservado',
-        'En sala de espera',
-        'En atención',
         'Finalizado',
         'Cancelado',
         'Ausente',
@@ -18,12 +16,10 @@ class AppointmentModel
 
     // Mapeo de slugs de URL (?status=...) hacia el nombre real registrado en la base de datos
     public const STATUS_SLUGS = [
-        'reservado'         => 'Reservado',
-        'en-sala-de-espera' => 'En sala de espera',
-        'en-atencion'       => 'En atención',
-        'finalizado'        => 'Finalizado',
-        'ausente'           => 'Ausente',
-        'cancelado'         => 'Cancelado',
+        'reservado'  => 'Reservado',
+        'finalizado' => 'Finalizado',
+        'ausente'    => 'Ausente',
+        'cancelado'  => 'Cancelado',
     ];
 
     public function __construct()

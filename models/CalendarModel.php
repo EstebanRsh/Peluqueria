@@ -27,7 +27,7 @@ class CalendarModel
               AND date BETWEEN ? AND ?
             GROUP BY date, status
             ORDER BY date ASC,
-                FIELD(status, 'Reservado', 'En sala de espera', 'En atención', 'Finalizado', 'Ausente', 'Cancelado') ASC
+                FIELD(status, 'Reservado', 'Finalizado', 'Ausente', 'Cancelado') ASC
         ");
 
         $stmt->bind_param('iss', $ownerId, $start, $end);
