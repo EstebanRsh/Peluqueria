@@ -8,7 +8,7 @@ import {
   deleteService,
   getErrorMessage,
 } from "./api.js";
-import { $, escapeHtml, isActive, setActiveFilter } from "./dom.js";
+import { $, escapeHtml, isActive, restoreFocus, setActiveFilter } from "./dom.js";
 import {
   clearInvalidOnInput,
   createDirtyTracker,
@@ -19,7 +19,7 @@ import { createListLoader, debounce, moreRowHtml } from "./list.js";
 import { confirmAction } from "./confirm.js";
 import { notify } from "./toast.js";
 
-const list = createListLoader(fetchAllServices);
+const list = createListLoader(fetchAllServices, $("serviceSearch"));
 
 let isSaving = false;
 let modalOpener = null;
@@ -134,7 +134,6 @@ function showServiceModal(service = null) {
     ? "Editar servicio"
     : "Nuevo servicio";
 
-  feedback.clear();
   feedback.clearInvalid();
   dirty.reset();
 
@@ -151,9 +150,7 @@ function closeServiceModal() {
   panel?.classList.remove("is-open");
   panel?.setAttribute("aria-hidden", "true");
 
-  if (modalOpener && modalOpener.isConnected) {
-    modalOpener.focus({ preventScroll: true });
-  }
+  restoreFocus(modalOpener);
   modalOpener = null;
 }
 
@@ -163,7 +160,6 @@ function requestCloseServiceModal() {
     feedback.show(
       "warning",
       "Hay datos sin guardar. Usá Cancelar o × para descartarlos.",
-      "dirty",
     );
     return;
   }
@@ -213,7 +209,6 @@ function validateForm({ data, priceRaw }) {
 async function saveService() {
   if (isSaving) return;
 
-  feedback.clear();
   feedback.clearInvalid();
 
   const id = $("managedServiceId").value;
@@ -228,7 +223,6 @@ async function saveService() {
         ? errors[0].message
         : "Completá los campos marcados para continuar.",
     );
-    document.querySelector("#serviceFormPanel [aria-invalid='true']")?.focus();
     return;
   }
 
@@ -381,7 +375,6 @@ export function initServices() {
   feedback = createFeedback(panel);
   dirty = createDirtyTracker(panel);
   clearInvalidOnInput(panel);
-  panel.addEventListener("input", () => feedback.clear("dirty"));
 
   $("btnAddService")?.addEventListener("click", () => showServiceModal());
 

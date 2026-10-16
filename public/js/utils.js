@@ -57,3 +57,19 @@ export function slugify(text) {
     .replace(/[^\w\-]+/g, "")
     .replace(/\-\-+/g, "-");
 }
+
+export const pad = (value) => String(value).padStart(2, "0");
+
+// Fecha de hoy como "AAAA-MM-DD" en la hora local.
+export function todayIso() {
+  const now = new Date();
+
+  return [now.getFullYear(), pad(now.getMonth() + 1), pad(now.getDate())].join(
+    "-",
+  );
+}
+
+// "HH:MM:SS" -> "HH:MM"
+export function formatTime(value) {
+  return String(value ?? "").substring(0, 5);
+}

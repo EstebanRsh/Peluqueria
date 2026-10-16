@@ -1,3 +1,5 @@
+import { todayIso } from "./utils.js";
+
 // ============================================================
 // FAB CONTEXTUAL (un único componente, acciones según la vista)
 // ============================================================
@@ -33,12 +35,7 @@ const actions = {
     icon: "appointment",
     accent: true,
     run: () => {
-      const t = new Date();
-      ctx.appState.activeDay ??= [
-        t.getFullYear(),
-        String(t.getMonth() + 1).padStart(2, "0"),
-        String(t.getDate()).padStart(2, "0"),
-      ].join("-");
+      ctx.appState.activeDay ??= todayIso();
       document.getElementById("btnAddAppointment")?.click();
     },
   }),

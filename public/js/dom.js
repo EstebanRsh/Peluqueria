@@ -14,6 +14,13 @@ export function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+// Devuelve el foco a un elemento si sigue en la página.
+export function restoreFocus(element) {
+  if (element && element.isConnected) {
+    element.focus({ preventScroll: true });
+  }
+}
+
 // Registro activo (estricto): el campo "active" debe valer true o 1.
 export function isActive(record) {
   return record.active === true || Number(record.active) === 1;

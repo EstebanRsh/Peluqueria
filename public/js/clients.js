@@ -10,19 +10,27 @@ import {
   deleteClient,
   getErrorMessage,
 } from "./api.js";
-import { slugify } from "./utils.js";
-import { $, escapeHtml, isActive, setActiveFilter, truncate } from "./dom.js";
+import { formatTime, slugify } from "./utils.js";
+import {
+  $,
+  escapeHtml,
+  isActive,
+  restoreFocus,
+  setActiveFilter,
+  truncate,
+} from "./dom.js";
 import {
   clearInvalidOnInput,
   createDirtyTracker,
   createFeedback,
   setBusy,
+  setSearching,
 } from "./feedback.js";
 import { createListLoader, debounce, moreRowHtml } from "./list.js";
 import { confirmAction } from "./confirm.js";
 import { notify } from "./toast.js";
 
-const list = createListLoader(fetchAllClients);
+const list = createListLoader(fetchAllClients, $("clientListSearch"));
 
 let isSaving = false;
 let profileRequestId = 0;
@@ -156,7 +164,6 @@ function showClientModal(client = null) {
     ? "Editar cliente"
     : "Nuevo cliente";
 
-  feedback.clear();
   feedback.clearInvalid();
   dirty.reset();
 
@@ -173,9 +180,7 @@ function closeClientModal() {
   panel?.classList.remove("is-open");
   panel?.setAttribute("aria-hidden", "true");
 
-  if (modalOpener && modalOpener.isConnected) {
-    modalOpener.focus({ preventScroll: true });
-  }
+  restoreFocus(modalOpener);
   modalOpener = null;
 }
 
@@ -185,7 +190,6 @@ function requestCloseClientModal() {
     feedback.show(
       "warning",
       "Hay datos sin guardar. Usá Cancelar o × para descartarlos.",
-      "dirty",
     );
     return;
   }
@@ -205,7 +209,6 @@ function formData() {
 async function saveClient() {
   if (isSaving) return;
 
-  feedback.clear();
   feedback.clearInvalid();
 
   const id = $("managedClientId").value;
@@ -214,7 +217,6 @@ async function saveClient() {
   if (!data.alias) {
     feedback.invalidate(["clientAlias"]);
     feedback.show("error", "Ingresá un alias o nombre de referencia.");
-    $("clientAlias").focus();
     return;
   }
 
@@ -420,7 +422,7 @@ function formatProfileDate(value, includeTime = true) {
   if (!year || !month || !day) return value || "Fecha no disponible";
   const formattedDate = `${day}/${month}/${year}`;
   return includeTime && time
-    ? `${formattedDate} · ${time.slice(0, 5)}`
+    ? `${formattedDate} · ${formatTime(time)}`
     : formattedDate;
 }
 
@@ -520,7 +522,7 @@ function renderClientAppointments() {
             <span class="status-badge status-badge--${slugify(appointment.status || "")}">${escapeHtml(appointment.status || "Sin estado")}</span>
           </div>
           <div class="profile-appointment__meta">
-            <time>${escapeHtml(formatProfileDate(appointment.date, false))} · ${escapeHtml(String(appointment.time_start || "").slice(0, 5))}${appointment.time_end ? `–${escapeHtml(String(appointment.time_end).slice(0, 5))}` : ""}</time>
+            <time>${escapeHtml(formatProfileDate(appointment.date, false))} · ${escapeHtml(formatTime(appointment.time_start))}${appointment.time_end ? `–${escapeHtml(formatTime(appointment.time_end))}` : ""}</time>
             <span>${escapeHtml(appointment.stylist || "Profesional sin asignar")}</span>
           </div>
         </article>`,
@@ -612,9 +614,16 @@ async function loadClientProfileData(client, requestId) {
 }
 
 function initTimelineEvents() {
-  $("historySearch")?.addEventListener("input", (event) => {
-    timelineState.search = event.target.value.trim();
+  const historySearch = $("historySearch");
+  const filterTimelineSoon = debounce(() => {
+    timelineState.search = historySearch.value.trim();
     renderTimeline();
+    setSearching(historySearch, false);
+  });
+
+  historySearch?.addEventListener("input", () => {
+    setSearching(historySearch, true);
+    filterTimelineSoon();
   });
 
   // Filtros del historial
@@ -651,9 +660,7 @@ function closeClientProfile() {
       .forEach((row) => row.classList.remove("client-row--selected"));
   }
 
-  if (profileOpener && profileOpener.isConnected) {
-    profileOpener.focus({ preventScroll: true });
-  }
+  restoreFocus(profileOpener);
   profileOpener = null;
   profileClient = null;
 }
@@ -874,7 +881,6 @@ export function initClients() {
   feedback = createFeedback(panel);
   dirty = createDirtyTracker(panel);
   clearInvalidOnInput(panel);
-  panel.addEventListener("input", () => feedback.clear("dirty"));
 
   $("btnAddClient")?.addEventListener("click", () => showClientModal());
 

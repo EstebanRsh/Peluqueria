@@ -1,5 +1,6 @@
 // Listados con búsqueda y filtro en el servidor, paginados con "Cargar más".
 import { ApiError, isAbortError, LIST_PAGE_SIZE } from "./api.js";
+import { setSearching } from "./feedback.js";
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -13,7 +14,7 @@ export function debounce(callback) {
 }
 
 // load() devuelve false si la respuesta quedó obsoleta (otro pedido la reemplazó).
-export function createListLoader(fetchPage) {
+export function createListLoader(fetchPage, searchInput = null) {
   const state = { items: [], total: 0, page: 1, search: "", filter: "todos" };
   let controller = null;
   let token = 0;
@@ -23,6 +24,8 @@ export function createListLoader(fetchPage) {
     controller = new AbortController();
     const current = ++token;
     const page = append ? state.page + 1 : 1;
+
+    if (!append) setSearching(searchInput, true);
 
     try {
       const response = await fetchPage({
@@ -49,6 +52,8 @@ export function createListLoader(fetchPage) {
     } catch (error) {
       if (isAbortError(error) || current !== token) return false;
       throw error;
+    } finally {
+      if (current === token) setSearching(searchInput, false);
     }
   }
 

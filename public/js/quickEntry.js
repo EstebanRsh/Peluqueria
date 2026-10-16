@@ -7,16 +7,14 @@ import {
   fetchClientTimeline,
   getErrorMessage,
   saveServiceHistory,
-  searchClients,
   searchProducts,
 } from "./api.js";
-import { createAutocomplete } from "./autocomplete.js";
+import { createAutocomplete, createClientAutocomplete } from "./autocomplete.js";
+import { UNIT_SHORTS } from "./constants.js";
 import { $, escapeHtml } from "./dom.js";
 import { clearInvalidOnInput, createFeedback, setBusy } from "./feedback.js";
 import { confirmAction } from "./confirm.js";
 import { notify } from "./toast.js";
-
-const UNIT_LABELS = { ml: "ml", g: "g", unidad: "unid." };
 
 // Campos numéricos de la ficha (enteros mayores a 0).
 const NUMBER_FIELDS = [
@@ -58,19 +56,6 @@ const DETAIL_FIELDS = {
     finish: "cutFinish",
   },
 };
-
-const isEnabled = (record) =>
-  record.active === undefined ||
-  record.active === true ||
-  Number(record.active) === 1;
-
-function toList(response) {
-  return Array.isArray(response)
-    ? response
-    : Array.isArray(response?.data)
-      ? response.data
-      : [];
-}
 
 // Una categoría tiene datos si algún valor no es nulo ni una lista vacía.
 function categoryHasData(category) {
@@ -119,7 +104,6 @@ export function initQuickEntry() {
   const openDrawer = () => {
     opener = document.activeElement;
 
-    feedback.clear();
     feedback.clearInvalid();
 
     panel.setAttribute("aria-hidden", "false");
@@ -152,7 +136,6 @@ export function initQuickEntry() {
       feedback.show(
         "warning",
         "Hay datos sin guardar. Usá Cancelar o × para descartarlos.",
-        "dirty",
       );
       return;
     }
@@ -171,7 +154,6 @@ export function initQuickEntry() {
     }
   });
 
-  panel.addEventListener("input", () => feedback.clear("dirty"));
 
   // ============================================================
   // CLIENTE (BÚSQUEDA, ALIAS Y CHIP)
@@ -230,22 +212,11 @@ export function initQuickEntry() {
 
   const clientAutocomplete =
     clientSearchInput && clientSuggestionsList
-      ? createAutocomplete({
+      ? createClientAutocomplete({
           input: clientSearchInput,
           list: clientSuggestionsList,
-          minChars: 1,
-          debounceMs: 200,
-          emptyMessage: "No hay clientes registrados con ese nombre.",
-          search: async (query, signal) =>
-            toList(await searchClients(query, signal)).filter(isEnabled),
-          getTitle: (client) => client.alias ?? client.name ?? "",
-          getSubtitle: (client) =>
-            client.internal_code ? `Código ${client.internal_code}` : "",
           onSelect: selectClient,
-          customOption: {
-            label: (query) => `Usar «${query}» como alias`,
-            onSelect: useAlias,
-          },
+          onAlias: useAlias,
         })
       : null;
 
@@ -406,16 +377,13 @@ export function initQuickEntry() {
       ? createAutocomplete({
           input: productSearch,
           list: productSuggestionsList,
-          minChars: 1,
-          debounceMs: 200,
           emptyMessage: "No se encontraron productos.",
-          search: async (query, signal) =>
-            toList(await searchProducts(query, signal)),
+          search: (query, signal) => searchProducts(query, signal),
           getTitle: (product) => product.name ?? "",
           getSubtitle: (product) =>
             [
               product.brand,
-              UNIT_LABELS[product.measurement_unit] ?? product.measurement_unit,
+              UNIT_SHORTS[product.measurement_unit] ?? product.measurement_unit,
             ]
               .filter(Boolean)
               .join(" · "),
@@ -442,7 +410,7 @@ export function initQuickEntry() {
                 value="${item.quantity}" data-index="${index}"
                 aria-label="Cantidad de ${escapeHtml(item.name)}">
             </td>
-            <td data-label="Unidad">${escapeHtml(UNIT_LABELS[item.unit] || item.unit || "—")}</td>
+            <td data-label="Unidad">${escapeHtml(UNIT_SHORTS[item.unit] || item.unit || "—")}</td>
             <td data-label="Nombre">${escapeHtml(item.name)}</td>
             <td data-label="Marca">${escapeHtml(item.brand || "—")}</td>
             <td data-label="Acciones">
@@ -725,7 +693,6 @@ export function initQuickEntry() {
   const saveRecord = async () => {
     if (isSaving) return;
 
-    feedback.clear();
     feedback.clearInvalid();
 
     const data = buildJSON();
@@ -736,7 +703,6 @@ export function initQuickEntry() {
         "error",
         "Elegí un cliente o escribí al menos un nombre de referencia.",
       );
-      clientSearchInput.focus();
       return;
     }
 
@@ -744,7 +710,7 @@ export function initQuickEntry() {
 
     if (badNumbers.length > 0) {
       feedback.invalidate(badNumbers);
-      feedback.show(
+      await feedback.show(
         "error",
         "Revisá los valores marcados: tienen que ser números enteros mayores a 0.",
       );
@@ -837,7 +803,6 @@ export function initQuickEntry() {
     cartItems = [];
     renderCart();
 
-    feedback.clear();
     feedback.clearInvalid();
     updateTabIndicators();
   }

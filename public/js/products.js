@@ -8,7 +8,8 @@ import {
   deleteProduct,
   getErrorMessage,
 } from "./api.js";
-import { $, escapeHtml, isActive, setActiveFilter } from "./dom.js";
+import { UNIT_NAMES } from "./constants.js";
+import { $, escapeHtml, isActive, restoreFocus, setActiveFilter } from "./dom.js";
 import {
   clearInvalidOnInput,
   createDirtyTracker,
@@ -19,18 +20,12 @@ import { createListLoader, debounce, moreRowHtml } from "./list.js";
 import { confirmAction } from "./confirm.js";
 import { notify } from "./toast.js";
 
-const list = createListLoader(fetchAllProducts);
+const list = createListLoader(fetchAllProducts, $("adminProductSearch"));
 
 let isSaving = false;
 let modalOpener = null;
 let feedback = null;
 let dirty = null;
-
-const UNIT_LABELS = {
-  ml: "Mililitros (ml)",
-  g: "Gramos (g)",
-  unidad: "Unidad",
-};
 
 // Texto de las etiquetas del formulario según la unidad elegida.
 const UNIT_FIELD_TEXT = {
@@ -45,7 +40,7 @@ const UNIT_FIELD_TEXT = {
 function setUnitValue(value) {
   const unitSelect = $("productUnit");
   if (unitSelect) {
-    unitSelect.value = UNIT_LABELS[value] ? value : "ml";
+    unitSelect.value = UNIT_NAMES[value] ? value : "ml";
   }
   updateUnitLabels();
 }
@@ -171,7 +166,6 @@ function showProductModal(product = null) {
     ? "Editar producto"
     : "Nuevo producto";
 
-  feedback.clear();
   feedback.clearInvalid();
   dirty.reset();
 
@@ -188,9 +182,7 @@ function closeProductModal() {
   panel?.classList.remove("is-open");
   panel?.setAttribute("aria-hidden", "true");
 
-  if (modalOpener && modalOpener.isConnected) {
-    modalOpener.focus({ preventScroll: true });
-  }
+  restoreFocus(modalOpener);
   modalOpener = null;
 }
 
@@ -200,7 +192,6 @@ function requestCloseProductModal() {
     feedback.show(
       "warning",
       "Hay datos sin guardar. Usá Cancelar o × para descartarlos.",
-      "dirty",
     );
     return;
   }
@@ -248,7 +239,6 @@ function validateForm(data) {
 async function saveProduct() {
   if (isSaving) return;
 
-  feedback.clear();
   feedback.clearInvalid();
 
   const id = $("managedProductId").value;
@@ -263,7 +253,6 @@ async function saveProduct() {
         ? errors[0].message
         : "Completá los campos marcados para continuar.",
     );
-    document.querySelector("#productFormPanel [aria-invalid='true']")?.focus();
     return;
   }
 
@@ -404,7 +393,6 @@ export function initProducts() {
   feedback = createFeedback(panel);
   dirty = createDirtyTracker(panel);
   clearInvalidOnInput(panel);
-  panel.addEventListener("input", () => feedback.clear("dirty"));
 
   const refreshProducts = () => {
     void loadProductsList();
