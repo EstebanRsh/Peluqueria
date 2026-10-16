@@ -19,18 +19,25 @@ class ServiceModel
     // LISTADOS
     // ============================================================
 
-    // Servicios activos: selector de nuevos turnos.
-    public function getActive(int $ownerId): array
+    // Servicios activos para el buscador de nuevos turnos.
+    // Filtra por nombre (empieza con $query) y devuelve máximo 15.
+    public function getActive(int $ownerId, string $query = ''): array
     {
+        $query = trim($query);
+        $nameStart = addcslashes($query, '%_\\') . '%';
+        $limit = 15;
+
         $stmt = $this->conn->prepare("
             SELECT id, name, description, duration, price, active
             FROM services
             WHERE owner_id = ?
               AND active = 1
+              AND name LIKE ?
             ORDER BY name ASC
+            LIMIT ?
         ");
 
-        $stmt->bind_param('i', $ownerId);
+        $stmt->bind_param('isi', $ownerId, $nameStart, $limit);
         $stmt->execute();
 
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);

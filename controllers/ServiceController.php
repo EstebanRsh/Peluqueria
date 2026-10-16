@@ -43,9 +43,9 @@ class ServiceController extends BaseController
 
         switch ($action) {
 
-            // Servicios activos (selector de nuevos turnos)
+            // Servicios activos que empiezan con ?q=texto (buscador de nuevos turnos)
             case 'services':
-                $this->json($this->model->getActive($this->ownerId()));
+                $this->json($this->model->getActive($this->ownerId(), $this->str($_GET['q'] ?? '')));
                 break;
 
             // Listado paginado (activos e inactivos) para administración:
