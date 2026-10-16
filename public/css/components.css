@@ -349,28 +349,20 @@
   color: var(--color-reservado-text);
 }
 .status-badge--reservado {
-  background-color: var(--color-reservado-bg);
-  color: var(--color-reservado-text);
-}
-.status-badge--en-sala-de-espera {
-  background-color: var(--color-espera-bg);
-  color: var(--color-espera-text);
-}
-.status-badge--en-atencion {
-  background-color: var(--color-atencion-bg);
-  color: var(--color-atencion-text);
+  background-color: var(--color-reservado-solid);
+  color: var(--color-solid-text);
 }
 .status-badge--finalizado {
-  background-color: var(--color-finalizado-bg);
-  color: var(--color-finalizado-text);
+  background-color: var(--color-finalizado-solid);
+  color: var(--color-finalizado-solid-text);
 }
 .status-badge--cancelado {
-  background-color: var(--color-cancelado-bg);
-  color: var(--color-cancelado-text);
+  background-color: var(--color-cancelado-solid);
+  color: var(--color-solid-text);
 }
 .status-badge--ausente {
-  background-color: var(--color-ausente-bg);
-  color: var(--color-ausente-text);
+  background-color: var(--color-ausente-solid);
+  color: var(--color-solid-text);
 }
 
 /* ==========================================================================
@@ -548,7 +540,7 @@
 
 .client-row--selected {
   background: var(--color-hover);
-  outline: 2px solid var(--color-selected);
+  outline: 2px solid var(--color-text);
   outline-offset: -2px;
 }
 
@@ -635,7 +627,12 @@
 }
 .form-privacy-note__icon {
   flex-shrink: 0;
-  line-height: 1.3;
+  display: flex;
+  color: var(--color-gold-text);
+}
+.form-privacy-note__icon svg {
+  width: 1.1rem;
+  height: 1.1rem;
 }
 .form-row {
   display: flex;
@@ -667,7 +664,7 @@
   font-family: var(--font);
   font-size: 0.9rem;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-field-border);
   border-radius: var(--radius-sm);
   padding: 0.6rem 0.85rem;
   outline: none;
@@ -683,6 +680,10 @@
 .select-flujo-cambio:focus {
   border-color: var(--color-today-bg);
   box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.form-group > .btn {
+  align-self: flex-start;
 }
 
 .form-group textarea {
@@ -732,33 +733,32 @@ select.select-flujo-cambio:focus {
 }
 
 .select-flujo-cambio--reservado {
-  background-color: var(--color-reservado-bg);
-  color: var(--color-reservado-text);
-}
-
-.select-flujo-cambio--en-sala-de-espera {
-  background-color: var(--color-espera-bg);
-  color: var(--color-espera-text);
-}
-
-.select-flujo-cambio--en-atencion {
-  background-color: var(--color-atencion-bg);
-  color: var(--color-atencion-text);
+  background-color: var(--color-reservado-solid);
+  color: var(--color-solid-text);
 }
 
 .select-flujo-cambio--finalizado {
-  background-color: var(--color-finalizado-bg);
-  color: var(--color-finalizado-text);
+  background-color: var(--color-finalizado-solid);
+  color: var(--color-finalizado-solid-text);
 }
 
 .select-flujo-cambio--cancelado {
-  background-color: var(--color-cancelado-bg);
-  color: var(--color-cancelado-text);
+  background-color: var(--color-cancelado-solid);
+  color: var(--color-solid-text);
 }
 
 .select-flujo-cambio--ausente {
-  background-color: var(--color-ausente-bg);
-  color: var(--color-ausente-text);
+  background-color: var(--color-ausente-solid);
+  color: var(--color-solid-text);
+}
+
+select.select-flujo-cambio--reservado,
+select.select-flujo-cambio--reservado:focus,
+select.select-flujo-cambio--cancelado,
+select.select-flujo-cambio--cancelado:focus,
+select.select-flujo-cambio--ausente,
+select.select-flujo-cambio--ausente:focus {
+  background-image: var(--icon-chevron-light);
 }
 
 /* Campos deshabilitados */
@@ -1084,6 +1084,106 @@ select.select-flujo-cambio:focus {
 }
 
 /* ==========================================================================
+   VENTANITA DE ESTADO DEL TURNO
+   ========================================================================== */
+
+.status-dialog {
+  width: min(360px, calc(100vw - 2rem));
+  margin: auto;
+  padding: 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+}
+
+.status-dialog::backdrop {
+  background: var(--overlay-drawer);
+}
+
+.status-dialog__body {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.status-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.status-dialog__name {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.status-dialog__meta {
+  margin-top: 0.15rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.status-dialog__options {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.status-dialog__option {
+  --option-bg: var(--color-reservado-solid);
+  --option-text: var(--color-solid-text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  background: var(--option-bg);
+  color: var(--option-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: filter var(--t-fast) var(--ease-out);
+}
+
+.status-dialog__option:hover {
+  filter: saturate(1.2) brightness(1.06);
+}
+
+.status-dialog__option.is-active {
+  font-weight: 700;
+}
+
+.status-dialog__check {
+  flex-shrink: 0;
+  visibility: hidden;
+}
+
+.status-dialog__option.is-active .status-dialog__check {
+  visibility: visible;
+}
+
+.status-dialog__option--finalizado {
+  --option-bg: var(--color-finalizado-solid);
+  --option-text: var(--color-finalizado-solid-text);
+}
+
+.status-dialog__option--ausente {
+  --option-bg: var(--color-ausente-solid);
+}
+
+.status-dialog__option--cancelado {
+  --option-bg: var(--color-cancelado-solid);
+}
+
+/* ==========================================================================
    TABLA DE DATOS (LISTADOS ADMINISTRATIVOS)
    ========================================================================== */
 
@@ -1349,7 +1449,7 @@ select.select-flujo-cambio:focus {
   top: calc(100% + 0.25rem);
   left: 0;
   right: 0;
-  z-index: 20;
+  z-index: var(--z-dropdown);
   max-height: 240px;
   overflow-y: auto;
   padding: 0.25rem;
@@ -1512,6 +1612,24 @@ select.select-flujo-cambio:focus {
   flex: 1;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.toast__action {
+  flex-shrink: 0;
+  padding: 0 0.25rem;
+  background: none;
+  border: 0;
+  color: var(--color-gold-light);
+  font-family: var(--font);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.toast__action:hover {
+  text-decoration: underline;
 }
 
 .toast__close {

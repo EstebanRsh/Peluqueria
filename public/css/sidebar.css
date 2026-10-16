@@ -263,7 +263,7 @@
   padding: 0.25rem 1.25rem 0
     calc(var(--sidebar-item-pad-left) + 3px + 2rem + 1rem);
   font-size: 0.7rem;
-  color: var(--accent-glow-1);
+  color: var(--color-gold);
   white-space: normal;
 }
 
