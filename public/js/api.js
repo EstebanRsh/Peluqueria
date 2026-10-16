@@ -64,7 +64,7 @@ function messageForStatus(status) {
 
 // Redirige a la pantalla de login cuando la sesión ya no es válida.
 function redirectToLogin() {
-  window.location.replace(new URL("login.php", window.location.href));
+  window.location.replace(new URL("login.php?expired=1", window.location.href));
 }
 
 // ============================================================
@@ -135,7 +135,7 @@ async function request(
 }
 
 // Valida la respuesta del servidor y convierte el JSON recibido.
-async function handleJsonResponse(response) {
+async function handleJsonResponse(response, { redirectOn401 = true } = {}) {
   const contentType = response.headers.get("content-type");
   const isJson = Boolean(
     contentType && contentType.includes("application/json"),
@@ -143,7 +143,7 @@ async function handleJsonResponse(response) {
 
   if (!response.ok) {
     // Sesión vencida o inexistente: volver al login.
-    if (response.status === 401) {
+    if (response.status === 401 && redirectOn401) {
       redirectToLogin();
     }
 
@@ -157,7 +157,11 @@ async function handleJsonResponse(response) {
       }
     }
 
-    throw new ApiError(serverMessage || messageForStatus(response.status), {
+    const message = serverMessage.includes("CSRF")
+      ? "Tu sesión cambió. Recargá la página e intentá de nuevo."
+      : serverMessage;
+
+    throw new ApiError(message || messageForStatus(response.status), {
       kind:
         response.status === 401
           ? "session"
@@ -278,6 +282,43 @@ async function postJson(action, data = {}, signal = null) {
   }
 
   return handleJsonResponse(response);
+}
+
+// ============================================================
+// ACCESO (LOGIN, REGISTRO, SESIÓN Y LOGOUT)
+// Las acciones públicas no redirigen en 401: un 401 en el login es
+// "usuario o contraseña incorrectos", no una sesión vencida.
+// ============================================================
+
+async function publicJson(action, data = null, headers = {}) {
+  const response = await request(endpoint(action), {
+    method: data ? "POST" : "GET",
+    headers: data ? { "Content-Type": "application/json", ...headers } : {},
+    body: data ? JSON.stringify(data) : undefined,
+    cache: "no-store",
+  });
+
+  return handleJsonResponse(response, { redirectOn401: false });
+}
+
+export function fetchSession() {
+  return publicJson("session");
+}
+
+export function loginUser(credentials) {
+  return publicJson("login", credentials);
+}
+
+export function registerUser(credentials, csrfToken = null) {
+  return publicJson(
+    "register",
+    credentials,
+    csrfToken ? { "X-CSRF-Token": csrfToken } : {},
+  );
+}
+
+export function logoutUser() {
+  return postJson("logout", {});
 }
 
 // ============================================================
