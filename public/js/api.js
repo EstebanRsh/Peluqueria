@@ -375,9 +375,9 @@ export function removeAppointment(id) {
 // SERVICIOS
 // ============================================================
 
-// Obtiene la lista de servicios activos disponibles en la peluquería.
-export function fetchServices() {
-  return getJson("services");
+// Busca servicios activos cuyo nombre empieza con el texto.
+export function searchServices(query, signal = null) {
+  return getJson("services", { q: query }, signal);
 }
 
 export function fetchAllServices(params) {

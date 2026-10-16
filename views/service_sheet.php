@@ -30,8 +30,10 @@
                 </div>
             </div>
 
-            <input type="text" id="quickEntryClientSearch" class="input-base" placeholder="Buscar por nombre o código, o escribir un alias" aria-describedby="quickClientHelp" autocomplete="off">
-            <ul class="autocomplete-list" id="clientSuggestions"></ul>
+            <div class="search-field">
+                <input type="text" id="quickEntryClientSearch" class="input-base" placeholder="Buscar por nombre o código, o escribir un alias" aria-describedby="quickClientHelp" autocomplete="off">
+                <ul class="autocomplete-list" id="clientSuggestions"></ul>
+            </div>
             <input type="hidden" id="quickEntryClientId">
 
             <p class="form-hint" id="quickClientHelp">Elegí un cliente registrado o usá lo que escribas como alias.</p>
@@ -262,15 +264,17 @@
         <div id="panelGeneral" class="dynamic-panel" data-panel-title="General y productos"
             data-category="general" role="tabpanel" aria-labelledby="quickTabGeneral" tabindex="-1">
             <div class="form-group">
-                <div class="panel-controls panel-controls--autocomplete">
+                <div class="panel-controls">
                     <label for="quickEntryProductSearch">Productos usados</label>
-                    <input
-                        class="panel-search"
-                        type="text"
-                        id="quickEntryProductSearch"
-                        placeholder="Buscar producto por nombre"
-                        autocomplete="off">
-                    <ul class="autocomplete-list" id="quickEntryProductSuggestions"></ul>
+                    <div class="search-field">
+                        <input
+                            class="panel-search"
+                            type="text"
+                            id="quickEntryProductSearch"
+                            placeholder="Buscar producto por nombre"
+                            autocomplete="off">
+                        <ul class="autocomplete-list" id="quickEntryProductSuggestions"></ul>
+                    </div>
                 </div>
                 <table class="data-table" id="quickEntryProductsTable">
                     <caption class="sr-only">Productos usados en la sesión</caption>

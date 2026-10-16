@@ -28,13 +28,15 @@
     <div class="day-panel__body">
 
         <div class="panel-controls">
-            <input
-                class="panel-search"
-                type="text"
-                id="clientListSearch"
-                aria-label="Buscar clientes por alias"
-                placeholder="Buscar por alias"
-                autocomplete="off">
+            <div class="search-field">
+                <input
+                    class="panel-search"
+                    type="text"
+                    id="clientListSearch"
+                    aria-label="Buscar clientes por alias"
+                    placeholder="Buscar por alias"
+                    autocomplete="off">
+            </div>
 
             <div class="panel-filters" role="group" aria-label="Filtrar clientes por estado">
                 <button type="button" class="btn-filter is-active" data-filter="todos" aria-pressed="true">
@@ -125,13 +127,15 @@
             <h4 class="history-title">Historial técnico</h4>
 
             <div class="history-controls">
-                <input
-                    type="text"
-                    id="historySearch"
-                    class="panel-search"
-                    aria-label="Buscar en el historial técnico"
-                    placeholder="Buscar en el historial"
-                    autocomplete="off">
+                <div class="search-field">
+                    <input
+                        type="text"
+                        id="historySearch"
+                        class="panel-search"
+                        aria-label="Buscar en el historial técnico"
+                        placeholder="Buscar en el historial"
+                        autocomplete="off">
+                </div>
                 <div class="panel-filters" id="historyFilters" role="group" aria-label="Filtrar historial por tipo">
                     <button type="button" class="btn-filter is-active" data-history-filter="todos" aria-pressed="true">Todos</button>
                     <button type="button" class="btn-filter" data-history-filter="color" aria-pressed="false">Color</button>

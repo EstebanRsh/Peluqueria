@@ -2,66 +2,32 @@
 // MENSAJES DE FORMULARIO, ESTADO OCUPADO Y CAMBIOS SIN GUARDAR
 // ============================================================
 
-// Crea el manejo de mensajes de un panel lateral. El mensaje se muestra
-// justo encima de la barra de botones (".appointment-detail-footer").
+import { confirmAction } from "./confirm.js";
+
+const ALERT_TITLES = {
+  error: "No se pudo completar",
+  warning: "Revisá antes de continuar",
+  success: "Listo",
+  info: "Aviso",
+};
+
+// Manejo de avisos y campos inválidos de un panel lateral. Los avisos se
+// muestran en una ventanita; al cerrarla el foco va al primer campo marcado.
 //
-//  show(type, message, source)  type: "error" | "warning" | "success" | "info"
-//  clear(onlySource)            quita el mensaje (o solo el de ese origen)
-//  invalidate(ids)              marca campos con aria-invalid
-//  clearInvalid()               quita todas las marcas de error
-export function createFeedback(
-  panel,
-  { footerSelector = ".appointment-detail-footer" } = {},
-) {
-  const getBox = () => {
-    let box = panel.querySelector("[data-feedback]");
-
-    if (box) {
-      return box;
-    }
-
-    const footer = panel.querySelector(footerSelector);
-
-    if (!footer || !footer.parentElement) {
-      return null;
-    }
-
-    box = document.createElement("div");
-    box.className = "alert is-hidden";
-    box.dataset.feedback = "";
-    footer.parentElement.insertBefore(box, footer);
-
-    return box;
-  };
-
+//  show(type, message)  type: "error" | "warning" | "success" | "info"
+//  invalidate(ids)      marca campos con aria-invalid
+//  clearInvalid()       quita todas las marcas de error
+export function createFeedback(panel) {
   return {
-    show(type, message, source = "") {
-      const box = getBox();
+    async show(type, message) {
+      await confirmAction({
+        title: ALERT_TITLES[type] ?? ALERT_TITLES.info,
+        message,
+        confirmLabel: "Entendido",
+        cancelLabel: null,
+      });
 
-      if (!box) {
-        return;
-      }
-
-      box.className = `alert alert--${type}`;
-      box.setAttribute("role", type === "error" ? "alert" : "status");
-      box.dataset.source = source;
-      box.textContent = message;
-    },
-
-    clear(onlySource = null) {
-      const box = panel.querySelector("[data-feedback]");
-
-      if (!box) {
-        return;
-      }
-
-      if (onlySource !== null && box.dataset.source !== onlySource) {
-        return;
-      }
-
-      box.className = "alert is-hidden";
-      box.dataset.source = "";
-      box.textContent = "";
+      panel.querySelector("[aria-invalid='true']")?.focus();
     },
 
     invalidate(ids) {
@@ -78,7 +44,6 @@ export function createFeedback(
   };
 }
 
-// Al corregir un campo se le quita la marca de error.
 export function clearInvalidOnInput(panel) {
   const handler = (event) => {
     event.target?.removeAttribute?.("aria-invalid");
@@ -86,6 +51,12 @@ export function clearInvalidOnInput(panel) {
 
   panel.addEventListener("input", handler);
   panel.addEventListener("change", handler);
+}
+
+// Muestra el círculo de carga dentro de un buscador (".search-field").
+export function setSearching(input, searching) {
+  input?.closest(".search-field")?.classList.toggle("is-loading", searching);
+  input?.toggleAttribute("aria-busy", searching);
 }
 
 // Pone un botón en estado ocupado (deshabilitado y con indicador de carga).

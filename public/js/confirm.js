@@ -7,6 +7,7 @@
 //
 // Devuelve true si el usuario confirma y false si cancela, cierra con
 // Escape o hace clic fuera. Mantiene el foco dentro del diálogo.
+// Con cancelLabel: null muestra solo el botón de confirmar (avisos).
 // ============================================================
 
 const WARNING_ICON =
@@ -59,17 +60,21 @@ export function confirmAction({
     const actions = document.createElement("div");
     actions.className = "confirm-dialog__actions";
 
-    const cancelButton = document.createElement("button");
-    cancelButton.type = "button";
-    cancelButton.className = "btn btn--ghost";
-    cancelButton.textContent = cancelLabel;
+    const cancelButton =
+      cancelLabel === null ? null : document.createElement("button");
+
+    if (cancelButton) {
+      cancelButton.type = "button";
+      cancelButton.className = "btn btn--ghost";
+      cancelButton.textContent = cancelLabel;
+    }
 
     const confirmButton = document.createElement("button");
     confirmButton.type = "button";
     confirmButton.className = `btn ${danger ? "btn--danger" : "btn--primary"}`;
     confirmButton.textContent = confirmLabel;
 
-    actions.append(cancelButton, confirmButton);
+    actions.append(...[cancelButton, confirmButton].filter(Boolean));
     dialog.append(heading, description, actions);
 
     let settled = false;
@@ -101,7 +106,7 @@ export function confirmAction({
       }
 
       if (event.key === "Tab") {
-        const focusable = [cancelButton, confirmButton];
+        const focusable = [cancelButton, confirmButton].filter(Boolean);
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
 
@@ -118,7 +123,7 @@ export function confirmAction({
       }
     }
 
-    cancelButton.addEventListener("click", () => settle(false));
+    cancelButton?.addEventListener("click", () => settle(false));
     confirmButton.addEventListener("click", () => settle(true));
     overlay.addEventListener("click", () => settle(false));
     document.addEventListener("keydown", handleKeydown, true);
@@ -126,6 +131,6 @@ export function confirmAction({
     document.body.append(overlay, dialog);
 
     // En acciones destructivas el foco inicial va a "Cancelar".
-    (danger ? cancelButton : confirmButton).focus();
+    (danger && cancelButton ? cancelButton : confirmButton).focus();
   });
 }

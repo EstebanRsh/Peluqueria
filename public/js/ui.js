@@ -11,8 +11,11 @@ import {
   getErrorMessage,
 } from "./api.js";
 
-import { escapeHtml } from "./dom.js";
-import { formatDate, slugify } from "./utils.js";
+import { confirmAction } from "./confirm.js";
+import { APPOINTMENT_STATUSES, STATUS_FILTERS } from "./constants.js";
+import { escapeHtml, restoreFocus } from "./dom.js";
+import { formatDate, formatTime, slugify } from "./utils.js";
+import { setBusy, setSearching } from "./feedback.js";
 import { debounce } from "./list.js";
 import { notify } from "./toast.js";
 import { appState } from "./state.js";
@@ -48,16 +51,6 @@ const TOOLTIP_TTL_MS = 30000;
 const CELL_BADGE_LABELS = { finalizado: "Finalizados", reservado: "Reservados" };
 const UNDO_MS = 6000;
 
-const STATUS_FILTERS = [
-  { value: "todos", label: "Todos" },
-  { value: "reservado", label: "Reservados" },
-  { value: "finalizado", label: "Finalizados" },
-  { value: "ausente", label: "Ausentes" },
-  { value: "cancelado", label: "Cancelados" },
-];
-
-const STATUS_OPTIONS = ["Reservado", "Finalizado", "Ausente", "Cancelado"];
-
 let appointmentSearchQuery = "";
 let appointmentFilterStatus = "todos";
 let loadToken = 0;
@@ -65,16 +58,6 @@ let loadToken = 0;
 // ============================================================
 // UTILIDADES
 // ============================================================
-
-function formatTime(value) {
-  return String(value ?? "").substring(0, 5);
-}
-
-function restoreFocus(element) {
-  if (element && element.isConnected) {
-    element.focus({ preventScroll: true });
-  }
-}
 
 // ============================================================
 // APERTURA DEL PANEL
@@ -354,15 +337,17 @@ function renderPanelShell() {
 
   panelBody.innerHTML = `
     <div class="panel-controls">
-      <input
-        class="panel-search"
-        type="text"
-        id="appointmentSearch"
-        aria-label="Buscar turnos"
-        placeholder="Buscar cliente o peluquero/a..."
-        value="${escapeHtml(appointmentSearchQuery)}"
-        autocomplete="off"
-      />
+      <div class="search-field">
+        <input
+          class="panel-search"
+          type="text"
+          id="appointmentSearch"
+          aria-label="Buscar turnos"
+          placeholder="Buscar cliente o peluquero/a..."
+          value="${escapeHtml(appointmentSearchQuery)}"
+          autocomplete="off"
+        />
+      </div>
 
       <div class="panel-filters" role="group" aria-label="Filtrar por estado">
         ${filterButtons}
@@ -461,6 +446,8 @@ export async function loadAppointments(date, { showLoading = true } = {}) {
   }
 
   container.setAttribute("aria-busy", "true");
+  const searchInput = document.getElementById("appointmentSearch");
+  setSearching(searchInput, true);
 
   try {
     const appointments = await fetchAppointments(
@@ -499,6 +486,7 @@ export async function loadAppointments(date, { showLoading = true } = {}) {
   } finally {
     if (token === loadToken) {
       container.removeAttribute("aria-busy");
+      setSearching(searchInput, false);
     }
   }
 }
@@ -603,7 +591,7 @@ function openAppointmentDetailModal(appointmentId) {
   detailPanel.setAttribute("aria-label", "Detalle del turno");
   detailPanel.setAttribute("tabindex", "-1");
 
-  const statusOptions = STATUS_OPTIONS.map(
+  const statusOptions = APPOINTMENT_STATUSES.map(
     (status) => `
       <option value="${escapeHtml(status)}"${appointment.status === status ? " selected" : ""}>
         ${escapeHtml(status)}
@@ -725,28 +713,11 @@ function openAppointmentDetailModal(appointmentId) {
 
         <button
           type="button"
-          class="btn btn--ghost is-hidden"
-          data-action="cancel-delete"
-        >
-          Cancelar
-        </button>
-
-        <button
-          type="button"
-          class="btn btn--danger appointment-detail-delete"
-          data-action="ask-delete"
+          class="btn btn--danger"
+          data-action="delete"
           data-id="${escapeHtml(appointment.id)}"
         >
           Eliminar turno
-        </button>
-
-        <button
-          type="button"
-          class="btn btn--danger is-hidden"
-          data-action="confirm-delete"
-          data-id="${escapeHtml(appointment.id)}"
-        >
-          Sí, eliminar
         </button>
       </div>
   `;
@@ -801,7 +772,7 @@ function closeAppointmentDetailModal({ restore = true } = {}) {
 }
 
 // ============================================================
-// MENSAJES DEL DETALLE (ERRORES Y CONFIRMACIÓN)
+// MENSAJES DEL DETALLE (ERRORES)
 // ============================================================
 
 function showDetailFeedback(type, message) {
@@ -833,28 +804,6 @@ function clearDetailFeedback() {
   }
 }
 
-function setDeleteConfirmMode(detailPanel, isConfirming) {
-  const toggle = (action, show) =>
-    detailPanel
-      .querySelector(`[data-action='${action}']`)
-      ?.classList.toggle("is-hidden", !show);
-
-  toggle("close-detail", !isConfirming);
-  toggle("ask-delete", !isConfirming);
-  toggle("cancel-delete", isConfirming);
-  toggle("confirm-delete", isConfirming);
-
-  if (isConfirming) {
-    showDetailFeedback(
-      "warning",
-      "¿Eliminar este turno de forma permanente? Esta acción no se puede deshacer.",
-    );
-    detailPanel.querySelector("[data-action='cancel-delete']")?.focus();
-  } else {
-    clearDetailFeedback();
-  }
-}
-
 // ============================================================
 // EVENTOS DEL DETALLE
 // ============================================================
@@ -876,17 +825,8 @@ function attachDetailModalEvents(detailPanel, detailOverlay) {
         closeAppointmentDetailModal();
         break;
 
-      case "ask-delete":
-        setDeleteConfirmMode(detailPanel, true);
-        break;
-
-      case "cancel-delete":
-        setDeleteConfirmMode(detailPanel, false);
-        detailPanel.querySelector("[data-action='ask-delete']")?.focus();
-        break;
-
-      case "confirm-delete":
-        await deleteAppointment(detailPanel, actionButton);
+      case "delete":
+        await deleteAppointment(actionButton);
         break;
 
       default:
@@ -1052,12 +992,26 @@ async function changeAppointmentStatus(statusSelect) {
   }
 }
 
-async function deleteAppointment(detailPanel, confirmButton) {
-  confirmButton.disabled = true;
-  confirmButton.classList.add("is-loading");
+async function deleteAppointment(button) {
+  const id = button.dataset.id;
+  const appointment = appointmentMap.get(String(id));
+  const name = appointment?.client_name || appointment?.alias || "este cliente";
+
+  const confirmed = await confirmAction({
+    title: "Eliminar turno",
+    message: `Vas a eliminar el turno de «${name}». Esta acción no se puede deshacer.`,
+    confirmLabel: "Eliminar",
+    danger: true,
+  });
+
+  if (!confirmed) {
+    return;
+  }
+
+  setBusy(button, true);
 
   try {
-    const response = await removeAppointment(confirmButton.dataset.id);
+    const response = await removeAppointment(id);
 
     if (!response.success) {
       throw new ApiError(response.error || "No se pudo eliminar el turno.", {
@@ -1075,14 +1029,12 @@ async function deleteAppointment(detailPanel, confirmButton) {
   } catch (error) {
     console.error("Error al eliminar turno:", error);
 
-    setDeleteConfirmMode(detailPanel, false);
     showDetailFeedback(
       "error",
       getErrorMessage(error, "No se pudo eliminar el turno."),
     );
   } finally {
-    confirmButton.disabled = false;
-    confirmButton.classList.remove("is-loading");
+    setBusy(button, false);
   }
 }
 

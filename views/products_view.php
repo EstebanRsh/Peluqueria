@@ -28,13 +28,15 @@
     <div class="day-panel__body">
 
         <div class="panel-controls">
-            <input
-                class="panel-search"
-                type="text"
-                id="adminProductSearch"
-                aria-label="Buscar productos por nombre"
-                placeholder="Buscar por nombre"
-                autocomplete="off">
+            <div class="search-field">
+                <input
+                    class="panel-search"
+                    type="text"
+                    id="adminProductSearch"
+                    aria-label="Buscar productos por nombre"
+                    placeholder="Buscar por nombre"
+                    autocomplete="off">
+            </div>
 
             <div class="panel-filters" role="group" aria-label="Filtrar productos por estado">
                 <button type="button" class="btn-filter is-active" data-filter="todos" aria-pressed="true">

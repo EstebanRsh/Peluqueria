@@ -7,11 +7,13 @@
 // pedidos. El HTML solo necesita un <input> y un <ul> vacío.
 // ============================================================
 
-import { isAbortError } from "./api.js";
+import { isAbortError, searchClients } from "./api.js";
 import { escapeHtml } from "./dom.js";
+import { setSearching } from "./feedback.js";
 
 const ACCENT_MARKS = /[\u0300-\u036f]/g;
 
+const LOADING_DELAY_MS = 250;
 const LOADING_MESSAGE = "Buscando...";
 const ERROR_MESSAGE = "No se pudo realizar la búsqueda. Intentá de nuevo.";
 
@@ -81,8 +83,9 @@ export function createAutocomplete(config) {
     getSubtitle = () => "",
     onSelect,
     customOption = null,
-    minChars = 2,
-    debounceMs = 250,
+    minChars = 1,
+    maxResults = 5,
+    debounceMs = 200,
     emptyMessage = "No se encontraron resultados.",
   } = config;
 
@@ -240,12 +243,15 @@ export function createAutocomplete(config) {
     const current = new AbortController();
     controller = current;
 
-    // Solo se muestra "Buscando..." si todavía no hay nada en pantalla.
-    if (list.children.length === 0) {
-      render(query, "loading");
-    }
+    // "Buscando..." solo aparece si la respuesta tarda y no hay nada en pantalla.
+    const loadingTimer = setTimeout(() => {
+      if (list.children.length === 0 && !current.signal.aborted) {
+        render(query, "loading");
+      }
+    }, LOADING_DELAY_MS);
 
     list.setAttribute("aria-busy", "true");
+    setSearching(input, true);
 
     try {
       const results = await search(query, current.signal);
@@ -254,7 +260,7 @@ export function createAutocomplete(config) {
         return;
       }
 
-      const items = Array.isArray(results) ? results : [];
+      const items = Array.isArray(results) ? results.slice(0, maxResults) : [];
       render(query, items.length > 0 ? "results" : "empty", items);
     } catch (error) {
       if (isAbortError(error) || current.signal.aborted) {
@@ -264,8 +270,11 @@ export function createAutocomplete(config) {
       console.error("Error en la búsqueda:", error);
       render(query, "error");
     } finally {
+      clearTimeout(loadingTimer);
+
       if (controller === current) {
         list.removeAttribute("aria-busy");
+        setSearching(input, false);
       }
     }
   }
@@ -277,6 +286,7 @@ export function createAutocomplete(config) {
     controller?.abort();
 
     if (query.length < minChars) {
+      setSearching(input, false);
       close();
       liveRegion.textContent = "";
       return;
@@ -393,6 +403,7 @@ export function createAutocomplete(config) {
     reset() {
       clearTimeout(timer);
       controller?.abort();
+      setSearching(input, false);
       close();
       liveRegion.textContent = "";
     },
@@ -401,8 +412,27 @@ export function createAutocomplete(config) {
       clearTimeout(timer);
       controller?.abort();
       document.removeEventListener("pointerdown", handleOutsidePointer);
+      setSearching(input, false);
       close();
       liveRegion.remove();
     },
   };
+}
+
+// Buscador de clientes por alias, con la opción de usar lo escrito como alias.
+export function createClientAutocomplete({ input, list, onSelect, onAlias }) {
+  return createAutocomplete({
+    input,
+    list,
+    emptyMessage: "No hay clientes registrados con ese nombre.",
+    search: (query, signal) => searchClients(query, signal),
+    getTitle: (client) => client.alias ?? client.name ?? "",
+    getSubtitle: (client) =>
+      client.internal_code ? `Código ${client.internal_code}` : "",
+    onSelect,
+    customOption: {
+      label: (query) => `Usar «${query}» como alias`,
+      onSelect: onAlias,
+    },
+  });
 }

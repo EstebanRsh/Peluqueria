@@ -38,14 +38,16 @@
                     <button type="button" class="btn btn--ghost btn--sm" id="clientChange">Cambiar</button>
                 </div>
 
-                <input
-                    type="text"
-                    id="clientSearch"
-                    aria-required="true"
-                    placeholder="Buscar por nombre o código, o escribir un alias"
-                    aria-describedby="clientHelp">
+                <div class="search-field">
+                    <input
+                        type="text"
+                        id="clientSearch"
+                        aria-required="true"
+                        placeholder="Buscar por nombre o código, o escribir un alias"
+                        aria-describedby="clientHelp">
 
-                <ul class="autocomplete-list" id="appointmentClientSuggestions"></ul>
+                    <ul class="autocomplete-list" id="appointmentClientSuggestions"></ul>
+                </div>
 
                 <input type="hidden" id="clientId">
                 <input type="hidden" id="clientName">
@@ -57,13 +59,28 @@
 
             <!-- Servicio -->
             <div class="form-group is-required">
-                <label for="serviceId">Servicio</label>
+                <label for="serviceSearch">Servicio</label>
 
-                <select id="serviceId" class="form-select" aria-required="true">
-                    <option value="">Seleccionar servicio</option>
-                </select>
+                <div class="selected-chip" id="serviceSelected" role="group" aria-label="Servicio elegido" hidden>
+                    <div class="selected-chip__main">
+                        <span class="selected-chip__title" id="serviceChipTitle"></span>
+                        <span class="selected-chip__meta" id="serviceChipMeta"></span>
+                    </div>
+                    <button type="button" class="btn btn--ghost btn--sm" id="serviceChange">Cambiar</button>
+                </div>
 
-                <button type="button" class="btn btn--ghost btn--sm" id="serviceRetry" hidden>Reintentar</button>
+                <div class="search-field">
+                    <input
+                        type="text"
+                        id="serviceSearch"
+                        aria-required="true"
+                        placeholder="Buscar servicio por nombre">
+
+                    <ul class="autocomplete-list" id="serviceSuggestions"></ul>
+                </div>
+
+                <input type="hidden" id="serviceId">
+
             </div>
 
             <!-- Fecha y precio -->
