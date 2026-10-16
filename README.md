@@ -25,17 +25,23 @@ Esta aplicación esta siendo desarrollada para solucionar esto: ordenar la agend
 
 ---
 
+## Cómo pensamos la app
+
+Un profesional que atiende solo no tiene tiempo para cargar datos entre un cliente y otro. Por eso la aplicación se diseña para sentirse **ligera y rápida**: las acciones de todos los días se resuelven con un toque, no hay pasos de más ni confirmaciones que cansen, y cuando alguien se equivoca se corrige con **"Deshacer"** en lugar de volver a empezar. La idea es evitar errores y agotamiento, no sumar tareas.
+
+---
+
 ## Qué podés hacer hoy con la app
 
 ### 📅 Calendario y turnos
 
-- Vista mensual del calendario, con los turnos agrupados por día y por estado.
+- Vista mensual del calendario: cada día muestra, en cuadraditos de color, cuántos turnos tiene **Reservados** y cuántos **Finalizados**.
 - Un panel al seleccionar un dia del calendario muestra la agenda completa del día seleccionado.
 - Buscador y filtros por estado dentro de ese panel, para encontrar un turno rápido sin scrollear toda la lista.
 - Alta de un turno, con o sin cliente asociado (para cuando alguien llega sin estar registrado todavía).
 - El turno se valida antes de guardarse: cliente, servicio, fecha y horarios de inicio y fin.
 - Búsqueda de turnos por el comienzo del nombre o alias del cliente, del código interno o del profesional.
-- El estado de un turno se puede mover entre: **Reservado → En sala de espera → En atención → Finalizado**, o marcarlo como **Cancelado** o **Ausente**.
+- Un turno nace **Reservado**. Con **Cambiar estado** se abre una ventanita para dejarlo como **Finalizado**, **Ausente** o **Cancelado** (o volver a Reservado). Cada cambio avisa con "Deshacer" para corregir un error sin pasos de más.
 - Cada cambio de estado queda registrado con fecha y hora, formando una pequeña línea de tiempo del turno.
 - Eliminación de turnos.
 
@@ -58,7 +64,7 @@ Esta aplicación esta siendo desarrollada para solucionar esto: ordenar la agend
 
 Aunque todavía no hay una pantalla que lo muestre de forma consolidada, la aplicación ya está guardando la información necesaria para reconstruir el historial de cada cliente:
 
-- **Historial de estados del turno**: cada cambio de estado (de "Reservado" a "En atención", por ejemplo) queda registrado con fecha.
+- **Historial de estados del turno**: cada cambio de estado (de "Reservado" a "Finalizado", por ejemplo) queda registrado con fecha.
 - **Snapshot del servicio realizado**: al crear un turno, se guarda un registro en el historial del servicio y en qué fecha realizado.
 
 Esta base es la que permitirá construir el historial de cliente sin tener que rediseñar todo desde cero.
