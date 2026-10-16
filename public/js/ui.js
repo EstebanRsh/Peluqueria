@@ -44,26 +44,19 @@ let panelOpener = null;
 // ============================================================
 
 const TOOLTIP_TTL_MS = 30000;
-const FEEDBACK_SUCCESS_MS = 3000;
+
+const CELL_BADGE_LABELS = { finalizado: "Finalizados", reservado: "Reservados" };
+const UNDO_MS = 6000;
 
 const STATUS_FILTERS = [
   { value: "todos", label: "Todos" },
   { value: "reservado", label: "Reservados" },
-  { value: "en-sala-de-espera", label: "En espera" },
-  { value: "en-atencion", label: "En atención" },
   { value: "finalizado", label: "Finalizados" },
   { value: "ausente", label: "Ausentes" },
   { value: "cancelado", label: "Cancelados" },
 ];
 
-const STATUS_OPTIONS = [
-  "Reservado",
-  "En sala de espera",
-  "En atención",
-  "Finalizado",
-  "Ausente",
-  "Cancelado",
-];
+const STATUS_OPTIONS = ["Reservado", "Finalizado", "Ausente", "Cancelado"];
 
 let appointmentSearchQuery = "";
 let appointmentFilterStatus = "todos";
@@ -149,7 +142,7 @@ panelOverlay?.addEventListener("click", closePanel);
 
 // Escape cierra únicamente la capa superior: primero el detalle, luego el panel.
 document.addEventListener("keydown", (event) => {
-  if (event.key !== "Escape") {
+  if (event.key !== "Escape" || statusDialog?.open) {
     return;
   }
 
@@ -189,8 +182,7 @@ export function bindCalendarBadge(badge) {
       return;
     }
 
-    // Abrir el panel filtrando por la agenda del día
-    openPanelForDate(cell, badge.dataset.date, "reservado");
+    openPanelForDate(cell, badge.dataset.date, badge.dataset.status);
   });
 
   badge.addEventListener("mouseenter", async () => {
@@ -208,9 +200,8 @@ export function bindCalendarBadge(badge) {
 
     try {
       const data = await fetchAppointments(badge.dataset.date);
-      // Solo nos interesan los clientes con estado Reservado para el tooltip del calendario
       const filtered = data.filter(
-        (appointment) => slugify(appointment.status) === "reservado",
+        (appointment) => slugify(appointment.status) === badge.dataset.status,
       );
       const names = filtered
         .map((appointment) => appointment.client_name || appointment.alias)
@@ -218,54 +209,72 @@ export function bindCalendarBadge(badge) {
         .join(", ");
 
       if (names) {
-        badge.setAttribute("title", `Reservas: ${filtered.length}\n(${names})`);
+        badge.setAttribute(
+          "title",
+          `${CELL_BADGE_LABELS[badge.dataset.status]}: ${filtered.length}\n(${names})`,
+        );
       }
 
       badge.dataset.loadedAt = String(Date.now());
     } catch (error) {
-      console.error("Error al cargar nombres de reservas:", error);
+      console.error("Error al cargar nombres del día:", error);
     } finally {
       delete badge.dataset.loading;
     }
   });
 }
 
-// Actualiza la marca, el texto accesible de la celda de un día.
-function updateCellReservados(cell, count) {
-  let badge = cell.querySelector(".cell__status-badge--reservado");
+// Dibuja las marcas de la celda de un día (finalizados a la izquierda de reservados)
+// y actualiza su texto accesible.
+function renderCellBadges(cell, counts) {
+  cell.querySelector(".cell__events")?.remove();
 
-  if (count > 0) {
-    if (!badge) {
-      const events = document.createElement("div");
-      events.className = "cell__events";
+  const events = document.createElement("div");
+  events.className = "cell__events";
 
-      badge = document.createElement("span");
-      badge.className = "cell__status-badge cell__status-badge--reservado";
-      badge.dataset.status = "reservado";
-      badge.dataset.date = cell.dataset.date;
-
-      events.appendChild(badge);
-      cell.appendChild(events);
-      bindCalendarBadge(badge);
+  Object.keys(CELL_BADGE_LABELS).forEach((status) => {
+    if (!counts[status]) {
+      return;
     }
 
-    badge.textContent = String(count);
-    badge.setAttribute("title", `Reservados: ${count}`);
-    delete badge.dataset.loadedAt;
-    cell.classList.add("calendar__cell--has-event");
-  } else if (badge) {
-    badge.closest(".cell__events")?.remove();
-    cell.classList.remove("calendar__cell--has-event");
+    const badge = document.createElement("span");
+    badge.className = `cell__status-badge cell__status-badge--${status}`;
+    badge.dataset.status = status;
+    badge.dataset.date = cell.dataset.date;
+    badge.textContent = String(counts[status]);
+    badge.setAttribute(
+      "title",
+      `${CELL_BADGE_LABELS[status]}: ${counts[status]}`,
+    );
+
+    events.appendChild(badge);
+    bindCalendarBadge(badge);
+  });
+
+  const hasEvents = events.children.length > 0;
+
+  if (hasEvents) {
+    cell.appendChild(events);
   }
 
-  const baseLabel = (cell.getAttribute("aria-label") || "").split(",")[0];
+  cell.classList.toggle("calendar__cell--has-event", hasEvents);
 
-  cell.setAttribute(
-    "aria-label",
-    count > 0
-      ? `${baseLabel}, ${count} ${count === 1 ? "reserva" : "reservas"}`
-      : baseLabel,
-  );
+  const baseLabel = (cell.getAttribute("aria-label") || "").split(",")[0];
+  const parts = [baseLabel];
+
+  if (counts.reservado) {
+    parts.push(
+      `${counts.reservado} ${counts.reservado === 1 ? "reserva" : "reservas"}`,
+    );
+  }
+
+  if (counts.finalizado) {
+    parts.push(
+      `${counts.finalizado} ${counts.finalizado === 1 ? "finalizado" : "finalizados"}`,
+    );
+  }
+
+  cell.setAttribute("aria-label", parts.join(", "));
 }
 
 // Recalcula el resumen del mes a partir de las marcas visibles.
@@ -304,11 +313,17 @@ export async function syncCalendarDay(date) {
 
   try {
     const appointments = await fetchAppointments(date);
-    const count = appointments.filter(
-      (appointment) => slugify(appointment.status) === "reservado",
-    ).length;
+    const counts = { reservado: 0, finalizado: 0 };
 
-    updateCellReservados(cell, count);
+    appointments.forEach((appointment) => {
+      const status = slugify(appointment.status);
+
+      if (status in counts) {
+        counts[status] += 1;
+      }
+    });
+
+    renderCellBadges(cell, counts);
     updateCalendarSummary();
   } catch (error) {
     console.error("Error al actualizar el calendario:", error);
@@ -380,6 +395,13 @@ panelBody?.addEventListener("click", (event) => {
 
   if (event.target.closest("[data-action='retry-load']")) {
     loadAppointments(appState.activeDay);
+    return;
+  }
+
+  const statusButton = event.target.closest("[data-action='status']");
+
+  if (statusButton) {
+    openStatusDialog(statusButton.closest(".appointment-card").dataset.id);
     return;
   }
 
@@ -519,29 +541,32 @@ function renderAppointmentsList(container, appointments) {
             tabindex="0"
             aria-label="Ver detalle del turno de ${escapeHtml(displayClientName)} a las ${escapeHtml(time)}"
           >
-            <div class="appointment-card__col-left">
-              <span class="appointment-card__time">
-                ${escapeHtml(time)}
-              </span>
+            <span class="appointment-card__time">
+              ${escapeHtml(time)}
+            </span>
 
-              <span class="appointment-card__name">
-                ${escapeHtml(displayClientName)}
-              </span>
+            <span class="appointment-card__name">
+              ${escapeHtml(displayClientName)}
+            </span>
 
-              <span class="appointment-card__service">
-                ${escapeHtml(appointment.service_name || "Servicio no disponible")}
-              </span>
-            </div>
+            <span class="appointment-card__service">
+              ${escapeHtml(appointment.service_name || "Servicio no disponible")}
+            </span>
+          </div>
 
-            <div class="appointment-card__col-right">
-              <span class="appointment-card__stylist">
-                ${escapeHtml(appointment.stylist || "Sin asignar")}
-              </span>
+          <div class="appointment-card__status">
+            <span class="status-badge status-badge--${sluggedStatus}">
+              ${escapeHtml(appointment.status)}
+            </span>
 
-              <span class="status-badge status-badge--${sluggedStatus}">
-                ${escapeHtml(appointment.status)}
-              </span>
-            </div>
+            <button
+              type="button"
+              class="btn btn--ghost btn--sm"
+              data-action="status"
+              aria-label="Cambiar el estado del turno de ${escapeHtml(displayClientName)}"
+            >
+              Cambiar estado
+            </button>
           </div>
         </div>
       `;
@@ -656,9 +681,7 @@ function openAppointmentDetailModal(appointmentId) {
             <span class="detail-label">Estado</span>
             <select
               id="modalStatusSelect"
-              class="form-select select-flujo-cambio select-flujo-cambio--${slugify(
-                appointment.status,
-              )}"
+              class="${statusSelectClass(appointment.status)}"
               aria-label="Estado del turno"
               data-id="${escapeHtml(appointment.id)}"
             >
@@ -737,7 +760,6 @@ function openAppointmentDetailModal(appointmentId) {
     panel: detailPanel,
     appointmentId: appointment.id,
     opener,
-    feedbackTimer: null,
   };
 
   attachDetailModalEvents(detailPanel, detailOverlay);
@@ -759,10 +781,8 @@ function closeAppointmentDetailModal({ restore = true } = {}) {
     panel: detailPanel,
     appointmentId,
     opener,
-    feedbackTimer,
   } = activeDetailModal;
 
-  clearTimeout(feedbackTimer);
   overlay.remove();
   detailPanel.remove();
   activeDetailModal = null;
@@ -781,7 +801,7 @@ function closeAppointmentDetailModal({ restore = true } = {}) {
 }
 
 // ============================================================
-// MENSAJES DEL DETALLE (ERRORES, ÉXITO Y CONFIRMACIÓN)
+// MENSAJES DEL DETALLE (ERRORES Y CONFIRMACIÓN)
 // ============================================================
 
 function showDetailFeedback(type, message) {
@@ -795,18 +815,9 @@ function showDetailFeedback(type, message) {
     return;
   }
 
-  clearTimeout(activeDetailModal.feedbackTimer);
-
   box.className = `alert alert--${type}`;
-  box.setAttribute("role", type === "success" ? "status" : "alert");
+  box.setAttribute("role", "alert");
   box.textContent = message;
-
-  if (type === "success") {
-    activeDetailModal.feedbackTimer = setTimeout(
-      clearDetailFeedback,
-      FEEDBACK_SUCCESS_MS,
-    );
-  }
 }
 
 function clearDetailFeedback() {
@@ -890,40 +901,138 @@ function attachDetailModalEvents(detailPanel, detailOverlay) {
   }
 }
 
+function statusSelectClass(status) {
+  return `form-select select-flujo-cambio select-flujo-cambio--${slugify(status)}`;
+}
+
+async function setAppointmentStatus(id, status) {
+  const appointment = appointmentMap.get(String(id));
+  const previous = appointment?.status;
+  const response = await updateAppointmentStatus(id, status);
+
+  if (!response.success) {
+    throw new ApiError(response.error || "No se pudo actualizar el estado.", {
+      kind: "request",
+    });
+  }
+
+  if (appointment) {
+    appointment.status = status;
+  }
+
+  return previous;
+}
+
+async function refreshDay() {
+  syncCalendarDay(appState.activeDay);
+  await loadAppointments(appState.activeDay, { showLoading: false });
+}
+
+function announceStatus(id, previous, status) {
+  if (!previous || previous === status) {
+    return;
+  }
+
+  const appointment = appointmentMap.get(String(id));
+  const name = appointment?.client_name || appointment?.alias || "Turno";
+
+  notify.success(`${name}: ${status}`, {
+    duration: UNDO_MS,
+    action: { label: "Deshacer", onClick: () => undoStatus(id, previous) },
+  });
+}
+
+async function undoStatus(id, previous) {
+  try {
+    await setAppointmentStatus(id, previous);
+
+    const select = activeDetailModal?.panel.querySelector("#modalStatusSelect");
+
+    if (select && select.dataset.id === String(id)) {
+      select.value = previous;
+      select.className = statusSelectClass(previous);
+    }
+
+    await refreshDay();
+  } catch (error) {
+    console.error("Error al deshacer el estado:", error);
+    notify.error(getErrorMessage(error, "No se pudo deshacer el cambio."));
+  }
+}
+
+const statusDialog = document.getElementById("statusDialog");
+let statusDialogAppointmentId = null;
+
+function openStatusDialog(id) {
+  const appointment = appointmentMap.get(String(id));
+
+  if (!appointment || !statusDialog) {
+    return;
+  }
+
+  statusDialogAppointmentId = String(id);
+
+  document.getElementById("statusDialogName").textContent =
+    appointment.client_name || appointment.alias || "Sin cliente asociado";
+  document.getElementById("statusDialogMeta").textContent =
+    `${formatTime(appointment.time_start)} · ${appointment.service_name || "Servicio no disponible"}`;
+
+  statusDialog.querySelectorAll("[data-set-status]").forEach((option) => {
+    const isCurrent = option.dataset.setStatus === appointment.status;
+
+    option.classList.toggle("is-active", isCurrent);
+    option.setAttribute("aria-pressed", String(isCurrent));
+  });
+
+  statusDialog.showModal();
+}
+
+async function changeStatusFromDialog(id, status) {
+  const appointment = appointmentMap.get(String(id));
+
+  if (!appointment || appointment.status === status) {
+    return;
+  }
+
+  try {
+    const previous = await setAppointmentStatus(id, status);
+
+    announceStatus(id, previous, status);
+    await refreshDay();
+  } catch (error) {
+    console.error("Error al cambiar el estado del turno:", error);
+    notify.error(getErrorMessage(error, "No se pudo cambiar el estado."));
+  }
+}
+
+statusDialog?.addEventListener("click", (event) => {
+  if (event.target === statusDialog || event.target.closest("#statusDialogClose")) {
+    statusDialog.close();
+    return;
+  }
+
+  const option = event.target.closest("[data-set-status]");
+
+  if (option) {
+    statusDialog.close();
+    changeStatusFromDialog(statusDialogAppointmentId, option.dataset.setStatus);
+  }
+});
+
 async function changeAppointmentStatus(statusSelect) {
   const targetStatus = statusSelect.value;
-  const appointmentIdNum = statusSelect.dataset.id;
+  const id = statusSelect.dataset.id;
 
   clearDetailFeedback();
   statusSelect.disabled = true;
   statusSelect.setAttribute("aria-busy", "true");
 
   try {
-    const response = await updateAppointmentStatus(
-      appointmentIdNum,
-      targetStatus,
-    );
+    const previous = await setAppointmentStatus(id, targetStatus);
 
-    if (!response.success) {
-      throw new ApiError(response.error || "No se pudo actualizar el estado.", {
-        kind: "request",
-      });
-    }
-
-    const appointment = appointmentMap.get(String(appointmentIdNum));
-
-    if (appointment) {
-      appointment.status = targetStatus;
-      statusSelect.className = `form-select select-flujo-cambio select-flujo-cambio--${slugify(
-        targetStatus,
-      )}`;
-    }
-
-    showDetailFeedback("success", "Estado actualizado.");
-
-    // Al cambiar el estado, recargamos el panel del día y el contador del calendario
-    syncCalendarDay(appState.activeDay);
-    await loadAppointments(appState.activeDay, { showLoading: false });
+    statusSelect.className = statusSelectClass(targetStatus);
+    announceStatus(id, previous, targetStatus);
+    await refreshDay();
   } catch (error) {
     console.error("Error al actualizar estado:", error);
 
@@ -932,7 +1041,7 @@ async function changeAppointmentStatus(statusSelect) {
       getErrorMessage(error, "No se pudo actualizar el estado."),
     );
 
-    const appointment = appointmentMap.get(String(appointmentIdNum));
+    const appointment = appointmentMap.get(String(id));
 
     if (appointment) {
       statusSelect.value = appointment.status;

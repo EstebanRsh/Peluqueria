@@ -41,6 +41,7 @@
                 <input
                     type="text"
                     id="clientSearch"
+                    aria-required="true"
                     placeholder="Buscar por nombre o código, o escribir un alias"
                     aria-describedby="clientHelp">
 
@@ -58,16 +59,18 @@
             <div class="form-group is-required">
                 <label for="serviceId">Servicio</label>
 
-                <select id="serviceId" class="form-select">
+                <select id="serviceId" class="form-select" aria-required="true">
                     <option value="">Seleccionar servicio</option>
                 </select>
+
+                <button type="button" class="btn btn--ghost btn--sm" id="serviceRetry" hidden>Reintentar</button>
             </div>
 
             <!-- Fecha y precio -->
             <div class="form-row">
                 <div class="form-group is-required">
                     <label for="appointmentDate">Fecha</label>
-                    <input type="date" id="appointmentDate">
+                    <input type="date" id="appointmentDate" aria-required="true">
                 </div>
 
                 <div class="form-group">
@@ -86,12 +89,12 @@
             <div class="form-row">
                 <div class="form-group is-required">
                     <label for="timeStart">Hora de inicio</label>
-                    <input type="time" id="timeStart">
+                    <input type="time" id="timeStart" aria-required="true">
                 </div>
 
                 <div class="form-group is-required">
                     <label for="timeEnd">Hora de fin</label>
-                    <input type="time" id="timeEnd">
+                    <input type="time" id="timeEnd" aria-required="true">
                 </div>
             </div>
 
@@ -115,8 +118,6 @@
 
                     <select id="appointmentStatus" class="form-select">
                         <option value="Reservado" selected>Reservado</option>
-                        <option value="En sala de espera">En sala de espera</option>
-                        <option value="En atención">En atención</option>
                         <option value="Finalizado">Finalizado</option>
                         <option value="Cancelado">Cancelado</option>
                         <option value="Ausente">Ausente</option>

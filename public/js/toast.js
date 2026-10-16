@@ -21,6 +21,9 @@ function getRegion() {
     region = document.createElement("div");
     region.id = REGION_ID;
     region.className = "toast-region";
+    region.setAttribute("role", "region");
+    region.setAttribute("aria-live", "polite");
+    region.setAttribute("aria-label", "Avisos");
     document.body.appendChild(region);
   }
 
@@ -42,29 +45,34 @@ function scheduleRemoval(toast, duration) {
   toast._timer = setTimeout(() => removeToast(toast), duration);
 }
 
-// Muestra un aviso. Devuelve una función para cerrarlo manualmente.
-export function showToast(message, { type = "info", duration } = {}) {
+// Muestra un aviso. Con "action" ({ label, onClick }) suma un botón, por ejemplo "Deshacer".
+function showToast(message, { type = "info", duration, action = null } = {}) {
   const region = getRegion();
   const lifetime = duration ?? DURATIONS[type] ?? DURATIONS.info;
 
   // Si ya hay un aviso idéntico visible, solo se reinicia su tiempo.
-  const duplicate = Array.from(region.children).find(
-    (toast) =>
-      toast.dataset.message === message &&
-      toast.dataset.type === type &&
-      !toast.classList.contains("is-leaving"),
-  );
+  const duplicate = action
+    ? null
+    : Array.from(region.children).find(
+        (toast) =>
+          toast.dataset.message === message &&
+          toast.dataset.type === type &&
+          !toast.classList.contains("is-leaving"),
+      );
 
   if (duplicate) {
     scheduleRemoval(duplicate, lifetime);
-    return () => removeToast(duplicate);
+    return;
   }
 
   const toast = document.createElement("div");
   toast.className = `toast toast--${type}`;
   toast.dataset.message = message;
   toast.dataset.type = type;
-  toast.setAttribute("role", type === "error" ? "alert" : "status");
+
+  if (type === "error") {
+    toast.setAttribute("role", "alert");
+  }
 
   const text = document.createElement("span");
   text.className = "toast__message";
@@ -77,7 +85,21 @@ export function showToast(message, { type = "info", duration } = {}) {
   close.textContent = "×";
   close.addEventListener("click", () => removeToast(toast));
 
-  toast.append(text, close);
+  toast.append(text);
+
+  if (action) {
+    const actionButton = document.createElement("button");
+    actionButton.type = "button";
+    actionButton.className = "toast__action";
+    actionButton.textContent = action.label;
+    actionButton.addEventListener("click", () => {
+      removeToast(toast);
+      action.onClick();
+    });
+    toast.append(actionButton);
+  }
+
+  toast.append(close);
 
   // El tiempo se detiene mientras se lee el aviso con el mouse encima.
   toast.addEventListener("pointerenter", () => clearTimeout(toast._timer));
@@ -95,8 +117,6 @@ export function showToast(message, { type = "info", duration } = {}) {
     .forEach(removeToast);
 
   scheduleRemoval(toast, lifetime);
-
-  return () => removeToast(toast);
 }
 
 export const notify = {

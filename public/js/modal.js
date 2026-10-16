@@ -298,6 +298,7 @@ export function initModal() {
   });
 
   $("clientChange")?.addEventListener("click", clearClient);
+  $("serviceRetry")?.addEventListener("click", loadServices);
 
   // ----------------------------------------------------------
   // SERVICIO
@@ -434,6 +435,7 @@ async function loadServices() {
 
   serviceSelect.innerHTML = '<option value="">Cargando servicios...</option>';
   serviceSelect.disabled = true;
+  $("serviceRetry").hidden = true;
 
   try {
     const services = await fetchServices();
@@ -471,6 +473,7 @@ async function loadServices() {
 
     serviceSelect.innerHTML =
       '<option value="">No se pudieron cargar los servicios</option>';
+    $("serviceRetry").hidden = false;
 
     showFeedback(
       "error",
