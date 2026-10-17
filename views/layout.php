@@ -174,7 +174,7 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
     <div class="fab-actions" id="fabActions" hidden>
         <div class="fab-actions__menu" id="fabMenu"></div>
         <button class="fab-actions__toggle" id="fabToggle" type="button" aria-label="Abrir acciones rápidas" aria-expanded="false" aria-controls="fabMenu">
-            <span class="fab-actions__toggle-icon" aria-hidden="true">+</span>
+            <svg class="fab-actions__toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
         </button>
     </div>
 

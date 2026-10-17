@@ -294,10 +294,9 @@
 }
 
 .fab-actions__toggle-icon {
-  font-size: 1.7rem;
-  font-weight: 300;
-  line-height: 1;
   display: block;
+  width: 1.5rem;
+  height: 1.5rem;
   transition: transform var(--t-base) var(--ease-out);
 }
 
