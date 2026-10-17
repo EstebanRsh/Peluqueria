@@ -7,7 +7,7 @@
     ====================================================== -->
 
     <div class="day-panel__header">
-        <h2 class="day-panel__date">Panel de clientes</h2>
+        <h2 class="day-panel__date" tabindex="-1">Panel de clientes</h2>
 
         <div class="day-panel__actions">
             <button

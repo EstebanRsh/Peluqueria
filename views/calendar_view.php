@@ -74,7 +74,7 @@ foreach ($events as $dayEvents) {
     <section class="calendar-wrapper" aria-label="Calendario de turnos">
         <div class="calendar">
             <div class="calendar__header">
-                <h2 class="calendar__title">
+                <h2 class="calendar__title" tabindex="-1">
                     <span class="calendar__month"><?= $monthName ?></span>
                     <span class="calendar__year"><?= $year ?></span>
                 </h2>

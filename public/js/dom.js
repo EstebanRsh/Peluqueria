@@ -14,11 +14,71 @@ export function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-// Devuelve el foco a un elemento si sigue en la página.
+// Devuelve el foco a un elemento si sigue en la página. Espera un instante
+// para que el fondo de un panel recién cerrado deje de estar inerte.
 export function restoreFocus(element) {
-  if (element && element.isConnected) {
-    element.focus({ preventScroll: true });
-  }
+  queueMicrotask(() => {
+    if (element && element.isConnected) {
+      element.focus({ preventScroll: true });
+    }
+  });
+}
+
+// Mientras hay un panel modal abierto, el resto de la página queda inerte
+// (sin foco ni clics). Con paneles apilados, solo el último está activo.
+// Los fondos, los diálogos de confirmación y los avisos siguen activos.
+const OPEN_PANEL = '[role="dialog"][aria-modal="true"].is-open';
+const STAYS_ACTIVE = ".side-drawer-overlay, .confirm-dialog, .toast-region";
+
+export function initPanelFocusTrap() {
+  const stack = [];
+  let topPanel = null;
+  let inertNodes = [];
+
+  const update = () => {
+    const open = [...document.querySelectorAll(OPEN_PANEL)];
+    const ordered = [
+      ...stack.filter((panel) => open.includes(panel)),
+      ...open.filter((panel) => !stack.includes(panel)),
+    ];
+    stack.splice(0, stack.length, ...ordered);
+
+    const top = stack.at(-1) ?? null;
+
+    if (top === topPanel) {
+      return;
+    }
+
+    topPanel = top;
+    inertNodes.forEach((node) => {
+      node.inert = false;
+    });
+    inertNodes = [];
+
+    for (
+      let node = top;
+      node && node !== document.body;
+      node = node.parentElement
+    ) {
+      for (const sibling of node.parentElement.children) {
+        if (
+          sibling !== node &&
+          sibling.tagName !== "SCRIPT" &&
+          !sibling.matches(STAYS_ACTIVE)
+        ) {
+          sibling.inert = true;
+          inertNodes.push(sibling);
+        }
+      }
+    }
+  };
+
+  new MutationObserver(update).observe(document.body, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+    attributeFilter: ["class"],
+  });
 }
 
 // Registro activo (estricto): el campo "active" debe valer true o 1.

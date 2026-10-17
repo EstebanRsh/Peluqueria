@@ -12,6 +12,7 @@ import { initQuickEntry } from "./quickEntry.js";
 import { initLogout } from "./auth.js";
 import { initFab } from "./fab.js";
 import { appState } from "./state.js";
+import { initPanelFocusTrap } from "./dom.js";
 
 const panel = document.getElementById("dayPanel");
 const closeBtn = document.getElementById("panelClose");
@@ -105,6 +106,8 @@ navItems.forEach((item) => {
       element.classList.toggle("is-hidden", key !== view);
     });
 
+    views[view]?.querySelector("h2")?.focus({ preventScroll: true });
+
     if (view === "services") {
       loadServicesList();
     } else if (view === "clients") {
@@ -166,6 +169,7 @@ if (burgerBtn && sidebar && sidebarOverlay) {
 // INICIALIZACIÓN DE MÓDULOS
 // ============================================================
 
+initPanelFocusTrap();
 initModal();
 initServices();
 initClients();
