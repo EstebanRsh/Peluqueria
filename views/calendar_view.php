@@ -54,10 +54,12 @@ $countStatus = static function (array $dayEvents, string $status): int {
 };
 
 $monthTotalReservados = 0;
+$monthTotalFinalizados = 0;
 $busyDays = 0;
 
-// Calcular únicamente los turnos RESERVADOS del mes
+// Totales del mes: turnos reservados y finalizados
 foreach ($events as $dayEvents) {
+    $monthTotalFinalizados += $countStatus($dayEvents, 'finalizado');
     $hasReservations = false;
     foreach ($dayEvents as $dayEvent) {
         if ($isReservado($dayEvent)) {
@@ -150,18 +152,18 @@ foreach ($events as $dayEvents) {
                 <?php endfor; ?>
             </div>
 
-            <!-- Resumen limpio y enfocado únicamente en la carga de reservas -->
-            <div class="calendar__summary" role="group" aria-label="Resumen del mes">
-                <span class="summary__item"><b class="summary__num" data-summary="reservas"><?= $monthTotalReservados ?></b> reservas activas</span>
-                <span class="summary__item"><b class="summary__num" data-summary="dias"><?= $busyDays ?></b> días con agenda ocupada</span>
-            </div>
-
-            <ul class="calendar__legend" aria-label="Leyenda de estados">
+            <!-- Resumen del mes y leyenda de colores en una sola franja -->
+            <ul class="calendar__legend" aria-label="Resumen del mes">
                 <li class="legend__item">
-                    <span class="legend__swatch cell__status-badge--reservado" aria-hidden="true"></span> Turnos Reservados (Pendientes de atención)
+                    <span class="legend__swatch cell__status-badge--reservado" aria-hidden="true"></span>
+                    <b class="legend__num" data-summary="reservas"><?= $monthTotalReservados ?></b> Reservados
                 </li>
                 <li class="legend__item">
-                    <span class="legend__swatch cell__status-badge--finalizado" aria-hidden="true"></span> Turnos Finalizados
+                    <span class="legend__swatch cell__status-badge--finalizado" aria-hidden="true"></span>
+                    <b class="legend__num" data-summary="finalizados"><?= $monthTotalFinalizados ?></b> Finalizados
+                </li>
+                <li class="legend__item">
+                    <b class="legend__num" data-summary="dias"><?= $busyDays ?></b> días con turnos reservados
                 </li>
             </ul>
         </div>

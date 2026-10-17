@@ -33,13 +33,10 @@ if (panel && !panel.hasAttribute("tabindex")) {
   panel.setAttribute("tabindex", "-1");
 }
 
-// Guarda temporalmente los turnos cargados por ID.
 const appointmentMap = new Map();
 
-// Modal de detalle actualmente abierto.
 let activeDetailModal = null;
 
-// Elemento que tenía el foco antes de abrir el panel diario.
 let panelOpener = null;
 
 // ============================================================
@@ -48,7 +45,10 @@ let panelOpener = null;
 
 const TOOLTIP_TTL_MS = 30000;
 
-const CELL_BADGE_LABELS = { finalizado: "Finalizados", reservado: "Reservados" };
+const CELL_BADGE_LABELS = {
+  finalizado: "Finalizados",
+  reservado: "Reservados",
+};
 const UNDO_MS = 6000;
 
 let appointmentSearchQuery = "";
@@ -76,27 +76,21 @@ export function openPanelForDate(cell, date, statusFilter) {
 
   panelOpener = cell || document.activeElement;
 
-  // Actualizar día activo.
   appState.activeDay = date;
 
-  // Por defecto al abrir un día mostramos "todos" los turnos del día o el filtro indicado
   appointmentFilterStatus = statusFilter ? slugify(statusFilter) : "todos";
 
-  // Reiniciar búsqueda.
   appointmentSearchQuery = "";
 
-  // Mostrar fecha en la cabecera del panel.
   const dateFormatted = formatDate(date);
   panelDate.textContent = dateFormatted;
 
   renderPanelShell();
 
-  // Abrir panel.
   panel.classList.add("is-open");
   panel.setAttribute("aria-hidden", "false");
   panelOverlay?.classList.add("is-open");
 
-  // Cargar turnos del día.
   loadAppointments(date);
 
   requestAnimationFrame(() => panel.focus({ preventScroll: true }));
@@ -123,7 +117,6 @@ export function closePanel() {
 
 panelOverlay?.addEventListener("click", closePanel);
 
-// Escape cierra únicamente la capa superior: primero el detalle, luego el panel.
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape" || statusDialog?.open) {
     return;
@@ -138,8 +131,6 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
-  // Si hay otro panel lateral abierto por encima (por ejemplo el formulario
-  // de turno), Escape lo cierra su propio módulo y este panel permanece.
   const openDrawers = document.querySelectorAll(".side-drawer.is-open");
   const topmost = openDrawers[openDrawers.length - 1];
 
@@ -171,7 +162,6 @@ export function bindCalendarBadge(badge) {
   badge.addEventListener("mouseenter", async () => {
     const loadedAt = Number(badge.dataset.loadedAt || 0);
 
-    // Evita pedidos repetidos mientras hay uno en curso o los datos son recientes
     if (
       badge.dataset.loading === "true" ||
       Date.now() - loadedAt < TOOLTIP_TTL_MS
@@ -182,9 +172,10 @@ export function bindCalendarBadge(badge) {
     badge.dataset.loading = "true";
 
     try {
-      const data = await fetchAppointments(badge.dataset.date);
-      const filtered = data.filter(
-        (appointment) => slugify(appointment.status) === badge.dataset.status,
+      const filtered = await fetchAppointments(
+        badge.dataset.date,
+        "",
+        badge.dataset.status,
       );
       const names = filtered
         .map((appointment) => appointment.client_name || appointment.alias)
@@ -260,20 +251,26 @@ function renderCellBadges(cell, counts) {
 
 // Recalcula el resumen del mes a partir de las marcas visibles.
 function updateCalendarSummary() {
-  const badges = document.querySelectorAll(
-    ".calendar__cell--active .cell__status-badge--reservado",
-  );
+  const sumBadges = (status) => [
+    ...document.querySelectorAll(
+      `.calendar__cell--active .cell__status-badge--${status}`,
+    ),
+  ];
+  const total = (badges) =>
+    badges.reduce(
+      (sum, badge) => sum + (Number.parseInt(badge.textContent, 10) || 0),
+      0,
+    );
+  const setSummary = (key, value) => {
+    const element = document.querySelector(`[data-summary='${key}']`);
+    if (element) element.textContent = String(value);
+  };
 
-  let total = 0;
-  badges.forEach((badge) => {
-    total += Number.parseInt(badge.textContent, 10) || 0;
-  });
+  const reservados = sumBadges("reservado");
 
-  const totalElement = document.querySelector("[data-summary='reservas']");
-  const daysElement = document.querySelector("[data-summary='dias']");
-
-  if (totalElement) totalElement.textContent = String(total);
-  if (daysElement) daysElement.textContent = String(badges.length);
+  setSummary("reservas", total(reservados));
+  setSummary("finalizados", total(sumBadges("finalizado")));
+  setSummary("dias", reservados.length);
 }
 
 // Vuelve a consultar los turnos del día y actualiza el calendario
@@ -287,7 +284,6 @@ export async function syncCalendarDay(date) {
     `.calendar__cell--active[data-date="${CSS.escape(String(date))}"]`,
   );
 
-  // El día no pertenece al mes que se está mostrando.
   if (!cell) {
     return;
   }
@@ -341,7 +337,7 @@ function renderPanelShell() {
           type="text"
           id="appointmentSearch"
           aria-label="Buscar turnos"
-          placeholder="Buscar cliente o peluquero/a…"
+          placeholder="Buscar por cliente…"
           value="${escapeHtml(appointmentSearchQuery)}"
           autocomplete="off"
         />
@@ -365,7 +361,6 @@ function syncFilterButtons() {
   });
 }
 
-// Eventos delegados: siguen funcionando aunque la lista se vuelva a dibujar.
 panelBody?.addEventListener("click", (event) => {
   const filterButton = event.target.closest(".btn-filter[data-status]");
 
@@ -454,7 +449,6 @@ export async function loadAppointments(date, { showLoading = true } = {}) {
       appointmentFilterStatus,
     );
 
-    // Se descarta una respuesta vieja si ya se pidió otra más reciente.
     if (token !== loadToken) {
       return;
     }
@@ -761,7 +755,6 @@ function closeAppointmentDetailModal({ restore = true } = {}) {
     return;
   }
 
-  // La lista pudo volver a dibujarse mientras el detalle estaba abierto.
   const row = panelBody?.querySelector(
     `.appointment-card[data-id="${CSS.escape(String(appointmentId))}"] .appointment-card__row`,
   );
@@ -944,7 +937,10 @@ async function changeStatusFromDialog(id, status) {
 }
 
 statusDialog?.addEventListener("click", (event) => {
-  if (event.target === statusDialog || event.target.closest("#statusDialogClose")) {
+  if (
+    event.target === statusDialog ||
+    event.target.closest("#statusDialogClose")
+  ) {
     statusDialog.close();
     return;
   }
@@ -1048,7 +1044,6 @@ async function loadTimelineHistory(id, container) {
   try {
     const history = await fetchTimelineHistory(id);
 
-    // El detalle pudo cerrarse mientras se esperaba la respuesta.
     if (!container.isConnected) {
       return;
     }

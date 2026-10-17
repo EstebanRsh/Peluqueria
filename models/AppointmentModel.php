@@ -52,19 +52,12 @@ class AppointmentModel
         $types = 'is';
         $params = [$ownerId, $date];
 
-        // Búsqueda por cliente, código interno o profesional: empieza con el texto (dentro del día)
+        // Búsqueda por cliente: el alias empieza con el texto (dentro del día)
         if ($search !== '') {
-            $query .= "
-                AND (
-                    COALESCE(clients.alias, appointments.client_name) LIKE ?
-                    OR COALESCE(clients.internal_code, '') LIKE ?
-                    OR appointments.stylist LIKE ?
-                )
-            ";
+            $query .= " AND COALESCE(clients.alias, appointments.client_name) LIKE ?";
 
-            $like = addcslashes($search, '%_\\') . '%';
-            $types .= 'sss';
-            array_push($params, $like, $like, $like);
+            $types .= 's';
+            $params[] = addcslashes($search, '%_\\') . '%';
         }
 
         if ($status !== 'todos') {
