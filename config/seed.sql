@@ -1,5 +1,3 @@
-seed.sql
-
 USE peluqueria;
 
 -- Desactivar claves foráneas temporalmente
