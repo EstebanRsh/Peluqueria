@@ -136,9 +136,7 @@
   --color-reservado-solid: var(--color-reservado-text);
   --color-reservado-line: #334155;
   --color-espera-solid: #b45309;
-  --color-espera-line: var(--color-espera-text);
   --color-atencion-solid: #047857;
-  --color-atencion-line: #065f46;
   --color-finalizado-solid: var(--color-gold);
   --color-finalizado-solid-text: var(--color-text);
   --color-finalizado-line: #a17d36;

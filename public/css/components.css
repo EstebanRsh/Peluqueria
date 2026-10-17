@@ -18,7 +18,13 @@
   font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: all var(--t-fast) var(--ease-out);
+  transition:
+    color var(--t-fast) var(--ease-out),
+    background-color var(--t-fast) var(--ease-out),
+    border-color var(--t-fast) var(--ease-out),
+    box-shadow var(--t-fast) var(--ease-out),
+    opacity var(--t-fast) var(--ease-out),
+    transform var(--t-fast) var(--ease-out);
 }
 .btn--primary {
   background: var(--color-text);
@@ -393,7 +399,10 @@
   border-radius: 999px;
   cursor: pointer;
   white-space: nowrap;
-  transition: all var(--t-fast) var(--ease-out);
+  transition:
+    color var(--t-fast) var(--ease-out),
+    background-color var(--t-fast) var(--ease-out),
+    border-color var(--t-fast) var(--ease-out);
 }
 .btn-filter:hover {
   border-color: var(--color-text-muted);
@@ -679,7 +688,11 @@
   outline: none;
   width: 100%;
   color: var(--color-text);
-  transition: all var(--t-fast) var(--ease-out);
+  transition:
+    color var(--t-fast) var(--ease-out),
+    background-color var(--t-fast) var(--ease-out),
+    border-color var(--t-fast) var(--ease-out),
+    box-shadow var(--t-fast) var(--ease-out);
 }
 .form-group input:focus,
 .form-group textarea:focus,
@@ -1492,10 +1505,10 @@ select.select-flujo-cambio--ausente:focus {
 }
 
 .autocomplete-list:not(:empty) {
-  animation: autocomplete-in 0.14s var(--ease-out);
+  animation: autocomplete-in var(--t-fast) var(--ease-out);
 }
 .autocomplete-list li {
-  transition: opacity 0.14s var(--ease-out);
+  transition: opacity var(--t-fast) var(--ease-out);
 }
 .autocomplete-list[aria-busy="true"] li:not(.autocomplete-status) {
   opacity: 0.55;

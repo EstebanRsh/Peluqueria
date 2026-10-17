@@ -110,7 +110,6 @@ foreach ($events as $dayEvents) {
                     $hasEvent = $reservadosCount > 0 || $finalizadosCount > 0;
                     $classes  = 'calendar__cell calendar__cell--active';
                     if ($isToday)  $classes .= ' calendar__cell--today';
-                    if ($hasEvent) $classes .= ' calendar__cell--has-event';
                 ?>
                     <div class="<?= $classes ?>" data-date="<?= $dateKey ?>"
                         role="button" tabindex="0"
