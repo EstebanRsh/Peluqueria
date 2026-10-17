@@ -69,7 +69,7 @@
             <tbody id="adminProductsTableBody">
                 <tr>
                     <td colspan="6" class="panel-loading" role="status">
-                        Cargando productos...
+                        Cargando productos…
                     </td>
                 </tr>
             </tbody>

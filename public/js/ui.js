@@ -240,8 +240,6 @@ function renderCellBadges(cell, counts) {
     cell.appendChild(events);
   }
 
-  cell.classList.toggle("calendar__cell--has-event", hasEvents);
-
   const baseLabel = (cell.getAttribute("aria-label") || "").split(",")[0];
   const parts = [baseLabel];
 
@@ -343,7 +341,7 @@ function renderPanelShell() {
           type="text"
           id="appointmentSearch"
           aria-label="Buscar turnos"
-          placeholder="Buscar cliente o peluquero/a..."
+          placeholder="Buscar cliente o peluquero/a…"
           value="${escapeHtml(appointmentSearchQuery)}"
           autocomplete="off"
         />
@@ -442,7 +440,7 @@ export async function loadAppointments(date, { showLoading = true } = {}) {
   const token = ++loadToken;
 
   if (showLoading) {
-    container.innerHTML = `<p class="panel-loading" role="status">Cargando turnos...</p>`;
+    container.innerHTML = `<p class="panel-loading" role="status">Cargando turnos…</p>`;
   }
 
   container.setAttribute("aria-busy", "true");
@@ -697,7 +695,7 @@ function openAppointmentDetailModal(appointmentId) {
         <section class="appointment-history-log">
           <div class="history-title">Historial de estado</div>
           <div class="history-items">
-            <p class="history-placeholder" role="status">Cargando historial...</p>
+            <p class="history-placeholder" role="status">Cargando historial…</p>
           </div>
         </section>
       </div>
@@ -1065,7 +1063,7 @@ async function loadTimelineHistory(id, container) {
         const time = String(historyItem.changed_at ?? "").slice(11, 16);
 
         return `
-          <div class="hist-item shadow-text">
+          <div class="shadow-text">
             • <strong>${escapeHtml(time)} hs:</strong>
             ${
               historyItem.status_from

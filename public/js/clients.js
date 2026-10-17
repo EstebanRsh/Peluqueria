@@ -678,9 +678,9 @@ function openClientProfile(client) {
   );
 
   $("clientProfileHistory").innerHTML =
-    '<p class="history-placeholder" role="status">Cargando historial técnico...</p>';
+    '<p class="history-placeholder" role="status">Cargando historial técnico…</p>';
   $("clientProfileAppointments").innerHTML =
-    '<p class="history-placeholder" role="status">Cargando turnos...</p>';
+    '<p class="history-placeholder" role="status">Cargando turnos…</p>';
 
   profileRequestId += 1;
   void loadClientProfileData(client, profileRequestId);
@@ -870,9 +870,9 @@ export function initClients() {
     if (!profileClient) return;
 
     $("clientProfileHistory").innerHTML =
-      '<p class="history-placeholder" role="status">Cargando historial técnico...</p>';
+      '<p class="history-placeholder" role="status">Cargando historial técnico…</p>';
     $("clientProfileAppointments").innerHTML =
-      '<p class="history-placeholder" role="status">Cargando turnos...</p>';
+      '<p class="history-placeholder" role="status">Cargando turnos…</p>';
 
     profileRequestId += 1;
     void loadClientProfileData(profileClient, profileRequestId);

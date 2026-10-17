@@ -68,7 +68,7 @@
             <tbody id="clientsTableBody">
                 <tr>
                     <td colspan="5" class="panel-loading" role="status">
-                        Cargando clientes...
+                        Cargando clientes…
                     </td>
                 </tr>
             </tbody>

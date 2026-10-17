@@ -14,7 +14,7 @@ import { setSearching } from "./feedback.js";
 const ACCENT_MARKS = /[\u0300-\u036f]/g;
 
 const LOADING_DELAY_MS = 250;
-const LOADING_MESSAGE = "Buscando...";
+const LOADING_MESSAGE = "Buscando…";
 const ERROR_MESSAGE = "No se pudo realizar la búsqueda. Intentá de nuevo.";
 
 // Se aplica carácter por carácter: no recorta, un espacio no debe desaparecer.
@@ -243,7 +243,7 @@ export function createAutocomplete(config) {
     const current = new AbortController();
     controller = current;
 
-    // "Buscando..." solo aparece si la respuesta tarda y no hay nada en pantalla.
+    // "Buscando…" solo aparece si la respuesta tarda y no hay nada en pantalla.
     const loadingTimer = setTimeout(() => {
       if (list.children.length === 0 && !current.signal.aborted) {
         render(query, "loading");

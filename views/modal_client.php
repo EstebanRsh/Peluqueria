@@ -84,7 +84,7 @@
                     <textarea
                         id="clientNotes"
                         rows="3"
-                        placeholder="Preferencias, observaciones generales..."></textarea>
+                        placeholder="Preferencias, observaciones generales…"></textarea>
                 </div>
             </div>
 
