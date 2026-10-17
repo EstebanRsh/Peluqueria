@@ -1,5 +1,11 @@
 <?php
 
+/*
+ * Perfil de desarrollo local (XAMPP).
+ *
+ * Copiá este archivo como xampp.php y ajustá los datos de database si hace
+ * falta. xampp.php está ignorado por Git; este ejemplo no contiene secretos.
+ */
 return [
     'database' => [
         'host'     => 'localhost',

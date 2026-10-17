@@ -3,9 +3,9 @@
 /*
  * Plantilla del perfil productivo.
  *
- * Completá únicamente los valores de database con los datos entregados por el
- * hosting. Este archivo está ignorado por Git y el directorio deniega acceso
- * web directo mediante .htaccess.
+ * Copiá este archivo como hosting.php y completá los valores de database con
+ * los datos entregados por el hosting. hosting.php está ignorado por Git y el
+ * directorio deniega el acceso web directo mediante .htaccess.
  */
 return [
     'database' => [
