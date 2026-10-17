@@ -18,6 +18,7 @@ import {
   setBusy,
 } from "./feedback.js";
 import {
+  bindRowDialog,
   createListLoader,
   debounce,
   loadErrorHtml,
@@ -25,6 +26,7 @@ import {
   refreshAfterChange,
   renderMessageRow,
   rowActionsHtml,
+  rowToggleHtml,
   runTableAction,
 } from "./list.js";
 import { confirmAction } from "./confirm.js";
@@ -105,7 +107,7 @@ function renderProductsList() {
 
       return `
       <tr data-product-id="${id}">
-        <td data-label="Nombre">${name}</td>
+        <td data-label="Nombre" class="cell-primary">${name}${rowToggleHtml(product.name, product.id)}</td>
         <td data-label="Marca">${escapeHtml(product.brand || "—")}</td>
         <td data-label="Stock">${escapeHtml(formatStock(product))}</td>
         <td data-label="Costo">${escapeHtml(formatCost(product))}</td>
@@ -389,6 +391,7 @@ export function initProducts() {
   });
 
   $("adminProductsTableBody")?.addEventListener("click", handleTableAction);
+  bindRowDialog($("adminProductsTableBody"), $("productRowDialog"));
 
   const filterButtons = Array.from(
     document.querySelectorAll("#viewProducts .btn-filter[data-filter]"),

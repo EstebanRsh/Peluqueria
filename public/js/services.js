@@ -17,6 +17,7 @@ import {
   setBusy,
 } from "./feedback.js";
 import {
+  bindRowDialog,
   createListLoader,
   debounce,
   loadErrorHtml,
@@ -24,6 +25,7 @@ import {
   refreshAfterChange,
   renderMessageRow,
   rowActionsHtml,
+  rowToggleHtml,
   runTableAction,
 } from "./list.js";
 import { confirmAction } from "./confirm.js";
@@ -75,7 +77,7 @@ function renderServicesList() {
 
       return `
       <tr>
-        <td data-label="Nombre">${name}</td>
+        <td data-label="Nombre" class="cell-primary">${name}${rowToggleHtml(service.name, service.id)}</td>
         <td data-label="Duración">${escapeHtml(service.duration)} min</td>
         <td data-label="Precio">$${escapeHtml(service.price)}</td>
         <td data-label="Estado"><span class="status-badge status-badge--${active ? "activo" : "inactivo"}">${active ? "Activo" : "Inactivo"}</span></td>
@@ -347,6 +349,12 @@ export function initServices() {
   });
 
   $("servicesTableBody")?.addEventListener("click", handleTableAction);
+  bindRowDialog(
+    $("servicesTableBody"),
+    $("serviceRowDialog"),
+    (id) =>
+      list.state.items.find((item) => String(item.id) === id)?.description,
+  );
 
   // Acotado a #viewServices para no interferir con los mismos
   // botones .btn-filter que usan los demás paneles.

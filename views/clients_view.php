@@ -59,8 +59,8 @@
                 <tr>
                     <th scope="col">Alias</th>
                     <th scope="col">Código</th>
-                    <th scope="col">Notas</th>
                     <th scope="col">Estado</th>
+                    <th scope="col">Notas</th>
                     <th scope="col">Acciones</th>
                 </tr>
             </thead>
@@ -167,3 +167,19 @@
         </button>
     </div>
 </aside>
+
+<!-- Ventanita de la fila (celular): datos y acciones -->
+<dialog class="status-dialog" id="clientRowDialog" aria-labelledby="clientRowDialogName">
+    <div class="status-dialog__body">
+        <div class="status-dialog__header">
+            <h3 class="status-dialog__name" id="clientRowDialogName"></h3>
+            <button type="button" class="day-panel__close" aria-label="Cerrar">×</button>
+        </div>
+        <dl class="row-dialog__data"></dl>
+        <div class="row-dialog__notes" hidden>
+            <h4 class="row-dialog__notes-title">Notas</h4>
+            <p></p>
+        </div>
+        <div class="row-dialog__actions"></div>
+    </div>
+</dialog>

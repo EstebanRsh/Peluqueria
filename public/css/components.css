@@ -1192,6 +1192,75 @@ select.select-flujo-cambio--ausente:focus {
   visibility: visible;
 }
 
+.row-dialog__data {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.row-dialog__data div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px dashed var(--color-border);
+  font-size: 0.9rem;
+}
+
+.row-dialog__data dt {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.row-dialog__data dd {
+  text-align: right;
+}
+
+.row-dialog__notes {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.row-dialog__notes-title {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.row-dialog__notes p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.row-dialog__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.row-dialog__actions .btn {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+}
+
+.row-dialog__actions .btn__icon {
+  display: inline-flex;
+}
+
+.row-dialog__actions .btn__label {
+  display: none;
+}
+
+.row-dialog__actions .btn__icon svg {
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
 .status-dialog__option--finalizado {
   --option-bg: var(--color-finalizado-solid);
   --option-text: var(--color-finalizado-solid-text);
@@ -1222,6 +1291,7 @@ select.select-flujo-cambio--ausente:focus {
 .data-table th,
 .data-table td {
   padding: 0.75rem 1rem;
+  vertical-align: middle;
   text-align: left;
   font-size: 0.88rem;
   border-bottom: 1px solid var(--color-border);
@@ -1236,12 +1306,26 @@ select.select-flujo-cambio--ausente:focus {
   background: var(--color-bg);
 }
 
+.data-table:has(.data-table__actions) th:last-child {
+  text-align: right;
+}
+
 .data-table tbody tr:last-child td {
   border-bottom: none;
 }
 
 .data-table tbody tr:hover {
   background: var(--color-hover);
+}
+
+.btn__icon,
+.row-toggle,
+.btn--row-extra {
+  display: none;
+}
+.btn__icon svg {
+  width: 1.15rem;
+  height: 1.15rem;
 }
 
 .data-table__actions {
@@ -1285,7 +1369,8 @@ select.select-flujo-cambio--ausente:focus {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     margin-bottom: 0.75rem;
-    padding: 0.25rem 0;
+    padding: 0;
+    position: relative;
   }
 
   .data-table td {
@@ -1310,9 +1395,56 @@ select.select-flujo-cambio--ausente:focus {
     letter-spacing: 0.03em;
   }
 
+  .data-table tr:has(.row-toggle) {
+    display: flex;
+    align-items: center;
+    padding-right: 3rem;
+    cursor: pointer;
+  }
+
+  .data-table tr:has(.row-toggle) td:not(.cell-primary) {
+    display: none;
+  }
+
+  .data-table tr:has(.row-toggle) td.cell-primary {
+    width: auto;
+    border-bottom: none;
+  }
+
+  .data-table tr:has(.row-toggle) td.cell-primary:first-child {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .data-table td.cell-primary::before {
+    display: none;
+  }
+
   .data-table__actions {
     justify-content: flex-start;
     flex-wrap: wrap;
+  }
+
+  .row-toggle {
+    position: absolute;
+    top: 50%;
+    right: 0.4rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transform: translateY(-50%);
+  }
+
+  .row-toggle svg {
+    width: 1.25rem;
+    height: 1.25rem;
   }
 
   .btn {

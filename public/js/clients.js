@@ -28,13 +28,16 @@ import {
   setSearching,
 } from "./feedback.js";
 import {
+  bindRowDialog,
   createListLoader,
+  isCompactView,
   debounce,
   loadErrorHtml,
   moreRowHtml,
   refreshAfterChange,
   renderMessageRow,
   rowActionsHtml,
+  rowToggleHtml,
   runTableAction,
 } from "./list.js";
 import { confirmAction } from "./confirm.js";
@@ -94,11 +97,11 @@ function renderClientsList() {
 
       return `
       <tr data-client-id="${id}" class="client-row">
-        <td data-label="Alias"><button type="button" class="table-link" data-action="profile" data-id="${id}" aria-label="Ver perfil de ${alias}">${alias}</button></td>
-        <td data-label="Código">${escapeHtml(client.internal_code || "—")}</td>
-        <td data-label="Notas">${notes}</td>
+        <td data-label="Alias" class="cell-primary"><button type="button" class="table-link" data-action="profile" data-id="${id}" aria-label="Ver perfil de ${alias}">${alias}</button>${rowToggleHtml(client.alias, client.id)}</td>
+        <td data-label="Código" class="cell-primary">${escapeHtml(client.internal_code || "—")}</td>
         <td data-label="Estado"><span class="status-badge status-badge--${active ? "activo" : "inactivo"}">${active ? "Activo" : "Inactivo"}</span></td>
-        <td data-label="Acciones">${rowActionsHtml(client.id, client.alias, active)}</td>
+        <td data-label="Notas">${notes}</td>
+        <td data-label="Acciones">${rowActionsHtml(client.id, client.alias, active, { profile: true })}</td>
       </tr>`;
     })
     .join("")
@@ -724,6 +727,8 @@ async function handleTableAction(event) {
 
   // Un clic en cualquier parte de la fila abre el perfil.
   if (!button) {
+    if (isCompactView()) return;
+
     const row = event.target.closest("tr[data-client-id]");
     if (!row) return;
 
@@ -761,6 +766,8 @@ async function handleTableAction(event) {
   if (!client) return;
 
   if (action === "profile") {
+    if (isCompactView() && button.classList.contains("table-link")) return;
+
     openClientProfile(client);
     return;
   }
@@ -854,6 +861,11 @@ export function initClients() {
   });
 
   $("clientsTableBody")?.addEventListener("click", handleTableAction);
+  bindRowDialog(
+    $("clientsTableBody"),
+    $("clientRowDialog"),
+    (id) => list.state.items.find((item) => String(item.id) === id)?.notes,
+  );
 
   // Perfil
   $("clientProfileClose")?.addEventListener("click", closeClientProfile);
