@@ -130,7 +130,6 @@ export function confirmAction({
 
     document.body.append(overlay, dialog);
 
-    // En acciones destructivas el foco inicial va a "Cancelar".
     (danger && cancelButton ? cancelButton : confirmButton).focus();
   });
 }

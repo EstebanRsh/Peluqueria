@@ -32,7 +32,7 @@
                 <input
                     class="panel-search"
                     type="text"
-                    id="serviceSearch"
+                    id="serviceListSearch"
                     aria-label="Buscar servicios"
                     placeholder="Buscar servicio"
                     autocomplete="off">

@@ -74,14 +74,12 @@ function isFocusable(element) {
 }
 
 export function initQuickEntry() {
-  // REFERENCIAS AL DOM
   const panel = $("quickEntryPanel");
   const overlay = $("quickEntryOverlay");
   const btnClose = $("quickEntryClose");
   const btnCancel = $("quickEntryCancel");
   const btnSave = $("quickEntrySave");
 
-  // Sin el panel no hay ficha: se evita interrumpir el resto de la aplicación.
   if (!panel || !overlay) {
     return;
   }
@@ -93,7 +91,6 @@ export function initQuickEntry() {
   let opener = null;
   let isSaving = false;
 
-  // Cliente: registrado (selectedClient) o alias elegido (aliasName)
   let selectedClient = null;
   let aliasName = "";
 
@@ -124,7 +121,6 @@ export function initQuickEntry() {
     overlay.classList.remove("is-open");
     resetForm();
 
-    // El botón que abrió la ficha puede haberse ocultado: se vuelve al botón flotante.
     const target = isFocusable(opener) ? opener : $("fabToggle");
     target?.focus({ preventScroll: true });
     opener = null;
@@ -153,7 +149,6 @@ export function initQuickEntry() {
       requestClose();
     }
   });
-
 
   // ============================================================
   // CLIENTE (BÚSQUEDA, ALIAS Y CHIP)
@@ -333,7 +328,6 @@ export function initQuickEntry() {
 
     input.closest(".input-with-unit")?.insertAdjacentElement("afterend", group);
 
-    // El valor elegido queda resaltado entre los frecuentes.
     input.addEventListener("input", () => {
       group.querySelectorAll(".preset-chip").forEach((chip) => {
         const selected = input.value === chip.dataset.value;
@@ -664,7 +658,6 @@ export function initQuickEntry() {
         `Se copiaron los datos de la ficha del ${date}. Revisalos antes de guardar.`,
       );
 
-      // Lo anotado para la próxima visita es un recordatorio para esta.
       const reminder = last.technical_details.general?.next_visit_notes;
 
       if (reminder) {
@@ -731,7 +724,6 @@ export function initQuickEntry() {
       return;
     }
 
-    // Texto escrito sin elegir un cliente ni marcarlo como alias.
     if (!data.client_id && !aliasName) {
       const saveAnyway = await confirmAction({
         title: "Cliente no seleccionado",
@@ -789,7 +781,6 @@ export function initQuickEntry() {
         input.value = "";
       });
 
-    // Se avisa a los valores frecuentes para que quiten su resaltado.
     panel.querySelectorAll("input[data-presets]").forEach((input) => {
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });

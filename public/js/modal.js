@@ -38,30 +38,22 @@ const LAST_STYLIST_KEY = "hairapp:lastStylist";
 // ESTADO DEL MODAL
 // ============================================================
 
-// Servicios disponibles cargados desde el backend.
 let selectedService = null;
 let serviceAutocomplete = null;
 
-// Indica si la hora de fin todavía es automática.
 let endTimeIsAutomatic = true;
 
-// Guarda la última hora de fin calculada automáticamente.
 let lastCalculatedEndTime = "";
 
-// Indica si la hora de inicio fue sugerida por la aplicación (no escrita por el usuario).
 let startIsSuggested = false;
 
-// Profesional con el que se abrió el formulario (para saber si fue modificado).
 let initialStylist = "";
 
-// Turnos del día elegido: sirven para sugerir horario y avisar solapamientos.
 let dayAppointments = [];
 let dayContextToken = 0;
 
-// Evita envíos duplicados mientras se guarda el turno.
 let isSaving = false;
 
-// Elemento que tenía el foco antes de abrir el modal.
 let modalOpener = null;
 
 let clientAutocomplete = null;
@@ -106,9 +98,7 @@ function saveLastStylist(name) {
 
   try {
     localStorage.setItem(LAST_STYLIST_KEY, name);
-  } catch {
-    // Sin almacenamiento disponible: se ignora.
-  }
+  } catch {}
 }
 
 // ============================================================
@@ -120,7 +110,6 @@ function saveLastStylist(name) {
 export function initModal() {
   const addButton = $("btnAddAppointment");
 
-  // Si falta alguna pieza del modal, no se interrumpe el resto de la aplicación.
   if (!addButton || !modalOverlay || !modalPanel || !modalForm || !modalSave) {
     console.error("El modal de turnos no está completo en la página.");
     return;
@@ -131,8 +120,6 @@ export function initModal() {
   // ----------------------------------------------------------
   addButton.addEventListener("click", () => openModal());
 
-  // Otros paneles (por ejemplo el perfil de un cliente) pueden pedir un turno
-  // nuevo con el cliente ya elegido.
   document.addEventListener("appointment:new", (event) => {
     openModal(event.detail?.client ?? null);
   });
@@ -206,8 +193,6 @@ export function initModal() {
     updateScheduleWarning();
   });
 
-  // Usamos "change" porque se dispara cuando
-  // el usuario termina de modificar el valor.
   $("timeEnd")?.addEventListener("change", handleEndTimeManualChange);
   $("timeEnd")?.addEventListener("input", updateScheduleWarning);
 
@@ -234,14 +219,12 @@ function openModal(client = null) {
   const date = appState.activeDay || todayIso();
   $("appointmentDate").value = date;
 
-  // El profesional anterior se completa solo: lo habitual es repetirlo.
   initialStylist = readLastStylist();
   $("stylist").value = initialStylist;
   populateStylistOptions();
 
   loadDayContext(date);
 
-  // Cliente recibido desde otro panel: ya queda elegido.
   if (client) {
     selectClient(client);
   }
@@ -395,7 +378,6 @@ async function loadDayContext(date) {
       return;
     }
 
-    // No es imprescindible para guardar: se continúa sin sugerencias.
     console.error("Error al cargar los turnos del día:", error);
     dayAppointments = [];
   }
@@ -588,7 +570,6 @@ function calculateEndTime(durationMinutes) {
 
   const totalMinutes = toMinutes(timeStart.value) + durationMinutes;
 
-  // No permitir que el turno termine después de las 23:59.
   if (totalMinutes >= 24 * 60) {
     timeEnd.value = "";
     lastCalculatedEndTime = "";
@@ -671,19 +652,16 @@ function clearModal() {
     statusSelect.value = DEFAULT_APPOINTMENT_STATUS;
   }
 
-  // Cliente: vuelve el buscador.
   $("clientSelected").hidden = true;
   $("clientSearch").hidden = false;
   $("clientHelp").hidden = false;
   clientAutocomplete?.reset();
 
-  // Ayudas y avisos del horario.
   $("scheduleHint").hidden = true;
   $("scheduleWarning").hidden = true;
 
   feedback.clearInvalid();
 
-  // Restablecer el estado interno.
   endTimeIsAutomatic = true;
   lastCalculatedEndTime = "";
   startIsSuggested = false;
@@ -767,34 +745,25 @@ async function submitModalData() {
 
   const clientId = Number($("clientId").value) || null;
 
-  // Si se escribió un nombre y no se eligió a nadie, se usa como alias.
   const clientName =
     $("clientName").value.trim() ||
     (clientId ? "" : $("clientSearch").value.trim());
 
   const data = {
-    // Cliente
     client_id: clientId,
     client_name: clientName,
 
-    // Servicio
     service_id: Number($("serviceId").value),
 
-    // El precio enviado es el que figura actualmente
-    // en el formulario y puede ser modificado manualmente.
     price: rawPrice,
 
-    // Profesional
     stylist: $("stylist").value.trim(),
 
-    // Horarios
     time_start: $("timeStart").value,
     time_end: $("timeEnd").value,
 
-    // Información adicional
     notes: $("notes").value.trim(),
 
-    // Estado y fecha
     status: $("appointmentStatus").value,
     date: $("appointmentDate").value,
   };
@@ -836,7 +805,6 @@ async function submitModalData() {
         await loadAppointments(appState.activeDay);
       }
 
-      // Actualiza los contadores del calendario sin recargar la página.
       syncCalendarDay(savedDate);
     } else {
       feedback.show(

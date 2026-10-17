@@ -31,7 +31,7 @@ import {
 import { confirmAction } from "./confirm.js";
 import { notify } from "./toast.js";
 
-const list = createListLoader(fetchAllServices, $("serviceSearch"));
+const list = createListLoader(fetchAllServices, $("serviceListSearch"));
 
 let isSaving = false;
 let feedback = null;
@@ -343,7 +343,7 @@ export function initServices() {
 
   const reloadSoon = debounce(() => loadServicesList());
 
-  $("serviceSearch")?.addEventListener("input", (event) => {
+  $("serviceListSearch")?.addEventListener("input", (event) => {
     list.state.search = event.target.value;
     reloadSoon();
   });
@@ -356,8 +356,6 @@ export function initServices() {
       list.state.items.find((item) => String(item.id) === id)?.description,
   );
 
-  // Acotado a #viewServices para no interferir con los mismos
-  // botones .btn-filter que usan los demás paneles.
   const filterButtons = Array.from(
     document.querySelectorAll("#viewServices .btn-filter[data-filter]"),
   );

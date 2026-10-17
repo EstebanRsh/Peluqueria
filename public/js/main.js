@@ -34,8 +34,6 @@ function toggleDayPanel(cell) {
 document.querySelectorAll(".calendar__cell--active").forEach((cell) => {
   cell.addEventListener("click", () => toggleDayPanel(cell));
 
-  // Enter o Espacio activan la celda (role="button"). Se ignoran las teclas
-  // que provienen de elementos internos.
   cell.addEventListener("keydown", (event) => {
     if (event.target !== cell) {
       return;
@@ -155,7 +153,6 @@ if (burgerBtn && sidebar && sidebarOverlay) {
     }
   });
 
-  // Al pasar a desktop el menú móvil no debe quedar abierto
   window
     .matchMedia("(min-width: 769px)")
     .addEventListener("change", (event) => {
@@ -198,7 +195,6 @@ function notifyUnexpectedError(message) {
 window.addEventListener("error", (event) => {
   console.error("Error no controlado:", event.message);
 
-  // Aviso benigno del navegador: no afecta al usuario.
   if (String(event.message).startsWith("ResizeObserver")) {
     return;
   }
@@ -207,7 +203,6 @@ window.addEventListener("error", (event) => {
 });
 
 window.addEventListener("unhandledrejection", (event) => {
-  // Las cancelaciones pedidas por la propia aplicación no son errores.
   if (isAbortError(event.reason)) {
     return;
   }

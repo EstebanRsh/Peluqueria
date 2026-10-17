@@ -131,7 +131,6 @@ export function initFab({ appState, navItems, getCurrentView }) {
     setOpen(!root.classList.contains("is-open")),
   );
   backdrop?.addEventListener("click", () => setOpen(false));
-  // Escape cierra el menú y devuelve el foco al botón que lo abrió
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && root.classList.contains("is-open")) {
       setOpen(false);

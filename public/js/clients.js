@@ -584,7 +584,6 @@ function initTimelineEvents() {
     filterTimelineSoon();
   });
 
-  // Filtros del historial
   const historyButtons = Array.from(
     document.querySelectorAll("#historyFilters .btn-filter"),
   );
@@ -725,7 +724,6 @@ const runAction = (button, task, success, failure) =>
 async function handleTableAction(event) {
   const button = event.target.closest("button[data-action]");
 
-  // Un clic en cualquier parte de la fila abre el perfil.
   if (!button) {
     if (isCompactView()) return;
 
@@ -867,7 +865,6 @@ export function initClients() {
     (id) => list.state.items.find((item) => String(item.id) === id)?.notes,
   );
 
-  // Perfil
   $("clientProfileClose")?.addEventListener("click", closeClientProfile);
   $("clientProfileOverlay")?.addEventListener("click", closeClientProfile);
   $("clientProfileEdit")?.addEventListener("click", editProfileClient);
@@ -876,7 +873,6 @@ export function initClients() {
     scheduleForProfileClient,
   );
 
-  // Reintentar la carga del historial
   $("clientProfilePanel")?.addEventListener("click", (event) => {
     if (!event.target.closest("[data-action='retry-profile']")) return;
     if (!profileClient) return;
@@ -903,7 +899,6 @@ export function initClients() {
     }
   });
 
-  // Filtros de estado
   const filterButtons = Array.from(
     document.querySelectorAll("#viewClients .btn-filter[data-filter]"),
   );

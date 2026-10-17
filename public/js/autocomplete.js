@@ -101,7 +101,6 @@ export function createAutocomplete(config) {
   input.setAttribute("aria-controls", list.id);
   input.setAttribute("autocomplete", "off");
 
-  // Región para anunciar resultados a lectores de pantalla.
   const liveRegion = document.createElement("div");
   liveRegion.className = "sr-only";
   liveRegion.setAttribute("role", "status");
@@ -243,7 +242,6 @@ export function createAutocomplete(config) {
     const current = new AbortController();
     controller = current;
 
-    // "Buscando…" solo aparece si la respuesta tarda y no hay nada en pantalla.
     const loadingTimer = setTimeout(() => {
       if (list.children.length === 0 && !current.signal.aborted) {
         render(query, "loading");
@@ -362,7 +360,6 @@ export function createAutocomplete(config) {
     }
   });
 
-  // mousedown evita que el campo pierda el foco antes de elegir.
   list.addEventListener("mousedown", (event) => {
     const element = event.target.closest("[role='option']");
 
@@ -399,7 +396,6 @@ export function createAutocomplete(config) {
   return {
     close,
 
-    // Cancela cualquier búsqueda pendiente y cierra la lista.
     reset() {
       clearTimeout(timer);
       controller?.abort();

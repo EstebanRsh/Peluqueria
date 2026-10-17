@@ -142,7 +142,6 @@ async function handleJsonResponse(response, { redirectOn401 = true } = {}) {
   );
 
   if (!response.ok) {
-    // Sesión vencida o inexistente: volver al login.
     if (response.status === 401 && redirectOn401) {
       redirectToLogin();
     }
@@ -195,7 +194,6 @@ async function handleJsonResponse(response, { redirectOn401 = true } = {}) {
 // TOKEN CSRF
 // ============================================================
 
-// Token CSRF en memoria. Se pide una sola vez al servidor y se reutiliza.
 let csrfTokenPromise = null;
 
 function resetCsrfToken() {
@@ -219,7 +217,6 @@ async function getCsrfToken() {
         return data.csrf_token;
       })
       .catch((error) => {
-        // Si falló, el próximo intento vuelve a pedirlo.
         csrfTokenPromise = null;
         throw error;
       });
@@ -272,7 +269,6 @@ async function postJson(action, data = {}, signal = null) {
     try {
       message = (await response.clone().json()).error || "";
     } catch {
-      // Respuesta sin JSON: no es un error de token.
     }
 
     if (message.includes("CSRF")) {

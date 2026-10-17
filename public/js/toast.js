@@ -50,7 +50,6 @@ function showToast(message, { type = "info", duration, action = null } = {}) {
   const region = getRegion();
   const lifetime = duration ?? DURATIONS[type] ?? DURATIONS.info;
 
-  // Si ya hay un aviso idéntico visible, solo se reinicia su tiempo.
   const duplicate = action
     ? null
     : Array.from(region.children).find(
@@ -101,13 +100,11 @@ function showToast(message, { type = "info", duration, action = null } = {}) {
 
   toast.append(close);
 
-  // El tiempo se detiene mientras se lee el aviso con el mouse encima.
   toast.addEventListener("pointerenter", () => clearTimeout(toast._timer));
   toast.addEventListener("pointerleave", () => scheduleRemoval(toast, 2000));
 
   region.appendChild(toast);
 
-  // Se conserva un máximo de avisos visibles.
   const visible = Array.from(region.children).filter(
     (item) => !item.classList.contains("is-leaving"),
   );
