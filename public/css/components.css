@@ -93,16 +93,29 @@
 }
 
 .btn.is-loading {
+  position: relative;
+  color: transparent;
   pointer-events: none;
 }
 .btn.is-loading::before {
   content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
   width: 0.9em;
   height: 0.9em;
-  border: 2px solid currentColor;
+  border: 2px solid var(--color-text);
   border-right-color: transparent;
   border-radius: 50%;
   animation: btn-spin 0.7s linear infinite;
+}
+.btn--primary.is-loading::before {
+  border-color: var(--color-on-dark);
+  border-right-color: transparent;
+}
+.btn--danger.is-loading::before {
+  border-color: var(--color-danger);
+  border-right-color: transparent;
 }
 
 @keyframes btn-spin {
