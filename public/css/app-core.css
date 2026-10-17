@@ -239,10 +239,10 @@
   font-weight: 600;
 }
 
-/* Contenedor de eventos alineado a la esquina inferior derecha */
+/* Finalizados pegado a la izquierda y Reservados a la derecha */
 .cell__events {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   align-items: flex-end;
   gap: 0.25rem;
   margin-top: auto;
@@ -276,6 +276,7 @@
 }
 
 .cell__status-badge--reservado {
+  margin-left: auto;
   background-color: var(--color-reservado-solid);
   color: var(--color-solid-text);
   border-color: var(--color-reservado-line);
