@@ -22,11 +22,21 @@ import {
 import {
   clearInvalidOnInput,
   createDirtyTracker,
+  createDrawer,
   createFeedback,
   setBusy,
   setSearching,
 } from "./feedback.js";
-import { createListLoader, debounce, moreRowHtml } from "./list.js";
+import {
+  createListLoader,
+  debounce,
+  loadErrorHtml,
+  moreRowHtml,
+  refreshAfterChange,
+  renderMessageRow,
+  rowActionsHtml,
+  runTableAction,
+} from "./list.js";
 import { confirmAction } from "./confirm.js";
 import { notify } from "./toast.js";
 
@@ -37,17 +47,13 @@ let profileRequestId = 0;
 let profileAppointments = [];
 let profileClient = null;
 let profileOpener = null;
-let modalOpener = null;
 let feedback = null;
 let dirty = null;
+let drawer = null;
 
 // ============================================================
 // LISTADO
 // ============================================================
-
-function renderMessageRow(body, html) {
-  body.innerHTML = `<tr><td colspan="5">${html}</td></tr>`;
-}
 
 function renderClientsList() {
   const body = $("clientsTableBody");
@@ -59,6 +65,7 @@ function renderClientsList() {
     if (list.isPristine()) {
       renderMessageRow(
         body,
+        5,
         `<div class="panel-empty" role="status">
           <div>Todavía no cargaste clientes.</div>
           <div class="panel-empty__action">
@@ -69,6 +76,7 @@ function renderClientsList() {
     } else {
       renderMessageRow(
         body,
+        5,
         '<div class="panel-empty" role="status">No hay clientes que coincidan con la búsqueda o el filtro.</div>',
       );
     }
@@ -78,8 +86,6 @@ function renderClientsList() {
   body.innerHTML = clients
     .map((client) => {
       const active = isActive(client);
-      const action = active ? "deactivate" : "activate";
-      const label = active ? "Desactivar" : "Activar";
       const alias = escapeHtml(client.alias);
       const id = escapeHtml(client.id);
       const notes = client.notes
@@ -92,11 +98,7 @@ function renderClientsList() {
         <td data-label="Código">${escapeHtml(client.internal_code || "—")}</td>
         <td data-label="Notas">${notes}</td>
         <td data-label="Estado"><span class="status-badge status-badge--${active ? "activo" : "inactivo"}">${active ? "Activo" : "Inactivo"}</span></td>
-        <td data-label="Acciones"><div class="data-table__actions">
-          <button type="button" class="btn btn--ghost btn--sm" data-action="edit" data-id="${id}" aria-label="Editar ${alias}">Editar</button>
-          <button type="button" class="btn btn--ghost btn--sm" data-action="${action}" data-id="${id}" aria-label="${label} ${alias}">${label}</button>
-          <button type="button" class="btn btn--danger btn--sm" data-action="delete" data-id="${id}" aria-label="Eliminar ${alias}">Eliminar</button>
-        </div></td>
+        <td data-label="Acciones">${rowActionsHtml(client.id, client.alias, active)}</td>
       </tr>`;
     })
     .join("")
@@ -109,12 +111,8 @@ function renderLoadError(error) {
 
   renderMessageRow(
     body,
-    `<div class="panel-error" role="alert">
-      <div>${escapeHtml(getErrorMessage(error, "No se pudieron cargar los clientes."))}</div>
-      <div class="panel-empty__action">
-        <button type="button" class="btn btn--ghost btn--sm" data-action="retry">Reintentar</button>
-      </div>
-    </div>`,
+    5,
+    loadErrorHtml(error, "No se pudieron cargar los clientes."),
   );
 }
 
@@ -125,22 +123,12 @@ export async function loadClientsList({ append = false } = {}) {
     console.error("Error al cargar clientes:", error);
 
     if (append) {
-      notify.error(getErrorMessage(error, "No se pudieron cargar más clientes."));
+      notify.error(
+        getErrorMessage(error, "No se pudieron cargar más clientes."),
+      );
     } else {
       renderLoadError(error);
     }
-  }
-}
-
-// Vuelve a pedir la lista; si falla, avisa sin dar por perdido el cambio.
-async function refreshAfterChange() {
-  try {
-    if (await list.load()) renderClientsList();
-  } catch (error) {
-    console.error("Error al actualizar la lista de clientes:", error);
-    notify.warning(
-      "El cambio se guardó, pero no se pudo actualizar la lista. Recargá la sección.",
-    );
   }
 }
 
@@ -149,12 +137,6 @@ async function refreshAfterChange() {
 // ============================================================
 
 function showClientModal(client = null) {
-  const overlay = $("clientModalOverlay");
-  const panel = $("clientFormPanel");
-  if (!overlay || !panel) return;
-
-  modalOpener = document.activeElement;
-
   $("managedClientId").value = client?.id || "";
   $("clientAlias").value = client?.alias || "";
   $("clientCode").value = client?.internal_code || "";
@@ -167,34 +149,7 @@ function showClientModal(client = null) {
   feedback.clearInvalid();
   dirty.reset();
 
-  overlay.classList.add("is-open");
-  panel.classList.add("is-open");
-  panel.setAttribute("aria-hidden", "false");
-
-  requestAnimationFrame(() => $("clientAlias").focus({ preventScroll: true }));
-}
-
-function closeClientModal() {
-  $("clientModalOverlay")?.classList.remove("is-open");
-  const panel = $("clientFormPanel");
-  panel?.classList.remove("is-open");
-  panel?.setAttribute("aria-hidden", "true");
-
-  restoreFocus(modalOpener);
-  modalOpener = null;
-}
-
-// Un clic fuera del panel o Escape no deben borrar lo ya escrito.
-function requestCloseClientModal() {
-  if (dirty.isDirty()) {
-    feedback.show(
-      "warning",
-      "Hay datos sin guardar. Usá Cancelar o × para descartarlos.",
-    );
-    return;
-  }
-
-  closeClientModal();
+  drawer.open($("clientAlias"));
 }
 
 function formData() {
@@ -233,10 +188,10 @@ async function saveClient() {
       });
     }
 
-    closeClientModal();
+    drawer.close();
     notify.success(id ? "Cliente actualizado." : "Cliente creado.");
 
-    await refreshAfterChange();
+    await refreshAfterChange(list, renderClientsList);
   } catch (error) {
     console.error("Error al guardar cliente:", error);
     feedback.show(
@@ -759,25 +714,10 @@ function scheduleForProfileClient() {
 // ACCIONES DE LA TABLA
 // ============================================================
 
-async function runAction(button, task, successMessage, failureMessage) {
-  setBusy(button, true);
-
-  try {
-    const result = await task();
-
-    if (!result.success) {
-      throw new ApiError(result.error || failureMessage, { kind: "request" });
-    }
-
-    notify.success(successMessage);
-    await refreshAfterChange();
-  } catch (error) {
-    console.error(failureMessage, error);
-    notify.error(getErrorMessage(error, failureMessage));
-  } finally {
-    setBusy(button, false);
-  }
-}
+const runAction = (button, task, success, failure) =>
+  runTableAction(button, task, { success, failure }, () =>
+    refreshAfterChange(list, renderClientsList),
+  );
 
 async function handleTableAction(event) {
   const button = event.target.closest("button[data-action]");
@@ -850,6 +790,14 @@ async function handleTableAction(event) {
   }
 
   if (action === "activate") {
+    const confirmed = await confirmAction({
+      title: "Activar cliente",
+      message: `Vas a activar a «${client.alias}». Vuelve a aparecer al buscar clientes para nuevos turnos.`,
+      confirmLabel: "Activar",
+    });
+
+    if (!confirmed) return;
+
     await runAction(
       button,
       () => activateClient(id),
@@ -860,6 +808,14 @@ async function handleTableAction(event) {
   }
 
   if (action === "deactivate") {
+    const confirmed = await confirmAction({
+      title: "Desactivar cliente",
+      message: `Vas a desactivar a «${client.alias}». Deja de aparecer al buscar clientes para nuevos turnos, pero conserva su historial. Podés activarlo de nuevo cuando quieras.`,
+      confirmLabel: "Desactivar",
+    });
+
+    if (!confirmed) return;
+
     await runAction(
       button,
       () => deactivateClient(id),
@@ -881,6 +837,12 @@ export function initClients() {
   feedback = createFeedback(panel);
   dirty = createDirtyTracker(panel);
   clearInvalidOnInput(panel);
+  drawer = createDrawer({
+    overlay: $("clientModalOverlay"),
+    panel,
+    feedback,
+    dirty,
+  });
 
   $("btnAddClient")?.addEventListener("click", () => showClientModal());
 
@@ -924,8 +886,8 @@ export function initClients() {
       return;
     }
 
-    if ($("clientFormPanel")?.classList.contains("is-open")) {
-      requestCloseClientModal();
+    if (drawer.isOpen()) {
+      drawer.requestClose();
     }
   });
 
@@ -942,9 +904,11 @@ export function initClients() {
     });
   });
 
-  $("clientModalClose")?.addEventListener("click", closeClientModal);
-  $("clientModalCancel")?.addEventListener("click", closeClientModal);
-  $("clientModalOverlay")?.addEventListener("click", requestCloseClientModal);
+  $("clientModalClose")?.addEventListener("click", () => drawer.close());
+  $("clientModalCancel")?.addEventListener("click", () => drawer.close());
+  $("clientModalOverlay")?.addEventListener("click", () =>
+    drawer.requestClose(),
+  );
 
   $("clientForm")?.addEventListener("submit", (event) => {
     event.preventDefault();

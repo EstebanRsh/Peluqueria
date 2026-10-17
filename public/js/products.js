@@ -9,23 +9,33 @@ import {
   getErrorMessage,
 } from "./api.js";
 import { UNIT_NAMES } from "./constants.js";
-import { $, escapeHtml, isActive, restoreFocus, setActiveFilter } from "./dom.js";
+import { $, escapeHtml, isActive, setActiveFilter } from "./dom.js";
 import {
   clearInvalidOnInput,
   createDirtyTracker,
+  createDrawer,
   createFeedback,
   setBusy,
 } from "./feedback.js";
-import { createListLoader, debounce, moreRowHtml } from "./list.js";
+import {
+  createListLoader,
+  debounce,
+  loadErrorHtml,
+  moreRowHtml,
+  refreshAfterChange,
+  renderMessageRow,
+  rowActionsHtml,
+  runTableAction,
+} from "./list.js";
 import { confirmAction } from "./confirm.js";
 import { notify } from "./toast.js";
 
 const list = createListLoader(fetchAllProducts, $("adminProductSearch"));
 
 let isSaving = false;
-let modalOpener = null;
 let feedback = null;
 let dirty = null;
+let drawer = null;
 
 // Texto de las etiquetas del formulario según la unidad elegida.
 const UNIT_FIELD_TEXT = {
@@ -65,10 +75,6 @@ function formatCost(product) {
 // LISTADO
 // ============================================================
 
-function renderMessageRow(body, html) {
-  body.innerHTML = `<tr><td colspan="6">${html}</td></tr>`;
-}
-
 function renderProductsList() {
   const body = $("adminProductsTableBody");
   if (!body) return;
@@ -78,6 +84,7 @@ function renderProductsList() {
   if (!products.length) {
     renderMessageRow(
       body,
+      6,
       list.isPristine()
         ? `<div class="panel-empty" role="status">
             <div>Todavía no cargaste productos.</div>
@@ -93,8 +100,6 @@ function renderProductsList() {
   body.innerHTML = products
     .map((product) => {
       const active = isActive(product);
-      const action = active ? "deactivate" : "activate";
-      const label = active ? "Desactivar" : "Activar";
       const name = escapeHtml(product.name);
       const id = escapeHtml(product.id);
 
@@ -105,11 +110,7 @@ function renderProductsList() {
         <td data-label="Stock">${escapeHtml(formatStock(product))}</td>
         <td data-label="Costo">${escapeHtml(formatCost(product))}</td>
         <td data-label="Estado"><span class="status-badge status-badge--${active ? "activo" : "inactivo"}">${active ? "Activo" : "Inactivo"}</span></td>
-        <td data-label="Acciones"><div class="data-table__actions">
-          <button type="button" class="btn btn--ghost btn--sm" data-action="edit" data-id="${id}" aria-label="Editar ${name}">Editar</button>
-          <button type="button" class="btn btn--ghost btn--sm" data-action="${action}" data-id="${id}" aria-label="${label} ${name}">${label}</button>
-          <button type="button" class="btn btn--danger btn--sm" data-action="delete" data-id="${id}" aria-label="Eliminar ${name}">Eliminar</button>
-        </div></td>
+        <td data-label="Acciones">${rowActionsHtml(product.id, product.name, active)}</td>
       </tr>`;
     })
     .join("")
@@ -122,12 +123,8 @@ function renderLoadError(error) {
 
   renderMessageRow(
     body,
-    `<div class="panel-error" role="alert">
-      <div>${escapeHtml(getErrorMessage(error, "No se pudieron cargar los productos."))}</div>
-      <div class="panel-empty__action">
-        <button type="button" class="btn btn--ghost btn--sm" data-action="retry">Reintentar</button>
-      </div>
-    </div>`,
+    6,
+    loadErrorHtml(error, "No se pudieron cargar los productos."),
   );
 }
 
@@ -138,7 +135,9 @@ export async function loadProductsList({ append = false } = {}) {
     console.error("Error al cargar productos:", error);
 
     if (append) {
-      notify.error(getErrorMessage(error, "No se pudieron cargar más productos."));
+      notify.error(
+        getErrorMessage(error, "No se pudieron cargar más productos."),
+      );
     } else {
       renderLoadError(error);
     }
@@ -150,12 +149,6 @@ export async function loadProductsList({ append = false } = {}) {
 // ============================================================
 
 function showProductModal(product = null) {
-  const overlay = $("productModalOverlay");
-  const panel = $("productFormPanel");
-  if (!overlay || !panel) return;
-
-  modalOpener = document.activeElement;
-
   $("managedProductId").value = product?.id || "";
   $("productName").value = product?.name || "";
   $("productBrand").value = product?.brand || "";
@@ -169,34 +162,7 @@ function showProductModal(product = null) {
   feedback.clearInvalid();
   dirty.reset();
 
-  overlay.classList.add("is-open");
-  panel.classList.add("is-open");
-  panel.setAttribute("aria-hidden", "false");
-
-  requestAnimationFrame(() => $("productName").focus({ preventScroll: true }));
-}
-
-function closeProductModal() {
-  $("productModalOverlay")?.classList.remove("is-open");
-  const panel = $("productFormPanel");
-  panel?.classList.remove("is-open");
-  panel?.setAttribute("aria-hidden", "true");
-
-  restoreFocus(modalOpener);
-  modalOpener = null;
-}
-
-// Un clic fuera del panel o Escape no deben borrar lo ya escrito.
-function requestCloseProductModal() {
-  if (dirty.isDirty()) {
-    feedback.show(
-      "warning",
-      "Hay datos sin guardar. Usá Cancelar o × para descartarlos.",
-    );
-    return;
-  }
-
-  closeProductModal();
+  drawer.open($("productName"));
 }
 
 function formData() {
@@ -271,10 +237,10 @@ async function saveProduct() {
       });
     }
 
-    closeProductModal();
+    drawer.close();
     notify.success(id ? "Producto actualizado." : "Producto creado.");
 
-    await loadProductsList();
+    await refreshAfterChange(list, renderProductsList);
   } catch (error) {
     console.error("Error al guardar producto:", error);
     feedback.show(
@@ -291,25 +257,10 @@ async function saveProduct() {
 // ACCIONES DE LA TABLA
 // ============================================================
 
-async function runAction(button, task, successMessage, failureMessage) {
-  setBusy(button, true);
-
-  try {
-    const result = await task();
-
-    if (!result.success) {
-      throw new ApiError(result.error || failureMessage, { kind: "request" });
-    }
-
-    notify.success(successMessage);
-    await loadProductsList();
-  } catch (error) {
-    console.error(failureMessage, error);
-    notify.error(getErrorMessage(error, failureMessage));
-  } finally {
-    setBusy(button, false);
-  }
-}
+const runAction = (button, task, success, failure) =>
+  runTableAction(button, task, { success, failure }, () =>
+    refreshAfterChange(list, renderProductsList),
+  );
 
 async function handleTableAction(event) {
   const button = event.target.closest("button[data-action]");
@@ -364,6 +315,14 @@ async function handleTableAction(event) {
   }
 
   if (action === "activate") {
+    const confirmed = await confirmAction({
+      title: "Activar producto",
+      message: `Vas a activar «${product.name}». Vuelve a aparecer al armar fichas.`,
+      confirmLabel: "Activar",
+    });
+
+    if (!confirmed) return;
+
     await runAction(
       button,
       () => activateProduct(id),
@@ -374,6 +333,14 @@ async function handleTableAction(event) {
   }
 
   if (action === "deactivate") {
+    const confirmed = await confirmAction({
+      title: "Desactivar producto",
+      message: `Vas a desactivar «${product.name}». Deja de aparecer al armar fichas, pero conserva su historial. Podés activarlo de nuevo cuando quieras.`,
+      confirmLabel: "Desactivar",
+    });
+
+    if (!confirmed) return;
+
     await runAction(
       button,
       () => deactivateProduct(id),
@@ -393,6 +360,12 @@ export function initProducts() {
   feedback = createFeedback(panel);
   dirty = createDirtyTracker(panel);
   clearInvalidOnInput(panel);
+  drawer = createDrawer({
+    overlay: $("productModalOverlay"),
+    panel,
+    feedback,
+    dirty,
+  });
 
   const refreshProducts = () => {
     void loadProductsList();
@@ -431,9 +404,11 @@ export function initProducts() {
 
   $("productUnit")?.addEventListener("change", updateUnitLabels);
 
-  $("productModalClose")?.addEventListener("click", closeProductModal);
-  $("productModalCancel")?.addEventListener("click", closeProductModal);
-  $("productModalOverlay")?.addEventListener("click", requestCloseProductModal);
+  $("productModalClose")?.addEventListener("click", () => drawer.close());
+  $("productModalCancel")?.addEventListener("click", () => drawer.close());
+  $("productModalOverlay")?.addEventListener("click", () =>
+    drawer.requestClose(),
+  );
 
   $("productForm")?.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -442,8 +417,8 @@ export function initProducts() {
 
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    if ($("productFormPanel")?.classList.contains("is-open")) {
-      requestCloseProductModal();
+    if (drawer.isOpen()) {
+      drawer.requestClose();
     }
   });
 }

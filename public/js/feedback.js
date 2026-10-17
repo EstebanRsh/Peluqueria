@@ -3,6 +3,7 @@
 // ============================================================
 
 import { confirmAction } from "./confirm.js";
+import { restoreFocus } from "./dom.js";
 
 const ALERT_TITLES = {
   error: "No se pudo completar",
@@ -41,6 +42,47 @@ export function createFeedback(panel) {
         .querySelectorAll("[aria-invalid]")
         .forEach((element) => element.removeAttribute("aria-invalid"));
     },
+  };
+}
+
+const UNSAVED_MESSAGE =
+  "Hay datos sin guardar. Usá Cancelar o × para descartarlos.";
+
+// Panel lateral de alta / edición: abre, cierra y devuelve el foco.
+// requestClose() avisa en vez de cerrar si hay datos sin guardar.
+export function createDrawer({ overlay, panel, feedback, dirty }) {
+  let opener = null;
+
+  return {
+    open(firstField) {
+      opener = document.activeElement;
+
+      overlay.classList.add("is-open");
+      panel.classList.add("is-open");
+      panel.setAttribute("aria-hidden", "false");
+
+      requestAnimationFrame(() => firstField.focus({ preventScroll: true }));
+    },
+
+    close() {
+      overlay.classList.remove("is-open");
+      panel.classList.remove("is-open");
+      panel.setAttribute("aria-hidden", "true");
+
+      restoreFocus(opener);
+      opener = null;
+    },
+
+    requestClose() {
+      if (dirty.isDirty()) {
+        feedback.show("warning", UNSAVED_MESSAGE);
+        return;
+      }
+
+      this.close();
+    },
+
+    isOpen: () => panel.classList.contains("is-open"),
   };
 }
 

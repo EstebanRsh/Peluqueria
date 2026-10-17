@@ -8,31 +8,37 @@ import {
   deleteService,
   getErrorMessage,
 } from "./api.js";
-import { $, escapeHtml, isActive, restoreFocus, setActiveFilter } from "./dom.js";
+import { $, escapeHtml, isActive, setActiveFilter } from "./dom.js";
 import {
   clearInvalidOnInput,
   createDirtyTracker,
+  createDrawer,
   createFeedback,
   setBusy,
 } from "./feedback.js";
-import { createListLoader, debounce, moreRowHtml } from "./list.js";
+import {
+  createListLoader,
+  debounce,
+  loadErrorHtml,
+  moreRowHtml,
+  refreshAfterChange,
+  renderMessageRow,
+  rowActionsHtml,
+  runTableAction,
+} from "./list.js";
 import { confirmAction } from "./confirm.js";
 import { notify } from "./toast.js";
 
 const list = createListLoader(fetchAllServices, $("serviceSearch"));
 
 let isSaving = false;
-let modalOpener = null;
 let feedback = null;
 let dirty = null;
+let drawer = null;
 
 // ============================================================
 // LISTADO
 // ============================================================
-
-function renderMessageRow(body, html) {
-  body.innerHTML = `<tr><td colspan="5">${html}</td></tr>`;
-}
 
 function renderServicesList() {
   const body = $("servicesTableBody");
@@ -44,6 +50,7 @@ function renderServicesList() {
     if (list.isPristine()) {
       renderMessageRow(
         body,
+        5,
         `<div class="panel-empty" role="status">
           <div>Todavía no cargaste servicios.</div>
           <div class="panel-empty__action">
@@ -54,6 +61,7 @@ function renderServicesList() {
     } else {
       renderMessageRow(
         body,
+        5,
         '<div class="panel-empty" role="status">No hay servicios que coincidan con la búsqueda o el filtro.</div>',
       );
     }
@@ -63,10 +71,7 @@ function renderServicesList() {
   body.innerHTML = services
     .map((service) => {
       const active = isActive(service);
-      const action = active ? "deactivate" : "activate";
-      const label = active ? "Desactivar" : "Activar";
       const name = escapeHtml(service.name);
-      const id = escapeHtml(service.id);
 
       return `
       <tr>
@@ -74,11 +79,7 @@ function renderServicesList() {
         <td data-label="Duración">${escapeHtml(service.duration)} min</td>
         <td data-label="Precio">$${escapeHtml(service.price)}</td>
         <td data-label="Estado"><span class="status-badge status-badge--${active ? "activo" : "inactivo"}">${active ? "Activo" : "Inactivo"}</span></td>
-        <td data-label="Acciones"><div class="data-table__actions">
-          <button type="button" class="btn btn--ghost btn--sm" data-action="edit" data-id="${id}" aria-label="Editar ${name}">Editar</button>
-          <button type="button" class="btn btn--ghost btn--sm" data-action="${action}" data-id="${id}" aria-label="${label} ${name}">${label}</button>
-          <button type="button" class="btn btn--danger btn--sm" data-action="delete" data-id="${id}" aria-label="Eliminar ${name}">Eliminar</button>
-        </div></td>
+        <td data-label="Acciones">${rowActionsHtml(service.id, service.name, active)}</td>
       </tr>`;
     })
     .join("")
@@ -91,12 +92,8 @@ function renderLoadError(error) {
 
   renderMessageRow(
     body,
-    `<div class="panel-error" role="alert">
-      <div>${escapeHtml(getErrorMessage(error, "No se pudieron cargar los servicios."))}</div>
-      <div class="panel-empty__action">
-        <button type="button" class="btn btn--ghost btn--sm" data-action="retry">Reintentar</button>
-      </div>
-    </div>`,
+    5,
+    loadErrorHtml(error, "No se pudieron cargar los servicios."),
   );
 }
 
@@ -107,7 +104,9 @@ export async function loadServicesList({ append = false } = {}) {
     console.error("Error al cargar servicios:", error);
 
     if (append) {
-      notify.error(getErrorMessage(error, "No se pudieron cargar más servicios."));
+      notify.error(
+        getErrorMessage(error, "No se pudieron cargar más servicios."),
+      );
     } else {
       renderLoadError(error);
     }
@@ -119,12 +118,6 @@ export async function loadServicesList({ append = false } = {}) {
 // ============================================================
 
 function showServiceModal(service = null) {
-  const overlay = $("serviceModalOverlay");
-  const panel = $("serviceFormPanel");
-  if (!overlay || !panel) return;
-
-  modalOpener = document.activeElement;
-
   $("managedServiceId").value = service?.id || "";
   $("serviceName").value = service?.name || "";
   $("serviceDescription").value = service?.description || "";
@@ -137,34 +130,7 @@ function showServiceModal(service = null) {
   feedback.clearInvalid();
   dirty.reset();
 
-  overlay.classList.add("is-open");
-  panel.classList.add("is-open");
-  panel.setAttribute("aria-hidden", "false");
-
-  requestAnimationFrame(() => $("serviceName").focus({ preventScroll: true }));
-}
-
-function closeServiceModal() {
-  $("serviceModalOverlay")?.classList.remove("is-open");
-  const panel = $("serviceFormPanel");
-  panel?.classList.remove("is-open");
-  panel?.setAttribute("aria-hidden", "true");
-
-  restoreFocus(modalOpener);
-  modalOpener = null;
-}
-
-// Un clic fuera del panel o Escape no deben borrar lo ya escrito.
-function requestCloseServiceModal() {
-  if (dirty.isDirty()) {
-    feedback.show(
-      "warning",
-      "Hay datos sin guardar. Usá Cancelar o × para descartarlos.",
-    );
-    return;
-  }
-
-  closeServiceModal();
+  drawer.open($("serviceName"));
 }
 
 function readForm() {
@@ -241,10 +207,10 @@ async function saveService() {
       });
     }
 
-    closeServiceModal();
+    drawer.close();
     notify.success(id ? "Servicio actualizado." : "Servicio creado.");
 
-    await refreshAfterChange();
+    await refreshAfterChange(list, renderServicesList);
   } catch (error) {
     console.error("Error al guardar servicio:", error);
     feedback.show(
@@ -257,41 +223,14 @@ async function saveService() {
   }
 }
 
-// Vuelve a pedir la lista; si falla, avisa sin dar por perdido el cambio.
-async function refreshAfterChange() {
-  try {
-    if (await list.load()) renderServicesList();
-  } catch (error) {
-    console.error("Error al actualizar la lista de servicios:", error);
-    notify.warning(
-      "El cambio se guardó, pero no se pudo actualizar la lista. Recargá la sección.",
-    );
-  }
-}
-
 // ============================================================
 // ACCIONES DE LA TABLA
 // ============================================================
 
-async function runAction(button, task, successMessage, failureMessage) {
-  setBusy(button, true);
-
-  try {
-    const result = await task();
-
-    if (!result.success) {
-      throw new ApiError(result.error || failureMessage, { kind: "request" });
-    }
-
-    notify.success(successMessage);
-    await refreshAfterChange();
-  } catch (error) {
-    console.error(failureMessage, error);
-    notify.error(getErrorMessage(error, failureMessage));
-  } finally {
-    setBusy(button, false);
-  }
-}
+const runAction = (button, task, success, failure) =>
+  runTableAction(button, task, { success, failure }, () =>
+    refreshAfterChange(list, renderServicesList),
+  );
 
 async function handleTableAction(event) {
   const button = event.target.closest("button[data-action]");
@@ -346,6 +285,14 @@ async function handleTableAction(event) {
   }
 
   if (action === "activate") {
+    const confirmed = await confirmAction({
+      title: "Activar servicio",
+      message: `Vas a activar «${service.name}». Vuelve a estar disponible para nuevos turnos.`,
+      confirmLabel: "Activar",
+    });
+
+    if (!confirmed) return;
+
     await runAction(
       button,
       () => activateService(id),
@@ -356,6 +303,14 @@ async function handleTableAction(event) {
   }
 
   if (action === "deactivate") {
+    const confirmed = await confirmAction({
+      title: "Desactivar servicio",
+      message: `Vas a desactivar «${service.name}». Deja de estar disponible para nuevos turnos, pero conserva su historial. Podés activarlo de nuevo cuando quieras.`,
+      confirmLabel: "Desactivar",
+    });
+
+    if (!confirmed) return;
+
     await runAction(
       button,
       () => deactivateService(id),
@@ -375,6 +330,12 @@ export function initServices() {
   feedback = createFeedback(panel);
   dirty = createDirtyTracker(panel);
   clearInvalidOnInput(panel);
+  drawer = createDrawer({
+    overlay: $("serviceModalOverlay"),
+    panel,
+    feedback,
+    dirty,
+  });
 
   $("btnAddService")?.addEventListener("click", () => showServiceModal());
 
@@ -401,9 +362,11 @@ export function initServices() {
     });
   });
 
-  $("serviceModalClose")?.addEventListener("click", closeServiceModal);
-  $("serviceModalCancel")?.addEventListener("click", closeServiceModal);
-  $("serviceModalOverlay")?.addEventListener("click", requestCloseServiceModal);
+  $("serviceModalClose")?.addEventListener("click", () => drawer.close());
+  $("serviceModalCancel")?.addEventListener("click", () => drawer.close());
+  $("serviceModalOverlay")?.addEventListener("click", () =>
+    drawer.requestClose(),
+  );
 
   $("serviceForm")?.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -412,8 +375,8 @@ export function initServices() {
 
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    if ($("serviceFormPanel")?.classList.contains("is-open")) {
-      requestCloseServiceModal();
+    if (drawer.isOpen()) {
+      drawer.requestClose();
     }
   });
 }

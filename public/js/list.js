@@ -1,6 +1,13 @@
 // Listados con búsqueda y filtro en el servidor, paginados con "Cargar más".
-import { ApiError, isAbortError, LIST_PAGE_SIZE } from "./api.js";
-import { setSearching } from "./feedback.js";
+import {
+  ApiError,
+  getErrorMessage,
+  isAbortError,
+  LIST_PAGE_SIZE,
+} from "./api.js";
+import { escapeHtml } from "./dom.js";
+import { setBusy, setSearching } from "./feedback.js";
+import { notify } from "./toast.js";
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -67,4 +74,64 @@ export function createListLoader(fetchPage, searchInput = null) {
 
 export function moreRowHtml(colspan) {
   return `<tr><td colspan="${colspan}" class="panel-empty"><button type="button" class="btn btn--ghost btn--sm" data-action="more">Cargar más</button></td></tr>`;
+}
+
+export function renderMessageRow(body, colspan, html) {
+  body.innerHTML = `<tr><td colspan="${colspan}">${html}</td></tr>`;
+}
+
+export function loadErrorHtml(error, fallback) {
+  return `<div class="panel-error" role="alert">
+      <div>${escapeHtml(getErrorMessage(error, fallback))}</div>
+      <div class="panel-empty__action">
+        <button type="button" class="btn btn--ghost btn--sm" data-action="retry">Reintentar</button>
+      </div>
+    </div>`;
+}
+
+// Botones Editar / Activar o Desactivar / Eliminar de una fila de la tabla.
+export function rowActionsHtml(id, name, active) {
+  const toggle = active ? "deactivate" : "activate";
+  const label = active ? "Desactivar" : "Activar";
+  const safeId = escapeHtml(id);
+  const safeName = escapeHtml(name);
+
+  return `<div class="data-table__actions">
+          <button type="button" class="btn btn--ghost btn--sm" data-action="edit" data-id="${safeId}" aria-label="Editar ${safeName}">Editar</button>
+          <button type="button" class="btn btn--ghost btn--sm" data-action="${toggle}" data-id="${safeId}" aria-label="${label} ${safeName}">${label}</button>
+          <button type="button" class="btn btn--danger btn--sm" data-action="delete" data-id="${safeId}" aria-label="Eliminar ${safeName}">Eliminar</button>
+        </div>`;
+}
+
+// Vuelve a pedir la lista; si falla, avisa sin dar por perdido el cambio.
+export async function refreshAfterChange(list, render) {
+  try {
+    if (await list.load()) render();
+  } catch (error) {
+    console.error("Error al actualizar la lista:", error);
+    notify.warning(
+      "El cambio se guardó, pero no se pudo actualizar la lista. Recargá la sección.",
+    );
+  }
+}
+
+// Ejecuta una acción de la fila (activar, desactivar, eliminar) y refresca.
+export async function runTableAction(button, task, messages, refresh) {
+  setBusy(button, true);
+
+  try {
+    const result = await task();
+
+    if (!result.success) {
+      throw new ApiError(result.error || messages.failure, { kind: "request" });
+    }
+
+    notify.success(messages.success);
+    await refresh();
+  } catch (error) {
+    console.error(messages.failure, error);
+    notify.error(getErrorMessage(error, messages.failure));
+  } finally {
+    setBusy(button, false);
+  }
 }
