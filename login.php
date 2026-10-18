@@ -104,8 +104,8 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
                             <h3 class="history-title">Iniciar sesión</h3>
 
                             <div class="form-group">
-                                <label for="loginUsername">Usuario</label>
-                                <input id="loginUsername" name="username" type="text" autocomplete="username" minlength="3" maxlength="50" required>
+                                <label for="loginUsername">Usuario o email</label>
+                                <input id="loginUsername" name="username" type="text" autocomplete="username" maxlength="254" required>
                             </div>
 
                             <div class="form-group">
@@ -142,11 +142,15 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
                         <form id="registerForm">
                             <fieldset class="appointment-detail-body login-fieldset" disabled>
                                 <h3 class="history-title">Crear cuenta</h3>
-                                <p class="form-privacy-note">Las cuentas nuevas tendrán acceso completo a la aplicación.</p>
 
                                 <div class="form-group">
                                     <label for="registerUsername">Usuario</label>
                                     <input id="registerUsername" name="username" type="text" autocomplete="username" minlength="3" maxlength="50" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="registerEmail">Email</label>
+                                    <input id="registerEmail" name="email" type="email" autocomplete="email" maxlength="254" required>
                                 </div>
 
                                 <div class="form-group">
@@ -167,6 +171,31 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
                                         </button>
                                     </div>
                                 </div>
+
+                                <div class="form-group">
+                                    <label for="registerPasswordConfirm">Repetir contraseña</label>
+                                    <div class="password-field">
+                                        <input id="registerPasswordConfirm" name="password_confirm" type="password" autocomplete="new-password" minlength="12" required>
+                                        <button type="button" class="password-field__toggle" data-toggle-password aria-label="Mostrar contraseña" aria-pressed="false">
+                                            <svg <?= $iconAttrs ?>>
+                                                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+                                                <circle cx="12" cy="12" r="3" />
+                                            </svg>
+                                            <svg <?= $iconAttrs ?> hidden>
+                                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-6.5 0-10-7-10-7a18.5 18.5 0 0 1 5.06-5.94" />
+                                                <path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c6.5 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19" />
+                                                <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                                                <line x1="1" y1="1" x2="23" y2="23" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <p class="form-hint">Guardala en un lugar seguro: por ahora no se puede recuperar.</p>
+                                </div>
+
+                                <label class="check-field" for="registerTerms">
+                                    <input id="registerTerms" name="accept_terms" type="checkbox" required>
+                                    <span>Acepto los <a href="terminos.php" target="_blank" rel="noopener">Términos</a> y la <a href="privacidad.php" target="_blank" rel="noopener">Política de privacidad</a>.</span>
+                                </label>
 
                                 <button type="submit" class="btn btn--primary">Registrarme</button>
                             </fieldset>

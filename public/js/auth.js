@@ -54,7 +54,7 @@ export function initAuthPage() {
       if (!sessionReady) return;
 
       const missing = [...form.querySelectorAll("[required]")].filter(
-        (input) => !input.value.trim(),
+        (input) => (input.type === "checkbox" ? !input.checked : !input.value.trim()),
       );
 
       missing.forEach((input) => input.setAttribute("aria-invalid", "true"));
@@ -64,16 +64,12 @@ export function initAuthPage() {
         return;
       }
 
-      const fields = new FormData(form);
       const button = form.querySelector('button[type="submit"]');
 
       setBusy(button, true);
 
       try {
-        const data = await send({
-          username: fields.get("username"),
-          password: fields.get("password"),
-        });
+        const data = await send(Object.fromEntries(new FormData(form)));
 
         if (data.user.role !== "owner") {
           showResult(
@@ -142,7 +138,11 @@ export function initAuthPage() {
   if (registerForm) {
     submitCredentials(
       registerForm,
-      (credentials) => registerUser(credentials, csrfToken),
+      (fields) =>
+        registerUser(
+          { ...fields, accept_terms: fields.accept_terms === "on" },
+          csrfToken,
+        ),
       {
         successTitle: "Cuenta creada",
         failureTitle: "No se pudo crear la cuenta",
