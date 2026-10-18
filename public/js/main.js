@@ -193,7 +193,7 @@ function notifyUnexpectedError(message) {
 }
 
 window.addEventListener("error", (event) => {
-  console.error("Error no controlado:", event.message);
+  console.error("Error no controlado");
 
   if (String(event.message).startsWith("ResizeObserver")) {
     return;
@@ -207,7 +207,7 @@ window.addEventListener("unhandledrejection", (event) => {
     return;
   }
 
-  console.error("Promesa rechazada sin manejar:", event.reason);
+  console.error("Promesa rechazada sin manejar");
 
   notifyUnexpectedError(
     event.reason instanceof ApiError
