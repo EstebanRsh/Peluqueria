@@ -1,14 +1,12 @@
+-- =========================================================
+-- DATOS DE PRUEBA
+-- Borra todo el contenido de las tablas y carga datos de ejemplo.
+-- Usar solo en desarrollo.
+-- =========================================================
+
 USE peluqueria;
 
--- Desactivar claves foráneas temporalmente
-
 SET FOREIGN_KEY_CHECKS = 0;
-
--- Borrar los datos usando DELETE (que sí lo permite)
-
--- (con FOREIGN_KEY_CHECKS = 0 los ON DELETE CASCADE no se ejecutan,
-
---  por eso se vacían explícitamente todas las tablas)
 
 DELETE FROM service_consumptions;
 
@@ -26,7 +24,7 @@ DELETE FROM services;
 
 DELETE FROM users;
 
--- Resetear los IDs para que vuelvan a empezar desde 1
+DELETE FROM auth_attempts;
 
 ALTER TABLE service_consumptions AUTO_INCREMENT = 1;
 
@@ -44,7 +42,7 @@ ALTER TABLE services AUTO_INCREMENT = 1;
 
 ALTER TABLE users AUTO_INCREMENT = 1;
 
--- Volver a activar las claves foráneas
+ALTER TABLE auth_attempts AUTO_INCREMENT = 1;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -54,9 +52,6 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- admin / admin123
 -- owner1 / owner123
 -- owner2 / owner456
---
--- Los datos principales pertenecen a owner1 (id 2). El bloque de prueba
--- de owner2 (id 3) permite comprobar el aislamiento de los datos.
 
 INSERT INTO
     users (
@@ -94,7 +89,7 @@ VALUES (
 
 -- =========================================================
 
--- 2. SERVICIOS (16)
+-- 2. SERVICIOS
 
 -- =========================================================
 
@@ -255,15 +250,7 @@ VALUES (
 
 -- =========================================================
 
--- 3. CLIENTES CON FICHA (26 clientes frecuentes)
-
--- Incluye el diagnóstico capilar base (tono natural,
-
--- tipo de cabello y alergias).
-
--- El resto de los turnos corresponde a clientes ocasionales
-
--- (client_id NULL), que solo quedan registrados por client_name.
+-- 3. CLIENTES CON FICHA
 
 -- =========================================================
 
@@ -568,13 +555,7 @@ VALUES (
 
 -- =========================================================
 
--- 4. TURNOS (46)
-
--- Distribuidos en el pasado (agosto), hoy (4 de sept) y futuro.
-
--- Los turnos de clientes con ficha llevan su client_id; el resto
-
--- queda en NULL (cliente ocasional, solo con client_name).
+-- 4. TURNOS
 
 -- =========================================================
 
@@ -594,8 +575,6 @@ INSERT INTO
         time_end
     )
 VALUES
-
--- Turnos Pasados (Agosto 2026)
 
 (
     1,
@@ -738,8 +717,6 @@ VALUES
     '09:50:00'
 ),
 
--- Turnos Recientes (1 al 3 de Septiembre 2026)
-
 (
     11,
     2,
@@ -852,8 +829,6 @@ VALUES
     '14:00:00',
     '16:00:00'
 ),
-
--- Turnos del Día Actual (4 de Septiembre 2026)
 
 (
     19,
@@ -981,8 +956,6 @@ VALUES
     '17:30:00',
     '17:50:00'
 ),
-
--- Turnos Futuros (Septiembre / Octubre 2026)
 
 (
     28,
@@ -1255,8 +1228,6 @@ VALUES
 
 -- 5. HISTORIAL DE ESTADOS DE LOS TURNOS
 
--- Se simulan las transiciones (Reservado -> Espera -> Atención -> Finalizado)
-
 -- =========================================================
 
 INSERT INTO
@@ -1268,8 +1239,6 @@ INSERT INTO
         changed_at
     )
 VALUES
-
--- Turno 1 (Finalizado)
 
 (
     1,
@@ -1286,8 +1255,6 @@ VALUES
     '2026-08-15 10:35:00'
 ),
 
--- Turno 2 (Finalizado)
-
 (
     2,
     2,
@@ -1302,8 +1269,6 @@ VALUES
     'Finalizado',
     '2026-08-15 11:50:00'
 ),
-
--- Turno 3 (Finalizado)
 
 (
     3,
@@ -1320,8 +1285,6 @@ VALUES
     '2026-08-16 15:05:00'
 ),
 
--- Turno 4 (Ausente)
-
 (
     4,
     2,
@@ -1336,8 +1299,6 @@ VALUES
     'Ausente',
     '2026-08-16 16:30:00'
 ),
-
--- Turno 5 (Finalizado)
 
 (
     5,
@@ -1354,8 +1315,6 @@ VALUES
     '2026-08-17 11:00:00'
 ),
 
--- Turno 6 (Cancelado)
-
 (
     6,
     2,
@@ -1370,8 +1329,6 @@ VALUES
     'Cancelado',
     '2026-08-18 10:00:00'
 ),
-
--- Turno 7 al 10 (Solo simulo Reservado y Finalizado directo para ahorrar espacio, común en sistemas rápidos)
 
 (
     7,
@@ -1429,8 +1386,6 @@ VALUES
     'Finalizado',
     '2026-08-28 09:50:00'
 ),
-
--- Turnos recientes (Septiembre)
 
 (
     11,
@@ -1545,8 +1500,6 @@ VALUES
     '2026-09-03 16:00:00'
 ),
 
--- Turnos de HOY (4 de Septiembre)
-
 (
     19,
     2,
@@ -1596,7 +1549,6 @@ VALUES
     'Reservado',
     '2026-09-03 19:00:00'
 ),
--- Creación inicial ("Reservado") para el resto de los turnos de hoy y futuros
 
 (
     24,
@@ -1753,7 +1705,6 @@ VALUES
     '2026-09-04 10:25:00'
 ),
 
--- Turno 46 (owner2, finalizado)
 (
     46,
     3,
@@ -1771,15 +1722,7 @@ VALUES
 
 -- =========================================================
 
--- 6. HISTORIAL TÉCNICO (17)
-
--- Un registro por cada turno "Finalizado" (appointment_id es UNIQUE).
-
--- technical_details es JSON y varía según el tipo de servicio.
-
--- Los clientes ocasionales (Valentina, Jorge, Hugo, Carlos)
-
--- llevan client_id NULL.
+-- 6. HISTORIAL TÉCNICO
 
 -- =========================================================
 
@@ -1796,8 +1739,6 @@ INSERT INTO
     )
 VALUES
 
--- Corte Masculino (turno 1)
-
 (
     1,
     2,
@@ -1808,8 +1749,6 @@ VALUES
     '2026-08-15 10:00:00',
     '{"tipo_corte": "Clásico", "tecnica": "Tijera", "largo_final_cm": 4, "lavado": true, "peinado_final": "Gel"}'
 ),
-
--- Corte Femenino (turno 2)
 
 (
     2,
@@ -1822,8 +1761,6 @@ VALUES
     '{"tipo_corte": "Puntas", "tecnica": "Tijera", "largo_removido_cm": 3, "lavado": true, "secado": "Brushing"}'
 ),
 
--- Manicura Semipermanente (turno 3)
-
 (
     3,
     2,
@@ -1834,8 +1771,6 @@ VALUES
     '2026-08-16 14:00:00',
     '{"tipo": "Semipermanente", "color": "Rojo cereza", "marca": "Gelish", "base_coat": true, "top_coat": true, "curado_led_seg": 60, "duracion_estimada_dias": 21}'
 ),
-
--- Balayage (turno 5)
 
 (
     4,
@@ -1848,8 +1783,6 @@ VALUES
     '{"tecnica": "Balayage", "nivel_inicial": 3, "nivel_alcanzado": 6, "decolorante": {"producto": "Polvo Decolorante", "gramos": 80}, "oxidante": {"volumen": 20, "ml": 160}, "tiempo_exposicion_min": 50, "matizador": {"producto": "Matizador Violeta", "ml": 40, "tiempo_min": 10}, "test_de_parche": true, "foto_referencia": true}'
 ),
 
--- Alisado Definitivo (turno 7)
-
 (
     5,
     2,
@@ -1860,8 +1793,6 @@ VALUES
     '2026-08-20 15:00:00',
     '{"producto": "Alisador Definitivo sin Formol", "ml": 180, "tiempo_exposicion_min": 40, "temperatura_plancha_c": 210, "pasadas_plancha": 8, "largo_cabello": "Muy largo"}'
 ),
-
--- Corte Masculino (turno 8)
 
 (
     6,
@@ -1874,8 +1805,6 @@ VALUES
     '{"tipo_corte": "Clásico", "tecnica": "Máquina y tijera", "numero_maquina": 2, "largo_superior_cm": 4, "lavado": true}'
 ),
 
--- Baño de Crema (turno 9) - cliente ocasional
-
 (
     7,
     2,
@@ -1886,8 +1815,6 @@ VALUES
     '2026-08-25 11:00:00',
     '{"producto": "Mascarilla Nutritiva Intensiva", "gramos": 60, "tiempo_exposicion_min": 15, "con_calor": true, "tipo_cabello": "Seco"}'
 ),
-
--- Lavado y Secado (turno 10) - cliente ocasional
 
 (
     8,
@@ -1900,8 +1827,6 @@ VALUES
     '{"lavado": "Shampoo neutro", "masaje_capilar": true, "secado": "Secador", "peinado_final": "Natural"}'
 ),
 
--- Tinte Completo / Retoque de raíces (turno 11)
-
 (
     9,
     2,
@@ -1912,8 +1837,6 @@ VALUES
     '2026-09-01 10:00:00',
     '{"tipo": "Retoque de raíces", "formula": [{"producto": "Tinte Sin Amoníaco 4.0 Castaño Medio", "gramos": 60}], "oxidante": {"volumen": 20, "ml": 60}, "proporcion": "1:1", "tiempo_exposicion_min": 35, "sin_amoniaco": true, "cobertura_canas": true}'
 ),
-
--- Corte Masculino (turno 12)
 
 (
     10,
@@ -1926,8 +1849,6 @@ VALUES
     '{"tipo_corte": "Clásico", "tecnica": "Tijera", "largo_final_cm": 3, "lavado": true, "peinado_final": "Raya al costado"}'
 ),
 
--- Arreglo de Barba (turno 14) - cliente ocasional
-
 (
     11,
     2,
@@ -1938,8 +1859,6 @@ VALUES
     '2026-09-02 15:00:00',
     '{"estilo": "Perfilado", "largo_final_mm": 8, "toalla_caliente": true, "aceite_final": "Aceite para Barba"}'
 ),
-
--- Tratamiento de Keratina (turno 15)
 
 (
     12,
@@ -1952,8 +1871,6 @@ VALUES
     '{"producto": "Keratina Alisadora", "ml": 90, "tiempo_exposicion_min": 30, "temperatura_plancha_c": 210, "pasadas_plancha": 6, "largo_cabello": "Hombros", "recomendacion_post": "No lavar durante 48 horas"}'
 ),
 
--- Corte Masculino (turno 17)
-
 (
     13,
     2,
@@ -1964,8 +1881,6 @@ VALUES
     '2026-09-03 10:00:00',
     '{"tipo_corte": "Degradado bajo", "tecnica": "Máquina", "numero_maquina": 1, "lavado": true}'
 ),
-
--- Decoloración Global (turno 18)
 
 (
     14,
@@ -1978,8 +1893,6 @@ VALUES
     '{"tecnica": "Decoloración global", "primera_decoloracion": true, "nivel_inicial": 5, "nivel_alcanzado": 8, "decolorante": {"producto": "Polvo Decolorante", "gramos": 100}, "oxidante": {"volumen": 20, "ml": 200}, "tiempo_exposicion_min": 60, "matizador": {"producto": "Matizador Violeta", "ml": 50, "tiempo_min": 10}, "tratamiento_post": "Mascarilla Nutritiva Intensiva"}'
 ),
 
--- Corte Masculino (turno 19) - cliente ocasional
-
 (
     15,
     2,
@@ -1990,8 +1903,6 @@ VALUES
     '2026-09-04 09:00:00',
     '{"tipo_corte": "Clásico", "tecnica": "Máquina y tijera", "numero_maquina": 3, "lavado": true}'
 ),
-
--- Corte Femenino (turno 20)
 
 (
     16,
@@ -2004,7 +1915,6 @@ VALUES
     '{"tipo_corte": "Cambio de look", "tecnica": "Tijera", "largo_removido_cm": 5, "estilo": "Capas suaves", "lavado": true, "secado": "Brushing"}'
 ),
 
--- Corte y Peinado Express (turno 46, owner2)
 (
     17,
     3,
@@ -2018,13 +1928,7 @@ VALUES
 
 -- =========================================================
 
--- 7. INVENTARIO (18 productos)
-
--- unit_cost = costo por cada 1 ml, g o unidad.
-
--- El stock es el stock actual y no se descuenta con los consumos del seed.
-
--- Incluye un producto con stock bajo (Polvo Decolorante) y uno inactivo.
+-- 7. INVENTARIO
 
 -- =========================================================
 
@@ -2224,10 +2128,6 @@ VALUES (
 
 -- 8. CONSUMOS POR SERVICIO (Rentabilidad)
 
--- cost_snapshot = quantity_used * unit_cost del producto.
-
--- Las cantidades coinciden con las registradas en technical_details.
-
 -- =========================================================
 
 INSERT INTO
@@ -2240,19 +2140,11 @@ INSERT INTO
     )
 VALUES
 
--- SH 1: Corte masculino (Roberto)
-
 (1, 2, 8, 10.00, 0.10),
-
--- SH 2: Corte femenino (Carla)
 
 (2, 2, 8, 15.00, 0.15),
 
--- SH 3: Semipermanente (Mariana)
-
 (3, 2, 10, 2.00, 1.20), (3, 2, 13, 5.00, 0.15),
-
--- SH 4: Balayage (Lucía)
 
 (4, 2, 4, 80.00, 7.20),
 (4, 2, 3, 160.00, 3.20),
@@ -2260,43 +2152,23 @@ VALUES
 (4, 2, 8, 40.00, 0.40),
 (4, 2, 9, 30.00, 1.20),
 
--- SH 5: Alisado definitivo (Camila)
-
 (5, 2, 7, 180.00, 19.80), (5, 2, 8, 60.00, 0.60), (5, 2, 9, 60.00, 2.40),
-
--- SH 6: Corte masculino (Diego)
 
 (6, 2, 8, 10.00, 0.10),
 
--- SH 7: Baño de crema (Valentina)
-
 (7, 2, 9, 60.00, 2.40), (7, 2, 8, 20.00, 0.20),
-
--- SH 8: Lavado y secado (Jorge)
 
 (8, 2, 8, 20.00, 0.20),
 
--- SH 9: Tinte / retoque de raíces (Marta)
-
 (9, 2, 2, 60.00, 8.40), (9, 2, 3, 60.00, 1.20), (9, 2, 8, 30.00, 0.30),
-
--- SH 10: Corte masculino (Fernando)
 
 (10, 2, 8, 10.00, 0.10),
 
--- SH 11: Arreglo de barba (Hugo)
-
 (11, 2, 14, 1.00, 0.30), (11, 2, 15, 3.00, 0.30),
-
--- SH 12: Keratina (Romina)
 
 (12, 2, 6, 90.00, 12.60), (12, 2, 8, 40.00, 0.40),
 
--- SH 13: Corte masculino (Gustavo)
-
 (13, 2, 8, 10.00, 0.10),
-
--- SH 14: Decoloración global (Florencia)
 
 (14, 2, 4, 100.00, 9.00),
 (14, 2, 3, 200.00, 4.00),
@@ -2304,14 +2176,8 @@ VALUES
 (14, 2, 8, 40.00, 0.40),
 (14, 2, 9, 40.00, 1.60),
 
--- SH 15: Corte masculino (Carlos)
-
 (15, 2, 8, 10.00, 0.10),
 
--- SH 16: Corte femenino (Silvia)
-
 (16, 2, 8, 15.00, 0.15),
-
--- SH 17: Corte y Peinado Express (Elena, owner2)
 
 (17, 3, 18, 20.00, 1.00);

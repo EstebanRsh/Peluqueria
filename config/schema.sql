@@ -1,6 +1,6 @@
 -- =========================================================
 -- BASE DE DATOS: peluqueria
--- (Para instalaciones nuevas. Si ya tenés datos, usá migration.sql)
+-- Crea la base y todas sus tablas.
 -- =========================================================
 
 CREATE DATABASE IF NOT EXISTS peluqueria CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -8,21 +8,35 @@ CREATE DATABASE IF NOT EXISTS peluqueria CHARACTER SET utf8mb4 COLLATE utf8mb4_u
 USE peluqueria;
 
 -- =========================================================
--- 1. USUARIOS DEL SISTEMA
---    Debe existir antes de las claves foráneas de owner_id.
+-- 1. USUARIOS
 -- =========================================================
 
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL COMMENT 'Nombre de usuario para iniciar sesión',
+    email VARCHAR(254) NULL,
     password_hash VARCHAR(255) NOT NULL COMMENT 'Hash de la contraseña (password_hash de PHP)',
     role ENUM('owner', 'admin') NOT NULL DEFAULT 'owner' COMMENT 'owner = peluquero (acceso total) | admin = usuario administrador futuro',
     active BOOLEAN NOT NULL DEFAULT TRUE COMMENT 'Puede iniciar sesión (1=Sí, 0=No)',
     last_login_at DATETIME NULL COMMENT 'Último inicio de sesión exitoso',
     password_changed_at DATETIME NULL COMMENT 'Última vez que se cambió la contraseña',
+    terms_accepted_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_users_username (username)
+    UNIQUE KEY uq_users_username (username),
+    UNIQUE KEY uq_users_email (email)
+);
+
+-- =========================================================
+-- 1.1 INTENTOS DE ACCESO
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS auth_attempts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    scope ENUM('login', 'register') NOT NULL,
+    key_hash CHAR(64) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_auth_attempts_lookup (scope, key_hash, created_at)
 );
 
 -- =========================================================
@@ -46,13 +60,12 @@ CREATE TABLE IF NOT EXISTS services (
 
 -- =========================================================
 -- 3. CLIENTES
---    Perfil y Diagnóstico Capilar Integrado
 -- =========================================================
 
 CREATE TABLE IF NOT EXISTS clients (
     id INT AUTO_INCREMENT PRIMARY KEY,
     owner_id INT NOT NULL COMMENT 'Owner propietario del cliente',
-    internal_code VARCHAR(40) UNIQUE COMMENT 'Código interno para búsqueda rápida',
+    internal_code VARCHAR(40) NULL COMMENT 'Código interno para búsqueda rápida',
     alias VARCHAR(100) NOT NULL COMMENT 'Nombre o apodo',
     natural_base_tone VARCHAR(30) NULL COMMENT 'Tono natural, ej: Castaño oscuro (3)',
     hair_type VARCHAR(100) NULL COMMENT 'Textura: Fino, grueso, poroso',
@@ -61,6 +74,7 @@ CREATE TABLE IF NOT EXISTS clients (
     active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_clients_owner_code (owner_id, internal_code),
     INDEX idx_clients_owner_alias (owner_id, alias),
     INDEX idx_clients_owner_active_alias (owner_id, active, alias),
     FOREIGN KEY (owner_id) REFERENCES users (id) ON DELETE CASCADE
@@ -98,7 +112,6 @@ CREATE TABLE IF NOT EXISTS appointments (
 
 -- =========================================================
 -- 5. HISTORIAL DE ESTADOS DE TURNOS
---    Auditoría
 -- =========================================================
 
 CREATE TABLE IF NOT EXISTS appointment_history (
@@ -114,7 +127,6 @@ CREATE TABLE IF NOT EXISTS appointment_history (
 
 -- =========================================================
 -- 6. HISTORIAL TÉCNICO
---    Ficha Dinámica con JSON
 -- =========================================================
 
 CREATE TABLE IF NOT EXISTS service_history (
@@ -137,8 +149,7 @@ CREATE TABLE IF NOT EXISTS service_history (
 );
 
 -- =========================================================
--- 7. INVENTARIO
---    Productos
+-- 7. PRODUCTOS
 -- =========================================================
 
 CREATE TABLE IF NOT EXISTS products (
@@ -159,7 +170,6 @@ CREATE TABLE IF NOT EXISTS products (
 
 -- =========================================================
 -- 8. CONSUMOS POR SERVICIO
---    Rentabilidad
 -- =========================================================
 
 CREATE TABLE IF NOT EXISTS service_consumptions (
