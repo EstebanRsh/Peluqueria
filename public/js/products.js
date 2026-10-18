@@ -7,6 +7,7 @@ import {
   deactivateProduct,
   deleteProduct,
   getErrorMessage,
+  logError,
 } from "./api.js";
 import { UNIT_NAMES } from "./constants.js";
 import { $, escapeHtml, isActive, setActiveFilter } from "./dom.js";
@@ -29,8 +30,7 @@ import {
   rowToggleHtml,
   runTableAction,
 } from "./list.js";
-import { confirmAction } from "./confirm.js";
-import { notify } from "./toast.js";
+import { confirmAction, showError, showResult } from "./confirm.js";
 
 const list = createListLoader(fetchAllProducts, $("adminProductSearch"));
 
@@ -134,10 +134,10 @@ export async function loadProductsList({ append = false } = {}) {
   try {
     if (await list.load({ append })) renderProductsList();
   } catch (error) {
-    console.error("Error al cargar productos:", error);
+    logError("Error al cargar productos:", error);
 
     if (append) {
-      notify.error(
+      showError(
         getErrorMessage(error, "No se pudieron cargar más productos."),
       );
     } else {
@@ -215,12 +215,7 @@ async function saveProduct() {
 
   if (errors.length > 0) {
     errors.forEach((error) => feedback.invalidate(error.fields));
-    feedback.show(
-      "error",
-      errors.length === 1
-        ? errors[0].message
-        : "Completá los campos marcados para continuar.",
-    );
+    feedback.focusInvalid();
     return;
   }
 
@@ -240,11 +235,17 @@ async function saveProduct() {
     }
 
     drawer.close();
-    notify.success(id ? "Producto actualizado." : "Producto creado.");
+    showResult(
+      "success",
+      id ? "Producto actualizado" : "Producto creado",
+      id
+        ? "Los cambios ya están guardados."
+        : "Ya podés sumarlo a tus fichas.",
+    );
 
     await refreshAfterChange(list, renderProductsList);
   } catch (error) {
-    console.error("Error al guardar producto:", error);
+    logError("Error al guardar producto:", error);
     feedback.show(
       "error",
       getErrorMessage(error, "No se pudo guardar el producto."),
@@ -310,7 +311,7 @@ async function handleTableAction(event) {
     await runAction(
       button,
       () => deleteProduct(id),
-      "Producto eliminado.",
+      "Producto eliminado",
       "No se pudo eliminar el producto.",
     );
     return;
@@ -328,7 +329,7 @@ async function handleTableAction(event) {
     await runAction(
       button,
       () => activateProduct(id),
-      "Producto activado.",
+      "Producto activado",
       "No se pudo activar el producto.",
     );
     return;
@@ -346,7 +347,7 @@ async function handleTableAction(event) {
     await runAction(
       button,
       () => deactivateProduct(id),
-      "Producto desactivado.",
+      "Producto desactivado",
       "No se pudo desactivar el producto.",
     );
   }

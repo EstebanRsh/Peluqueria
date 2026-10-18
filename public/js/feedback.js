@@ -2,31 +2,26 @@
 // MENSAJES DE FORMULARIO, ESTADO OCUPADO Y CAMBIOS SIN GUARDAR
 // ============================================================
 
-import { confirmAction } from "./confirm.js";
+import { showResult } from "./confirm.js";
 import { restoreFocus } from "./dom.js";
 
 const ALERT_TITLES = {
   error: "No se pudo completar",
   warning: "Revisá antes de continuar",
-  success: "Listo",
-  info: "Aviso",
 };
 
 // Manejo de avisos y campos inválidos de un panel lateral. Los avisos se
-// muestran en una ventanita; al cerrarla el foco va al primer campo marcado.
+// muestran en la pantalla de resultado; al cerrarla el foco va al primer
+// campo marcado.
 //
-//  show(type, message)  type: "error" | "warning" | "success" | "info"
+//  show(type, message)  type: "error" (falla) | "warning" (datos a revisar)
 //  invalidate(ids)      marca campos con aria-invalid
+//  focusInvalid()       lleva el foco al primer campo marcado
 //  clearInvalid()       quita todas las marcas de error
 export function createFeedback(panel) {
   return {
     async show(type, message) {
-      await confirmAction({
-        title: ALERT_TITLES[type] ?? ALERT_TITLES.info,
-        message,
-        confirmLabel: "Entendido",
-        cancelLabel: null,
-      });
+      await showResult(type, ALERT_TITLES[type], message);
 
       panel.querySelector("[aria-invalid='true']")?.focus();
     },
@@ -35,6 +30,10 @@ export function createFeedback(panel) {
       ids.forEach((id) => {
         document.getElementById(id)?.setAttribute("aria-invalid", "true");
       });
+    },
+
+    focusInvalid() {
+      panel.querySelector("[aria-invalid='true']")?.focus();
     },
 
     clearInvalid() {

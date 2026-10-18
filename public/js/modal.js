@@ -7,6 +7,7 @@ import {
   fetchAppointments,
   getErrorMessage,
   searchServices,
+  logError,
 } from "./api.js";
 import { DEFAULT_APPOINTMENT_STATUS, INACTIVE_STATUSES } from "./constants.js";
 import { $, restoreFocus } from "./dom.js";
@@ -18,7 +19,7 @@ import {
   createClientAutocomplete,
 } from "./autocomplete.js";
 import { clearInvalidOnInput, createFeedback, setBusy } from "./feedback.js";
-import { notify } from "./toast.js";
+import { showResult } from "./confirm.js";
 
 // ============================================================
 // ELEMENTOS DEL MODAL
@@ -378,7 +379,7 @@ async function loadDayContext(date) {
       return;
     }
 
-    console.error("Error al cargar los turnos del día:", error);
+    logError("Error al cargar los turnos del día:", error);
     dayAppointments = [];
   }
 
@@ -574,10 +575,7 @@ function calculateEndTime(durationMinutes) {
     timeEnd.value = "";
     lastCalculatedEndTime = "";
 
-    feedback.show(
-      "warning",
-      "Con esa duración el turno terminaría después de las 23:59. Ajustá la hora de inicio o ingresá la hora de fin manualmente.",
-    );
+    feedback.invalidate(["timeEnd"]);
     return;
   }
 
@@ -772,13 +770,7 @@ async function submitModalData() {
 
   if (errors.length > 0) {
     errors.forEach((error) => feedback.invalidate(error.fields));
-
-    feedback.show(
-      "error",
-      errors.length === 1
-        ? errors[0].message
-        : "Completá los campos marcados para continuar.",
-    );
+    feedback.focusInvalid();
 
     return;
   }
@@ -795,10 +787,12 @@ async function submitModalData() {
       saveLastStylist(data.stylist);
       closeModal();
 
-      notify.success(
+      showResult(
+        "success",
+        "Turno guardado",
         savedDate === appState.activeDay || !appState.activeDay
-          ? "Turno guardado."
-          : `Turno guardado para ${formatDate(savedDate)}.`,
+          ? "Ya figura en la agenda."
+          : `Quedó agendado para el ${formatDate(savedDate)}.`,
       );
 
       if (appState.activeDay) {
@@ -813,7 +807,7 @@ async function submitModalData() {
       );
     }
   } catch (error) {
-    console.error("Error al crear el turno:", error);
+    logError("Error al crear el turno:", error);
 
     feedback.show(
       "error",

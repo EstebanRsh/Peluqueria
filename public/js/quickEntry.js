@@ -8,13 +8,13 @@ import {
   getErrorMessage,
   saveServiceHistory,
   searchProducts,
+  logError,
 } from "./api.js";
 import { createAutocomplete, createClientAutocomplete } from "./autocomplete.js";
 import { UNIT_SHORTS } from "./constants.js";
 import { $, escapeHtml } from "./dom.js";
 import { clearInvalidOnInput, createFeedback, setBusy } from "./feedback.js";
-import { confirmAction } from "./confirm.js";
-import { notify } from "./toast.js";
+import { confirmAction, showError, showResult } from "./confirm.js";
 
 // Campos numéricos de la ficha (enteros mayores a 0).
 const NUMBER_FIELDS = [
@@ -363,7 +363,6 @@ export function initQuickEntry() {
 
     renderCart();
     productSearch.value = "";
-    notify.success(`${product.name} agregado.`, { duration: 1800 });
   };
 
   const productAutocomplete =
@@ -429,7 +428,11 @@ export function initQuickEntry() {
 
     if (!Number.isFinite(quantity) || quantity < 1) {
       input.value = String(item.quantity);
-      notify.warning("La cantidad debe ser un número entero mayor a 0.");
+      showResult(
+        "warning",
+        "Cantidad no válida",
+        "Ingresá un número entero mayor a 0.",
+      );
       return;
     }
 
@@ -607,8 +610,10 @@ export function initQuickEntry() {
         )[0];
 
       if (!last) {
-        notify.info(
-          "Este cliente todavía no tiene fichas anteriores para copiar.",
+        showResult(
+          "warning",
+          "Sin fichas anteriores",
+          "Este cliente todavía no tiene fichas para copiar.",
         );
         return;
       }
@@ -654,24 +659,25 @@ export function initQuickEntry() {
         .reverse()
         .join("/");
 
-      notify.success(
+      const copied = showResult(
+        "success",
+        "Ficha copiada",
         `Se copiaron los datos de la ficha del ${date}. Revisalos antes de guardar.`,
       );
 
       const reminder = last.technical_details.general?.next_visit_notes;
 
       if (reminder) {
-        feedback.show(
-          "info",
+        await copied;
+        showResult(
+          "warning",
+          "Recordatorio",
           `Para esta visita habías anotado: ${reminder}`,
-          "next-visit",
         );
       }
     } catch (error) {
-      console.error("Error al copiar la última ficha:", error);
-      notify.error(
-        getErrorMessage(error, "No se pudo copiar la última ficha."),
-      );
+      logError("Error al copiar la última ficha:", error);
+      showError(getErrorMessage(error, "No se pudo copiar la última ficha."));
     } finally {
       setBusy(repeatButton, false);
     }
@@ -692,10 +698,7 @@ export function initQuickEntry() {
 
     if (!data.client_id && !data.client_name) {
       feedback.invalidate(["quickEntryClientSearch"]);
-      feedback.show(
-        "error",
-        "Elegí un cliente o escribí al menos un nombre de referencia.",
-      );
+      feedback.focusInvalid();
       return;
     }
 
@@ -703,10 +706,6 @@ export function initQuickEntry() {
 
     if (badNumbers.length > 0) {
       feedback.invalidate(badNumbers);
-      await feedback.show(
-        "error",
-        "Revisá los valores marcados: tienen que ser números enteros mayores a 0.",
-      );
 
       const firstField = $(badNumbers[0]);
       const category = firstField?.closest(".dynamic-panel")?.dataset.category;
@@ -718,7 +717,7 @@ export function initQuickEntry() {
 
     if (!hasData(data)) {
       feedback.show(
-        "error",
+        "warning",
         "Completá al menos un dato de algún servicio antes de guardar.",
       );
       return;
@@ -751,10 +750,14 @@ export function initQuickEntry() {
         });
       }
 
-      notify.success("Ficha guardada.");
+      showResult(
+        "success",
+        "Ficha guardada",
+        "Ya figura en el historial del cliente.",
+      );
       closeDrawer();
     } catch (error) {
-      console.error("Error al guardar ficha:", error);
+      logError("Error al guardar ficha:", error);
       feedback.show(
         "error",
         getErrorMessage(

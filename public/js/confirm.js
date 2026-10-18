@@ -17,6 +17,129 @@ const WARNING_ICON =
 
 let counter = 0;
 
+// ============================================================
+// PANTALLA DE RESULTADO (ÉXITO, ERROR, ADVERTENCIA)
+//
+// Esqueleto #resultScreen en layout.php y login.php.
+//   showResult(type, title, message, { hold })
+//   type: "success" | "error" | "warning"
+//
+// El éxito se cierra solo a los 2 s, o al tocarlo o pulsar Enter, Espacio o
+// Escape. El error y la advertencia quedan hasta cerrarse con el botón o con
+// Escape. Un error abierto no lo pisa otro tipo de aviso. Con hold, el éxito
+// termina igual pero la pantalla queda pintada mientras la página navega
+// (login y cierre de sesión). Devuelve una promesa que se resuelve al terminar.
+// ============================================================
+
+const RESULT_MS = 2000;
+let resultTimer = null;
+let resultHold = false;
+let settleResult = null;
+
+const resultScreen = document.getElementById("resultScreen");
+const resultClose = document.getElementById("resultClose");
+
+function settle() {
+  clearTimeout(resultTimer);
+  settleResult?.();
+  settleResult = null;
+}
+
+function finishSuccess() {
+  if (resultHold) {
+    settle();
+    return;
+  }
+
+  resultScreen.close();
+}
+
+export function showResult(type, title, message = "", { hold = false } = {}) {
+  if (!resultScreen) {
+    return Promise.resolve();
+  }
+
+  if (
+    resultScreen.open &&
+    resultScreen.dataset.type === "error" &&
+    type !== "error"
+  ) {
+    return Promise.resolve();
+  }
+
+  settle();
+
+  const isSuccess = type === "success";
+
+  resultHold = hold;
+  resultScreen.dataset.type = type;
+  resultScreen.className = `result-screen result-screen--${type}`;
+  document
+    .getElementById("resultBody")
+    .setAttribute("role", isSuccess ? "status" : "alert");
+  document.getElementById("resultTitle").textContent = title;
+  document.getElementById("resultMessage").textContent = message;
+  resultClose.hidden = isSuccess;
+
+  // Se abre después del microtask de restoreFocus para que, al cerrarse,
+  // el foco vuelva al elemento correcto.
+  return new Promise((resolve) => {
+    settleResult = resolve;
+
+    queueMicrotask(() => {
+      if (!resultScreen.open) {
+        resultScreen.showModal();
+      }
+
+      if (isSuccess) {
+        resultTimer = setTimeout(finishSuccess, RESULT_MS);
+      } else {
+        resultClose.focus();
+      }
+    });
+  });
+}
+
+export function showError(message) {
+  return showResult("error", "No se pudo completar", message);
+}
+
+resultScreen?.addEventListener("click", (event) => {
+  if (resultScreen.dataset.type === "success") {
+    finishSuccess();
+  } else if (event.target.closest("#resultClose")) {
+    resultScreen.close();
+  }
+});
+
+resultScreen?.addEventListener("keydown", (event) => {
+  event.stopPropagation();
+
+  if (
+    resultScreen.dataset.type === "success" &&
+    (event.key === "Enter" || event.key === " ")
+  ) {
+    event.preventDefault();
+    finishSuccess();
+  }
+});
+
+resultScreen?.addEventListener("cancel", (event) => {
+  event.preventDefault();
+
+  if (resultScreen.dataset.type === "success") {
+    finishSuccess();
+  } else {
+    resultScreen.close();
+  }
+});
+
+resultScreen?.addEventListener("close", settle);
+
+// ============================================================
+// CONFIRMACIONES
+// ============================================================
+
 export function confirmAction({
   title = "¿Querés continuar?",
   message = "",

@@ -7,6 +7,7 @@ import {
   deactivateService,
   deleteService,
   getErrorMessage,
+  logError,
 } from "./api.js";
 import { $, escapeHtml, isActive, setActiveFilter } from "./dom.js";
 import {
@@ -28,8 +29,7 @@ import {
   rowToggleHtml,
   runTableAction,
 } from "./list.js";
-import { confirmAction } from "./confirm.js";
-import { notify } from "./toast.js";
+import { confirmAction, showError, showResult } from "./confirm.js";
 
 const list = createListLoader(fetchAllServices, $("serviceListSearch"));
 
@@ -103,10 +103,10 @@ export async function loadServicesList({ append = false } = {}) {
   try {
     if (await list.load({ append })) renderServicesList();
   } catch (error) {
-    console.error("Error al cargar servicios:", error);
+    logError("Error al cargar servicios:", error);
 
     if (append) {
-      notify.error(
+      showError(
         getErrorMessage(error, "No se pudieron cargar más servicios."),
       );
     } else {
@@ -185,12 +185,7 @@ async function saveService() {
 
   if (errors.length > 0) {
     errors.forEach((error) => feedback.invalidate(error.fields));
-    feedback.show(
-      "error",
-      errors.length === 1
-        ? errors[0].message
-        : "Completá los campos marcados para continuar.",
-    );
+    feedback.focusInvalid();
     return;
   }
 
@@ -210,11 +205,17 @@ async function saveService() {
     }
 
     drawer.close();
-    notify.success(id ? "Servicio actualizado." : "Servicio creado.");
+    showResult(
+      "success",
+      id ? "Servicio actualizado" : "Servicio creado",
+      id
+        ? "Los cambios ya están guardados."
+        : "Ya podés usarlo al agendar turnos.",
+    );
 
     await refreshAfterChange(list, renderServicesList);
   } catch (error) {
-    console.error("Error al guardar servicio:", error);
+    logError("Error al guardar servicio:", error);
     feedback.show(
       "error",
       getErrorMessage(error, "No se pudo guardar el servicio."),
@@ -280,7 +281,7 @@ async function handleTableAction(event) {
     await runAction(
       button,
       () => deleteService(id),
-      "Servicio eliminado.",
+      "Servicio eliminado",
       "No se pudo eliminar el servicio.",
     );
     return;
@@ -298,7 +299,7 @@ async function handleTableAction(event) {
     await runAction(
       button,
       () => activateService(id),
-      "Servicio activado.",
+      "Servicio activado",
       "No se pudo activar el servicio.",
     );
     return;
@@ -316,7 +317,7 @@ async function handleTableAction(event) {
     await runAction(
       button,
       () => deactivateService(id),
-      "Servicio desactivado.",
+      "Servicio desactivado",
       "No se pudo desactivar el servicio.",
     );
   }

@@ -676,8 +676,7 @@
 .form-group textarea,
 .form-select,
 .input-base,
-.panel-search,
-.select-flujo-cambio {
+.panel-search {
   font-family: var(--font);
   font-size: 0.9rem;
   background: var(--color-surface);
@@ -697,8 +696,7 @@
 .form-group textarea:focus,
 .form-select:focus,
 .input-base:focus,
-.panel-search:focus,
-.select-flujo-cambio:focus {
+.panel-search:focus {
   border-color: var(--color-today-bg);
   box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
@@ -728,8 +726,7 @@
    flecha, a veces hasta el border-radius) si no se le resetea la
    apariencia explícitamente. Sin esto, en Safari/Chrome el control se ve
    sin el estilo de la app aunque las reglas de arriba estén definidas. */
-select.form-select,
-select.select-flujo-cambio {
+select.form-select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -741,45 +738,8 @@ select.select-flujo-cambio {
   background-size: 14px;
 }
 
-select.form-select:focus,
-select.select-flujo-cambio:focus {
+select.form-select:focus {
   background-image: var(--icon-chevron-focus);
-}
-
-/* Selector de estado de turno: variante compacta de .form-select */
-.select-flujo-cambio {
-  font-size: 0.85rem;
-  font-weight: 500;
-  padding: 0.5rem 0.75rem;
-}
-
-.select-flujo-cambio--reservado {
-  background-color: var(--color-reservado-solid);
-  color: var(--color-solid-text);
-}
-
-.select-flujo-cambio--finalizado {
-  background-color: var(--color-finalizado-solid);
-  color: var(--color-finalizado-solid-text);
-}
-
-.select-flujo-cambio--cancelado {
-  background-color: var(--color-cancelado-solid);
-  color: var(--color-solid-text);
-}
-
-.select-flujo-cambio--ausente {
-  background-color: var(--color-ausente-solid);
-  color: var(--color-solid-text);
-}
-
-select.select-flujo-cambio--reservado,
-select.select-flujo-cambio--reservado:focus,
-select.select-flujo-cambio--cancelado,
-select.select-flujo-cambio--cancelado:focus,
-select.select-flujo-cambio--ausente,
-select.select-flujo-cambio--ausente:focus {
-  background-image: var(--icon-chevron-light);
 }
 
 /* Campos deshabilitados */
@@ -787,7 +747,6 @@ select.select-flujo-cambio--ausente:focus {
 .form-group textarea:disabled,
 .form-select:disabled,
 .input-base:disabled,
-.select-flujo-cambio:disabled,
 .panel-search:disabled {
   background-color: var(--color-bg);
   color: var(--color-text-muted);
@@ -1102,6 +1061,109 @@ select.select-flujo-cambio--ausente:focus {
   flex-wrap: wrap;
   justify-content: center;
   gap: 0.75rem;
+}
+
+/* ==========================================================================
+   PANTALLA DE RESULTADO (ÉXITO, ERROR, ADVERTENCIA)
+   ========================================================================== */
+
+.result-screen {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 1.5rem;
+  border: 0;
+  background: var(--result-color);
+  color: var(--color-solid-text);
+  text-align: center;
+}
+
+.result-screen--success {
+  --result-color: var(--color-success);
+}
+
+.result-screen--error {
+  --result-color: var(--color-error);
+}
+
+.result-screen--warning {
+  --result-color: var(--color-warning);
+}
+
+.result-screen[open] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  animation: result-in var(--t-base) var(--ease-out);
+}
+
+.result-screen:focus-visible {
+  outline: none;
+}
+
+.result-screen__icon {
+  display: none;
+  width: 6rem;
+  height: 6rem;
+}
+
+.result-screen--success .result-screen__icon--success,
+.result-screen--error .result-screen__icon--error,
+.result-screen--warning .result-screen__icon--warning {
+  display: block;
+}
+
+.result-screen__mark {
+  stroke-dasharray: 1;
+  animation: result-mark 0.4s var(--ease-out) 0.15s backwards;
+}
+
+.result-screen__close {
+  min-width: 10rem;
+  margin-top: 1rem;
+  background: var(--color-on-dark);
+  color: var(--result-color);
+}
+
+.result-screen__close:focus-visible {
+  outline: 2px solid var(--color-on-dark);
+  outline-offset: 3px;
+}
+
+.result-screen__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+}
+
+.result-screen__message {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+@keyframes result-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes result-mark {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-screen[open],
+  .result-screen__mark {
+    animation: none;
+  }
 }
 
 /* ==========================================================================
@@ -1476,8 +1538,7 @@ select.select-flujo-cambio--ausente:focus {
   }
 
   /* 16px evita el zoom automático de iOS al enfocar el campo */
-  .panel-search,
-  .select-flujo-cambio {
+  .panel-search {
     font-size: 16px;
   }
 
@@ -1756,123 +1817,6 @@ select.select-flujo-cambio--ausente:focus {
 }
 
 /* ==========================================================================
-   AVISOS NO BLOQUEANTES (TOASTS)
-   ========================================================================== */
-
-.toast-region {
-  position: fixed;
-  bottom: 1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: var(--z-toast);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  width: min(420px, calc(100vw - 2rem));
-  pointer-events: none;
-}
-
-.toast {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.75rem 0.9rem;
-  background: var(--color-text);
-  color: var(--color-on-dark);
-  border-left: 3px solid var(--color-gold);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-lg);
-  font-size: 0.88rem;
-  line-height: 1.4;
-  pointer-events: auto;
-  animation: toast-in var(--t-base) var(--ease-out);
-}
-
-.toast--success {
-  border-left-color: var(--color-atencion-solid);
-}
-
-.toast--warning {
-  border-left-color: var(--color-espera-solid);
-}
-
-.toast--error {
-  border-left-color: var(--color-cancelado-solid);
-}
-
-.toast.is-leaving {
-  opacity: 0;
-  transform: translateY(6px);
-  transition:
-    opacity var(--t-base) var(--ease-out),
-    transform var(--t-base) var(--ease-out);
-}
-
-.toast__message {
-  flex: 1;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.toast__action {
-  flex-shrink: 0;
-  padding: 0 0.25rem;
-  background: none;
-  border: 0;
-  color: var(--color-gold-light);
-  font-family: var(--font);
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
-.toast__action:hover {
-  text-decoration: underline;
-}
-
-.toast__close {
-  flex-shrink: 0;
-  padding: 0 0.25rem;
-  background: none;
-  border: 0;
-  color: inherit;
-  font-size: 1.1rem;
-  line-height: 1;
-  opacity: 0.7;
-  cursor: pointer;
-}
-
-.toast__close:hover {
-  opacity: 1;
-}
-
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .toast {
-    animation: none;
-  }
-}
-
-@media (max-width: 768px) {
-  /* Deja libre el botón flotante de acciones */
-  .toast-region {
-    bottom: calc(6.5rem + env(safe-area-inset-bottom));
-  }
-}
-
-/* ==========================================================================
    TABLAS: ENLACE EN LA CELDA, ESTADOS VACÍO / ERROR CON ACCIÓN
    ========================================================================== */
 
@@ -1928,6 +1872,38 @@ select.select-flujo-cambio--ausente:focus {
   flex-shrink: 0;
   font-size: 0.85rem;
   color: var(--color-text-muted);
+}
+
+/* Campo de contraseña: el ojo va dentro del input, sin recuadro */
+.password-field {
+  position: relative;
+}
+
+.password-field input {
+  padding-right: 2.75rem;
+}
+
+.password-field__toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.4rem;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color var(--t-fast) var(--ease-out);
+}
+
+.password-field__toggle:hover {
+  color: var(--color-gold-text);
 }
 
 .preset-chips {

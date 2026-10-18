@@ -9,15 +9,15 @@ import {
   fetchTimelineHistory,
   removeAppointment,
   getErrorMessage,
+  logError,
 } from "./api.js";
 
-import { confirmAction } from "./confirm.js";
-import { APPOINTMENT_STATUSES, STATUS_FILTERS } from "./constants.js";
+import { confirmAction, showError, showResult } from "./confirm.js";
+import { STATUS_FILTERS } from "./constants.js";
 import { escapeHtml, restoreFocus } from "./dom.js";
 import { formatDate, formatTime, slugify } from "./utils.js";
 import { setBusy, setSearching } from "./feedback.js";
 import { debounce } from "./list.js";
-import { notify } from "./toast.js";
 import { appState } from "./state.js";
 
 // ============================================================
@@ -49,7 +49,6 @@ const CELL_BADGE_LABELS = {
   finalizado: "Finalizados",
   reservado: "Reservados",
 };
-const UNDO_MS = 6000;
 
 let appointmentSearchQuery = "";
 let appointmentFilterStatus = "todos";
@@ -191,7 +190,7 @@ export function bindCalendarBadge(badge) {
 
       badge.dataset.loadedAt = String(Date.now());
     } catch (error) {
-      console.error("Error al cargar nombres del día:", error);
+      logError("Error al cargar nombres del día:", error);
     } finally {
       delete badge.dataset.loading;
     }
@@ -303,7 +302,7 @@ export async function syncCalendarDay(date) {
     renderCellBadges(cell, counts);
     updateCalendarSummary();
   } catch (error) {
-    console.error("Error al actualizar el calendario:", error);
+    logError("Error al actualizar el calendario:", error);
   }
 }
 
@@ -459,7 +458,7 @@ export async function loadAppointments(date, { showLoading = true } = {}) {
       return;
     }
 
-    console.error("Error al cargar turnos:", error);
+    logError("Error al cargar turnos:", error);
 
     container.innerHTML = `
       <p class="panel-error" role="alert">
@@ -583,14 +582,6 @@ function openAppointmentDetailModal(appointmentId) {
   detailPanel.setAttribute("aria-label", "Detalle del turno");
   detailPanel.setAttribute("tabindex", "-1");
 
-  const statusOptions = APPOINTMENT_STATUSES.map(
-    (status) => `
-      <option value="${escapeHtml(status)}"${appointment.status === status ? " selected" : ""}>
-        ${escapeHtml(status)}
-      </option>
-    `,
-  ).join("");
-
   detailPanel.innerHTML = `
       <div class="day-panel__header appointment-detail-header">
         <div>
@@ -614,8 +605,6 @@ function openAppointmentDetailModal(appointmentId) {
       </div>
 
       <div class="day-panel__body appointment-detail-body">
-        <div class="alert is-hidden" id="detailFeedback"></div>
-
         <section class="detail-grid">
           <div class="detail-card">
             <span class="detail-label">Fecha</span>
@@ -656,17 +645,21 @@ function openAppointmentDetailModal(appointmentId) {
             </span>
           </div>
 
-          <!-- Cambio de Estado Dinámico -->
           <div class="detail-card">
             <span class="detail-label">Estado</span>
-            <select
-              id="modalStatusSelect"
-              class="${statusSelectClass(appointment.status)}"
-              aria-label="Estado del turno"
-              data-id="${escapeHtml(appointment.id)}"
-            >
-              ${statusOptions}
-            </select>
+            <div class="appointment-card__status">
+              <span class="status-badge status-badge--${slugify(appointment.status)}" data-detail-status>
+                ${escapeHtml(appointment.status)}
+              </span>
+              <button
+                type="button"
+                class="btn btn--ghost btn--sm"
+                data-action="status"
+                data-id="${escapeHtml(appointment.id)}"
+              >
+                Cambiar estado
+              </button>
+            </div>
           </div>
 
           <div class="detail-card">
@@ -763,45 +756,10 @@ function closeAppointmentDetailModal({ restore = true } = {}) {
 }
 
 // ============================================================
-// MENSAJES DEL DETALLE (ERRORES)
-// ============================================================
-
-function showDetailFeedback(type, message) {
-  if (!activeDetailModal) {
-    return;
-  }
-
-  const box = activeDetailModal.panel.querySelector("#detailFeedback");
-
-  if (!box) {
-    return;
-  }
-
-  box.className = `alert alert--${type}`;
-  box.setAttribute("role", "alert");
-  box.textContent = message;
-}
-
-function clearDetailFeedback() {
-  if (!activeDetailModal) {
-    return;
-  }
-
-  const box = activeDetailModal.panel.querySelector("#detailFeedback");
-
-  if (box) {
-    box.className = "alert is-hidden";
-    box.textContent = "";
-  }
-}
-
-// ============================================================
 // EVENTOS DEL DETALLE
 // ============================================================
 
 function attachDetailModalEvents(detailPanel, detailOverlay) {
-  const statusSelect = detailPanel.querySelector("#modalStatusSelect");
-
   detailOverlay.addEventListener("click", () => closeAppointmentDetailModal());
 
   detailPanel.addEventListener("click", async (event) => {
@@ -816,6 +774,10 @@ function attachDetailModalEvents(detailPanel, detailOverlay) {
         closeAppointmentDetailModal();
         break;
 
+      case "status":
+        openStatusDialog(actionButton.dataset.id);
+        break;
+
       case "delete":
         await deleteAppointment(actionButton);
         break;
@@ -824,16 +786,6 @@ function attachDetailModalEvents(detailPanel, detailOverlay) {
         break;
     }
   });
-
-  if (statusSelect) {
-    statusSelect.addEventListener("change", () =>
-      changeAppointmentStatus(statusSelect),
-    );
-  }
-}
-
-function statusSelectClass(status) {
-  return `form-select select-flujo-cambio select-flujo-cambio--${slugify(status)}`;
 }
 
 async function setAppointmentStatus(id, status) {
@@ -867,28 +819,23 @@ function announceStatus(id, previous, status) {
   const appointment = appointmentMap.get(String(id));
   const name = appointment?.client_name || appointment?.alias || "Turno";
 
-  notify.success(`${name}: ${status}`, {
-    duration: UNDO_MS,
-    action: { label: "Deshacer", onClick: () => undoStatus(id, previous) },
-  });
+  showResult("success", "Estado actualizado", `${name}: ${status}`);
 }
 
-async function undoStatus(id, previous) {
-  try {
-    await setAppointmentStatus(id, previous);
-
-    const select = activeDetailModal?.panel.querySelector("#modalStatusSelect");
-
-    if (select && select.dataset.id === String(id)) {
-      select.value = previous;
-      select.className = statusSelectClass(previous);
-    }
-
-    await refreshDay();
-  } catch (error) {
-    console.error("Error al deshacer el estado:", error);
-    notify.error(getErrorMessage(error, "No se pudo deshacer el cambio."));
+// Si el detalle del turno está abierto, refleja el estado nuevo y su historial.
+function syncDetailStatus(id, status) {
+  if (String(activeDetailModal?.appointmentId) !== String(id)) {
+    return;
   }
+
+  const badge = activeDetailModal.panel.querySelector("[data-detail-status]");
+
+  badge.className = `status-badge status-badge--${slugify(status)}`;
+  badge.textContent = status;
+  loadTimelineHistory(
+    id,
+    activeDetailModal.panel.querySelector(".history-items"),
+  );
 }
 
 const statusDialog = document.getElementById("statusDialog");
@@ -928,11 +875,12 @@ async function changeStatusFromDialog(id, status) {
   try {
     const previous = await setAppointmentStatus(id, status);
 
+    syncDetailStatus(id, status);
     announceStatus(id, previous, status);
     await refreshDay();
   } catch (error) {
-    console.error("Error al cambiar el estado del turno:", error);
-    notify.error(getErrorMessage(error, "No se pudo cambiar el estado."));
+    logError("Error al cambiar el estado del turno:", error);
+    showError(getErrorMessage(error, "No se pudo cambiar el estado."));
   }
 }
 
@@ -952,39 +900,6 @@ statusDialog?.addEventListener("click", (event) => {
     changeStatusFromDialog(statusDialogAppointmentId, option.dataset.setStatus);
   }
 });
-
-async function changeAppointmentStatus(statusSelect) {
-  const targetStatus = statusSelect.value;
-  const id = statusSelect.dataset.id;
-
-  clearDetailFeedback();
-  statusSelect.disabled = true;
-  statusSelect.setAttribute("aria-busy", "true");
-
-  try {
-    const previous = await setAppointmentStatus(id, targetStatus);
-
-    statusSelect.className = statusSelectClass(targetStatus);
-    announceStatus(id, previous, targetStatus);
-    await refreshDay();
-  } catch (error) {
-    console.error("Error al actualizar estado:", error);
-
-    showDetailFeedback(
-      "error",
-      getErrorMessage(error, "No se pudo actualizar el estado."),
-    );
-
-    const appointment = appointmentMap.get(String(id));
-
-    if (appointment) {
-      statusSelect.value = appointment.status;
-    }
-  } finally {
-    statusSelect.disabled = false;
-    statusSelect.removeAttribute("aria-busy");
-  }
-}
 
 async function deleteAppointment(button) {
   const id = button.dataset.id;
@@ -1014,19 +929,15 @@ async function deleteAppointment(button) {
     }
 
     closeAppointmentDetailModal({ restore: false });
-    notify.success("Turno eliminado.");
     syncCalendarDay(appState.activeDay);
     await loadAppointments(appState.activeDay, { showLoading: false });
 
     const firstRow = panelBody?.querySelector(".appointment-card__row");
     restoreFocus(firstRow || panel);
+    showResult("success", "Turno eliminado", "Ya no figura en la agenda.");
   } catch (error) {
-    console.error("Error al eliminar turno:", error);
-
-    showDetailFeedback(
-      "error",
-      getErrorMessage(error, "No se pudo eliminar el turno."),
-    );
+    logError("Error al eliminar turno:", error);
+    showError(getErrorMessage(error, "No se pudo eliminar el turno."));
   } finally {
     setBusy(button, false);
   }
@@ -1072,7 +983,7 @@ async function loadTimelineHistory(id, container) {
       })
       .join("");
   } catch (error) {
-    console.error("Error al cargar historial:", error);
+    logError("Error al cargar historial:", error);
 
     if (container.isConnected) {
       container.innerHTML = `<p class="history-error" role="alert">${escapeHtml(

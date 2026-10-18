@@ -256,21 +256,6 @@
   opacity: 0.7;
 }
 
-/* Mensaje de estado: ocupa lo mismo que el sidebar expandido y se alinea con las etiquetas */
-.logout-message {
-  width: calc(var(--sidebar-w-expanded) - 1px);
-  margin: 0;
-  padding: 0.25rem 1.25rem 0
-    calc(var(--sidebar-item-pad-left) + 3px + 2rem + 1rem);
-  font-size: 0.7rem;
-  color: var(--color-gold);
-  white-space: normal;
-}
-
-.logout-message:empty {
-  display: none;
-}
-
 /* ==========================================================================
    SIDEBAR COLAPSABLE (DESKTOP)
    Fijo y superpuesto: al expandirse no empuja ni redimensiona el contenido.
@@ -314,8 +299,7 @@
   .premium-sidebar__brand,
   .nav-item__label,
   .premium-sidebar__user-info,
-  .logout-label,
-  .logout-message {
+  .logout-label {
     opacity: 0;
     transition: opacity var(--t-fast) var(--ease-out);
   }
@@ -323,8 +307,7 @@
   .premium-sidebar:is(:hover, :has(:focus-visible)) .premium-sidebar__brand,
   .premium-sidebar:is(:hover, :has(:focus-visible)) .nav-item__label,
   .premium-sidebar:is(:hover, :has(:focus-visible)) .premium-sidebar__user-info,
-  .premium-sidebar:is(:hover, :has(:focus-visible)) .logout-label,
-  .premium-sidebar:is(:hover, :has(:focus-visible)) .logout-message {
+  .premium-sidebar:is(:hover, :has(:focus-visible)) .logout-label {
     opacity: 1;
     transition: opacity var(--t-base) var(--ease-out) 0.1s;
   }
@@ -486,8 +469,7 @@
   .premium-sidebar__brand,
   .nav-item__label,
   .premium-sidebar__user-info,
-  .logout-label,
-  .logout-message {
+  .logout-label {
     opacity: 1;
   }
 }

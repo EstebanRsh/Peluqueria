@@ -4,10 +4,11 @@ import {
   getErrorMessage,
   isAbortError,
   LIST_PAGE_SIZE,
+  logError,
 } from "./api.js";
 import { escapeHtml } from "./dom.js";
 import { setBusy, setSearching } from "./feedback.js";
-import { notify } from "./toast.js";
+import { showError, showResult } from "./confirm.js";
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -223,9 +224,11 @@ export async function refreshAfterChange(list, render) {
   try {
     if (await list.load()) render();
   } catch (error) {
-    console.error("Error al actualizar la lista:", error);
-    notify.warning(
-      "El cambio se guardó, pero no se pudo actualizar la lista. Recargá la sección.",
+    logError("Error al actualizar la lista:", error);
+    showResult(
+      "warning",
+      "Cambio guardado",
+      "No se pudo actualizar la lista. Recargá la sección.",
     );
   }
 }
@@ -241,11 +244,11 @@ export async function runTableAction(button, task, messages, refresh) {
       throw new ApiError(result.error || messages.failure, { kind: "request" });
     }
 
-    notify.success(messages.success);
+    showResult("success", messages.success);
     await refresh();
   } catch (error) {
-    console.error(messages.failure, error);
-    notify.error(getErrorMessage(error, messages.failure));
+    logError(messages.failure, error);
+    showError(getErrorMessage(error, messages.failure));
   } finally {
     setBusy(button, false);
   }

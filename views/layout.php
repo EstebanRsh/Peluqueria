@@ -30,6 +30,11 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HairApp</title>
+    <!-- Oculta la página hasta que carguen los estilos: evita el destello sin estilos en redes lentas. Si algo falla, se muestra sola a los 5 s. -->
+    <style>
+        html:not(.is-styled) body { visibility: hidden; animation: boot-show 0s 5s forwards; }
+        @keyframes boot-show { to { visibility: visible; } }
+    </style>
     <!-- Fuentes: Alex Brush y Cinzel para la marca, Inter para el texto -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,6 +44,18 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
     <link rel="stylesheet" href="<?= $asset('css/sidebar.css') ?>">
     <link rel="stylesheet" href="<?= $asset('css/components.css') ?>">
     <link rel="stylesheet" href="<?= $asset('css/app-core.css') ?>">
+    <script>
+        // Muestra la página cuando están listos los estilos y las tipografías (máx. 3 s).
+        (function () {
+            var show = function () { document.documentElement.classList.add("is-styled"); };
+            if (!document.fonts) { show(); return; }
+            var faces = ["400 1rem Inter", "500 1rem Inter", "600 1rem Inter", "700 1rem Inter", "500 1rem Cinzel", "700 1rem Cinzel", "1rem 'Alex Brush'"];
+            Promise.race([
+                Promise.all(faces.map(function (face) { return document.fonts.load(face); })),
+                new Promise(function (resolve) { setTimeout(resolve, 3000); })
+            ]).then(show, show);
+        })();
+    </script>
 </head>
 
 <body>
@@ -147,7 +164,6 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
                     </span>
                     <span class="logout-label">Cerrar sesión</span>
                 </button>
-                <p id="logoutMessage" role="status" aria-live="polite" class="logout-message"></p>
             </div>
         </aside>
 
@@ -177,6 +193,26 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
             <svg class="fab-actions__toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
         </button>
     </div>
+
+    <dialog class="result-screen" id="resultScreen" aria-labelledby="resultTitle" aria-describedby="resultMessage" tabindex="-1">
+        <svg class="result-screen__icon result-screen__icon--success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="10" />
+            <path class="result-screen__mark" d="M7.5 12.5l3 3 6-7" pathLength="1" />
+        </svg>
+        <svg class="result-screen__icon result-screen__icon--error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="10" />
+            <path class="result-screen__mark" d="M8.5 8.5l7 7M15.5 8.5l-7 7" pathLength="1" />
+        </svg>
+        <svg class="result-screen__icon result-screen__icon--warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <path class="result-screen__mark" d="M12 9v4M12 17h.01" pathLength="1" />
+        </svg>
+        <div id="resultBody">
+            <h2 class="result-screen__title" id="resultTitle"></h2>
+            <p class="result-screen__message" id="resultMessage"></p>
+        </div>
+        <button type="button" class="btn result-screen__close" id="resultClose" hidden>Entendido</button>
+    </dialog>
 
     <script>
         window.BASE_URL = <?= json_encode($base, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;

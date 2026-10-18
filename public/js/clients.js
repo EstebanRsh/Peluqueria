@@ -9,6 +9,7 @@ import {
   deactivateClient,
   deleteClient,
   getErrorMessage,
+  logError,
 } from "./api.js";
 import { formatTime, slugify } from "./utils.js";
 import {
@@ -40,8 +41,7 @@ import {
   rowToggleHtml,
   runTableAction,
 } from "./list.js";
-import { confirmAction } from "./confirm.js";
-import { notify } from "./toast.js";
+import { confirmAction, showError, showResult } from "./confirm.js";
 
 const list = createListLoader(fetchAllClients, $("clientListSearch"));
 
@@ -123,12 +123,10 @@ export async function loadClientsList({ append = false } = {}) {
   try {
     if (await list.load({ append })) renderClientsList();
   } catch (error) {
-    console.error("Error al cargar clientes:", error);
+    logError("Error al cargar clientes:", error);
 
     if (append) {
-      notify.error(
-        getErrorMessage(error, "No se pudieron cargar más clientes."),
-      );
+      showError(getErrorMessage(error, "No se pudieron cargar más clientes."));
     } else {
       renderLoadError(error);
     }
@@ -174,7 +172,7 @@ async function saveClient() {
 
   if (!data.alias) {
     feedback.invalidate(["clientAlias"]);
-    feedback.show("error", "Ingresá un alias o nombre de referencia.");
+    feedback.focusInvalid();
     return;
   }
 
@@ -192,11 +190,17 @@ async function saveClient() {
     }
 
     drawer.close();
-    notify.success(id ? "Cliente actualizado." : "Cliente creado.");
+    showResult(
+      "success",
+      id ? "Cliente actualizado" : "Cliente creado",
+      id
+        ? "Los cambios ya están guardados."
+        : "Ya podés agendarle turnos y cargar sus fichas.",
+    );
 
     await refreshAfterChange(list, renderClientsList);
   } catch (error) {
-    console.error("Error al guardar cliente:", error);
+    logError("Error al guardar cliente:", error);
     feedback.show(
       "error",
       getErrorMessage(error, "No se pudo guardar el cliente."),
@@ -515,7 +519,7 @@ async function loadClientProfileData(client, requestId) {
     renderTimeline();
   } catch (error) {
     if (requestId !== profileRequestId) return;
-    console.error("Error al cargar historial técnico:", error);
+    logError("Error al cargar historial técnico:", error);
     renderProfileError(
       historyContainer,
       error,
@@ -562,7 +566,7 @@ async function loadClientProfileData(client, requestId) {
     renderClientAppointments();
   } catch (error) {
     if (requestId !== profileRequestId) return;
-    console.error("Error al cargar turnos del cliente:", error);
+    logError("Error al cargar turnos del cliente:", error);
     renderProfileError(
       appointmentsContainer,
       error,
@@ -788,7 +792,7 @@ async function handleTableAction(event) {
     await runAction(
       button,
       () => deleteClient(id),
-      "Cliente eliminado.",
+      "Cliente eliminado",
       "No se pudo eliminar el cliente.",
     );
     return;
@@ -806,7 +810,7 @@ async function handleTableAction(event) {
     await runAction(
       button,
       () => activateClient(id),
-      "Cliente activado.",
+      "Cliente activado",
       "No se pudo activar el cliente.",
     );
     return;
@@ -824,7 +828,7 @@ async function handleTableAction(event) {
     await runAction(
       button,
       () => deactivateClient(id),
-      "Cliente desactivado.",
+      "Cliente desactivado",
       "No se pudo desactivar el cliente.",
     );
   }

@@ -4,7 +4,7 @@
 import { openPanelForDate, closePanel, bindCalendarBadge } from "./ui.js";
 import { initModal } from "./modal.js";
 import { ApiError, isAbortError } from "./api.js";
-import { notify } from "./toast.js";
+import { showError } from "./confirm.js";
 import { initServices, loadServicesList } from "./services.js";
 import { initClients, loadClientsList } from "./clients.js";
 import { initProducts, loadProductsList } from "./products.js";
@@ -189,7 +189,7 @@ function notifyUnexpectedError(message) {
   }
 
   lastNoticeAt = now;
-  notify.error(message);
+  showError(message);
 }
 
 window.addEventListener("error", (event) => {

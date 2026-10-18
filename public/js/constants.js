@@ -1,12 +1,5 @@
 // Constantes compartidas: estados de turno y unidades de producto.
 
-export const APPOINTMENT_STATUSES = [
-  "Reservado",
-  "Finalizado",
-  "Ausente",
-  "Cancelado",
-];
-
 export const DEFAULT_APPOINTMENT_STATUS = "Reservado";
 
 // Estados que no ocupan el horario del profesional.
