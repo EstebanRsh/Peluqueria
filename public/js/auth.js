@@ -9,6 +9,7 @@ import {
   registerUser,
 } from "./api.js";
 import { clearInvalidOnInput, setBusy } from "./feedback.js";
+import { initPasswordToggles } from "./dom.js";
 import { showResult } from "./confirm.js";
 
 async function clearBrowserStorage() {
@@ -100,23 +101,7 @@ export function initAuthPage() {
     });
   };
 
-  document.querySelectorAll("[data-toggle-password]").forEach((button) => {
-    const input = button.closest(".password-field").querySelector("input");
-
-    button.addEventListener("click", () => {
-      const show = input.type === "password";
-
-      input.type = show ? "text" : "password";
-      button.setAttribute("aria-pressed", String(show));
-      button.setAttribute(
-        "aria-label",
-        show ? "Ocultar contraseña" : "Mostrar contraseña",
-      );
-      button
-        .querySelectorAll("svg")
-        .forEach((icon) => icon.toggleAttribute("hidden"));
-    });
-  });
+  initPasswordToggles();
 
   document
     .getElementById("showRegistration")

@@ -333,6 +333,14 @@ export function logoutUser() {
   return postJson("logout", {});
 }
 
+export function fetchAccount() {
+  return getJson("account");
+}
+
+export function changePassword(data) {
+  return postJson("change_password", data);
+}
+
 // ============================================================
 // LISTADOS PAGINADOS (CLIENTES, SERVICIOS Y PRODUCTOS)
 // ============================================================

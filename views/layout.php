@@ -129,8 +129,7 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
                     </span>
                     <span class="nav-item__label">Productos</span>
                 </a>
-                <!-- Sin vista todavía: se muestra deshabilitado -->
-                <span class="nav-item nav-item--disabled" aria-disabled="true" title="Próximamente">
+                <a href="#" class="nav-item" id="navSettings" aria-haspopup="dialog">
                     <span class="nav-item__icon" aria-hidden="true">
                         <svg <?= $iconAttrs ?>>
                             <line x1="4" y1="6" x2="20" y2="6" />
@@ -142,7 +141,7 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
                         </svg>
                     </span>
                     <span class="nav-item__label">Ajustes</span>
-                </span>
+                </a>
             </nav>
 
             <div class="premium-sidebar__footer">
@@ -182,6 +181,7 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
                 <?php require __DIR__ . '/products_view.php'; ?>
                 <?php require __DIR__ . '/modal_product.php'; ?>
             </div>
+            <?php require __DIR__ . '/modal_settings.php'; ?>
         </main>
     </div>
 

@@ -1276,7 +1276,9 @@ select.form-select:focus {
 }
 
 .row-dialog__data dd {
+  min-width: 0;
   text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .row-dialog__notes {
@@ -1407,6 +1409,33 @@ select.form-select:focus {
 .cart-remove {
   padding: 0.2rem;
   color: var(--color-danger);
+}
+
+/* ==========================================================================
+   AJUSTES
+   ========================================================================== */
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem 0 0;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.settings-section:first-child {
+  padding-top: 0.25rem;
+  border-top: 0;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.settings-form > .btn {
+  align-self: flex-end;
 }
 
 /* ==========================================================================
@@ -1572,6 +1601,10 @@ select.form-select:focus {
 
   .appointment-detail-footer .btn {
     width: 100%;
+  }
+
+  .settings-form > .btn {
+    align-self: stretch;
   }
 
   .detail-grid {
@@ -1912,6 +1945,11 @@ select.form-select:focus {
   color: var(--color-text-muted);
   cursor: pointer;
   transition: color var(--t-fast) var(--ease-out);
+}
+
+.password-field__toggle svg {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 .password-field__toggle:hover {

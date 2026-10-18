@@ -105,3 +105,24 @@ export function setActiveFilter(buttons, activeButton) {
     button.setAttribute("aria-pressed", String(isSelected));
   });
 }
+
+// Conecta los botones de ojo (.password-field) para mostrar u ocultar la contraseña.
+export function initPasswordToggles(root = document) {
+  root.querySelectorAll("[data-toggle-password]").forEach((button) => {
+    const input = button.closest(".password-field").querySelector("input");
+
+    button.addEventListener("click", () => {
+      const show = input.type === "password";
+
+      input.type = show ? "text" : "password";
+      button.setAttribute("aria-pressed", String(show));
+      button.setAttribute(
+        "aria-label",
+        show ? "Ocultar contraseña" : "Mostrar contraseña",
+      );
+      button
+        .querySelectorAll("svg")
+        .forEach((icon) => icon.toggleAttribute("hidden"));
+    });
+  });
+}
