@@ -44,10 +44,7 @@ export function getErrorMessage(
   return error instanceof ApiError && error.message ? error.message : fallback;
 }
 
-// Registra en la consola una sola línea corta, útil para soporte y sin datos
-// internos (ni pila, ni causa, ni texto del servidor). Los rechazos del
-// servidor, la falta de conexión y la sesión vencida ya se le muestran al
-// usuario y no son fallas del programa.
+// Registra una línea corta en la consola; omite los errores que ya ve el usuario.
 const EXPECTED_ERRORS = ["request", "network", "timeout", "session"];
 
 export function logError(context, error) {

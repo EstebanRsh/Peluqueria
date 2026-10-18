@@ -21,9 +21,6 @@ async function clearBrowserStorage() {
   }
 }
 
-// Pantalla de acceso. Cada resultado se informa con la pantalla completa:
-// verde al entrar (queda pintada mientras carga la agenda), rojo si falla y
-// ámbar si la sesión venció.
 export function initAuthPage() {
   const loginSection = document.getElementById("loginSection");
   const registerSection = document.getElementById("registerSection");
@@ -185,8 +182,6 @@ export function initAuthPage() {
     });
 }
 
-// Cierre de sesión: el servidor confirma que la sesión se invalidó antes de
-// mostrar el verde y volver al login.
 export function initLogout() {
   const button = document.getElementById("logoutButton");
   if (!button) return;

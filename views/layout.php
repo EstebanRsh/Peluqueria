@@ -30,7 +30,7 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HairApp</title>
-    <!-- Oculta la página hasta que carguen los estilos: evita el destello sin estilos en redes lentas. Si algo falla, se muestra sola a los 5 s. -->
+    <!-- Muestra la página con estilos y tipografías ya cargados -->
     <style>
         html:not(.is-styled) body { visibility: hidden; animation: boot-show 0s 5s forwards; }
         @keyframes boot-show { to { visibility: visible; } }
@@ -45,7 +45,6 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
     <link rel="stylesheet" href="<?= $asset('css/components.css') ?>">
     <link rel="stylesheet" href="<?= $asset('css/app-core.css') ?>">
     <script>
-        // Muestra la página cuando están listos los estilos y las tipografías (máx. 3 s).
         (function () {
             var show = function () { document.documentElement.classList.add("is-styled"); };
             if (!document.fonts) { show(); return; }

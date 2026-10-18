@@ -27,8 +27,7 @@ export function restoreFocus(element) {
 // Mientras hay un panel modal abierto, el resto de la página queda inerte
 // (sin foco ni clics). Con paneles apilados, solo el último está activo.
 // Los fondos y los diálogos de confirmación siguen activos. Con un <dialog>
-// nativo abierto (estado del turno, pantalla de resultado) se libera el
-// fondo: showModal() ya bloquea el resto y el diálogo no puede quedar inerte.
+// nativo abierto no se aplica: showModal() ya bloquea el resto.
 const OPEN_PANEL = '[role="dialog"][aria-modal="true"].is-open';
 const STAYS_ACTIVE = ".side-drawer-overlay, .confirm-dialog";
 

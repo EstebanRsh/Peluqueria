@@ -13,7 +13,7 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Acceso - HairApp</title>
-    <!-- Oculta la página hasta que carguen los estilos: evita el destello sin estilos en redes lentas. Si algo falla, se muestra sola a los 5 s. -->
+    <!-- Muestra la página con estilos y tipografías ya cargados -->
     <style>
         html:not(.is-styled) body {
             visibility: hidden;
@@ -36,7 +36,6 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
     <link rel="stylesheet" href="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/public/css/components.css">
     <link rel="stylesheet" href="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/public/css/app-core.css">
     <script>
-        // Muestra la página cuando están listos los estilos y las tipografías (máx. 3 s).
         (function() {
             var show = function() {
                 document.documentElement.classList.add("is-styled");

@@ -822,7 +822,6 @@ function announceStatus(id, previous, status) {
   showResult("success", "Estado actualizado", `${name}: ${status}`);
 }
 
-// Si el detalle del turno está abierto, refleja el estado nuevo y su historial.
 function syncDetailStatus(id, status) {
   if (String(activeDetailModal?.appointmentId) !== String(id)) {
     return;

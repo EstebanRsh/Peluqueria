@@ -1447,7 +1447,6 @@ select.form-select:focus {
     border-bottom: none;
   }
 
-  /* Filas de mensaje (vacío, carga, "Cargar más"): una sola celda centrada */
   .data-table td[colspan] {
     display: block;
   }
@@ -1888,7 +1887,6 @@ select.form-select:focus {
   color: var(--color-text-muted);
 }
 
-/* Campo de contraseña: el ojo va dentro del input, sin recuadro */
 .password-field {
   position: relative;
 }

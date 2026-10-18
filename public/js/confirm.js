@@ -18,17 +18,11 @@ const WARNING_ICON =
 let counter = 0;
 
 // ============================================================
-// PANTALLA DE RESULTADO (ÉXITO, ERROR, ADVERTENCIA)
+// PANTALLA DE RESULTADO
 //
-// Esqueleto #resultScreen en layout.php y login.php.
-//   showResult(type, title, message, { hold })
-//   type: "success" | "error" | "warning"
-//
-// El éxito se cierra solo a los 2 s, o al tocarlo o pulsar Enter, Espacio o
-// Escape. El error y la advertencia quedan hasta cerrarse con el botón o con
-// Escape. Un error abierto no lo pisa otro tipo de aviso. Con hold, el éxito
-// termina igual pero la pantalla queda pintada mientras la página navega
-// (login y cierre de sesión). Devuelve una promesa que se resuelve al terminar.
+// showResult(type, title, message, { hold }): type "success", "error" o
+// "warning". El éxito se cierra solo; el error y la advertencia, con el botón.
+// Con hold la pantalla queda pintada hasta que la página navega.
 // ============================================================
 
 const RESULT_MS = 2000;
@@ -81,8 +75,6 @@ export function showResult(type, title, message = "", { hold = false } = {}) {
   document.getElementById("resultMessage").textContent = message;
   resultClose.hidden = isSuccess;
 
-  // Se abre después del microtask de restoreFocus para que, al cerrarse,
-  // el foco vuelva al elemento correcto.
   return new Promise((resolve) => {
     settleResult = resolve;
 
