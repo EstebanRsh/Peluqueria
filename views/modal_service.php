@@ -30,24 +30,28 @@
 
             <input type="hidden" id="managedServiceId">
 
-            <div class="form-group is-required">
-                <label for="serviceName">Nombre</label>
+            <div class="form-row">
+                <div class="form-group form-group--full is-required">
+                    <label for="serviceName">Nombre</label>
 
-                <input
-                    type="text"
-                    id="serviceName"
-                    aria-required="true"
-                    maxlength="100"
-                    placeholder="Ej: Corte de cabello">
+                    <input
+                        type="text"
+                        id="serviceName"
+                        aria-required="true"
+                        maxlength="100"
+                        placeholder="Ej: Corte de cabello">
+                </div>
             </div>
 
-            <div class="form-group">
-                <label for="serviceDescription">Descripción</label>
+            <div class="form-row">
+                <div class="form-group form-group--full">
+                    <label for="serviceDescription">Descripción</label>
 
-                <textarea
-                    id="serviceDescription"
-                    rows="2"
-                    placeholder="Descripción opcional"></textarea>
+                    <textarea
+                        id="serviceDescription"
+                        rows="2"
+                        placeholder="Descripción opcional"></textarea>
+                </div>
             </div>
 
             <div class="form-row">

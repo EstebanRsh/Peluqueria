@@ -1447,6 +1447,20 @@ select.form-select:focus {
     border-bottom: none;
   }
 
+  /* Filas de mensaje (vacío, carga, "Cargar más"): una sola celda centrada */
+  .data-table td[colspan] {
+    display: block;
+  }
+
+  .data-table td[colspan]::before {
+    display: none;
+  }
+
+  .data-table tr:has(td[colspan]) {
+    border: none;
+    margin-bottom: 0;
+  }
+
   .data-table td::before {
     content: attr(data-label);
     font-size: 0.7rem;
