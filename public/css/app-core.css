@@ -579,13 +579,6 @@
   background: var(--color-gold-line-strong);
 }
 
-.login-hero__lead {
-  max-width: 34ch;
-  font-size: 1.05rem;
-  line-height: 1.6;
-  color: var(--sidebar-muted);
-}
-
 /* --- Historia de la app ------------------------------------------------- */
 
 .login-story {
@@ -672,90 +665,6 @@
   min-height: 1em;
 }
 
-/* --- Tira de módulos ---------------------------------------------------- */
-
-.login-features {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.5rem;
-  list-style: none;
-}
-
-.login-feature {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.7rem 0.25rem;
-  text-align: center;
-  background: var(--sidebar-footer-bg);
-  border: 1px solid var(--sidebar-border);
-  border-top: 2px solid var(--color-gold-line);
-  cursor: default;
-  transition:
-    border-color var(--t-base) var(--ease-out),
-    background var(--t-base) var(--ease-out),
-    transform var(--t-base) var(--ease-out);
-  animation: login-fade-up 0.7s var(--ease-out) both;
-}
-
-.login-feature:nth-child(1) {
-  animation-delay: 0.45s;
-}
-.login-feature:nth-child(2) {
-  animation-delay: 0.55s;
-}
-.login-feature:nth-child(3) {
-  animation-delay: 0.65s;
-}
-.login-feature:nth-child(4) {
-  animation-delay: 0.75s;
-}
-
-.login-feature:hover {
-  background: linear-gradient(180deg, var(--color-hover-strong), transparent);
-  border-color: var(--color-gold-line);
-  border-top-color: var(--color-gold);
-  transform: translateY(-3px);
-}
-
-.login-feature__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  font-size: 1.15rem;
-  background: var(--color-gold-tint);
-  border: 1px solid var(--color-gold-line);
-  filter: var(--filter-icon-glow);
-  animation: login-float 4.5s ease-in-out infinite;
-}
-
-.login-feature__icon svg {
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
-.login-feature:nth-child(2) .login-feature__icon {
-  animation-delay: -1.1s;
-}
-.login-feature:nth-child(3) .login-feature__icon {
-  animation-delay: -2.2s;
-}
-.login-feature:nth-child(4) .login-feature__icon {
-  animation-delay: -3.3s;
-}
-
-.login-feature__title {
-  font-family: var(--font-serif);
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--sidebar-text);
-}
-
 /* --- Animaciones -------------------------------------------------------- */
 
 @keyframes login-fade-up {
@@ -791,16 +700,6 @@
   }
 }
 
-@keyframes login-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-4px);
-  }
-}
-
 @keyframes login-glow {
   0%,
   100% {
@@ -816,8 +715,6 @@
   .login-hero,
   .login-hero__brand .brand-script,
   .login-story,
-  .login-feature,
-  .login-feature__icon,
   .login-page .admin-view {
     animation: none;
   }
@@ -887,14 +784,6 @@
   }
 }
 
-/* Ventanas de poca altura: se priorizan marca e historia sobre los adornos */
-@media (min-width: 861px) and (min-height: 640px) and (max-height: 799px) {
-  .login-features,
-  .login-hero__lead {
-    display: none;
-  }
-}
-
 /* --- Pantallas chicas: una sola columna, marca arriba y acceso enseguida -- */
 
 @media (max-width: 860px) {
@@ -937,21 +826,8 @@
     display: none;
   }
 
-  .login-hero__lead {
-    display: none;
-  }
-
   .login-page .admin-view {
     order: 2;
-  }
-
-  .login-features {
-    order: 3;
-  }
-
-  .login-feature__title {
-    font-size: 0.62rem;
-    letter-spacing: 0.04em;
   }
 
   .login-story {
