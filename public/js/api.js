@@ -44,6 +44,22 @@ export function getErrorMessage(
   return error instanceof ApiError && error.message ? error.message : fallback;
 }
 
+// Registra en la consola solo lo que sirve para soporte. Los rechazos del
+// servidor, la falta de conexión y la sesión vencida ya se le muestran al
+// usuario y no son fallas del programa.
+const EXPECTED_ERRORS = ["request", "network", "timeout", "session"];
+
+export function logError(context, error) {
+  if (
+    isAbortError(error) ||
+    (error instanceof ApiError && EXPECTED_ERRORS.includes(error.kind))
+  ) {
+    return;
+  }
+
+  console.error(context, error);
+}
+
 function messageForStatus(status) {
   if (status === 401) return "La sesión expiró. Volvé a iniciar sesión.";
   if (status === 403) return "No tenés permiso para realizar esta acción.";

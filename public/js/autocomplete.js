@@ -7,7 +7,7 @@
 // pedidos. El HTML solo necesita un <input> y un <ul> vacío.
 // ============================================================
 
-import { isAbortError, searchClients } from "./api.js";
+import { isAbortError, searchClients, logError } from "./api.js";
 import { escapeHtml } from "./dom.js";
 import { setSearching } from "./feedback.js";
 
@@ -265,7 +265,7 @@ export function createAutocomplete(config) {
         return;
       }
 
-      console.error("Error en la búsqueda:", error);
+      logError("Error en la búsqueda:", error);
       render(query, "error");
     } finally {
       clearTimeout(loadingTimer);
