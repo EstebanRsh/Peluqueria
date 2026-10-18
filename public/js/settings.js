@@ -2,10 +2,12 @@ import {
   ApiError,
   changePassword,
   fetchAccount,
+  fetchAccountExport,
   getErrorMessage,
+  importAccountData,
   logError,
 } from "./api.js";
-import { showResult } from "./confirm.js";
+import { confirmAction, showResult } from "./confirm.js";
 import { $, initPasswordToggles } from "./dom.js";
 import {
   clearInvalidOnInput,
@@ -14,7 +16,10 @@ import {
   createFeedback,
   setBusy,
 } from "./feedback.js";
-import { formatDate } from "./utils.js";
+import { formatDate, todayIso } from "./utils.js";
+
+const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
+const INVALID_FILE_MESSAGE = "El archivo no es una copia válida de HairApp.";
 
 const PASSWORD_FIELDS = [
   "settingsCurrentPassword",
@@ -106,6 +111,95 @@ async function savePassword() {
   }
 }
 
+async function exportData() {
+  const button = $("exportData");
+
+  setBusy(button, true);
+
+  try {
+    const { data } = await fetchAccountExport();
+    const file = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const link = document.createElement("a");
+
+    link.href = URL.createObjectURL(file);
+    link.download = `hairapp-datos-${todayIso()}.json`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+
+    showResult(
+      "success",
+      "Datos descargados",
+      "Guardá el archivo en un lugar seguro: tiene la información de tus clientes.",
+    );
+  } catch (error) {
+    logError("Error al descargar los datos:", error);
+    feedback.show(
+      "error",
+      getErrorMessage(error, "No se pudieron descargar tus datos."),
+    );
+  } finally {
+    setBusy(button, false);
+  }
+}
+
+async function readImportFile(file) {
+  if (file.size > MAX_IMPORT_BYTES) {
+    throw new ApiError("El archivo es demasiado grande (máximo 10 MB).", {
+      kind: "request",
+    });
+  }
+
+  try {
+    return JSON.parse(await file.text());
+  } catch {
+    throw new ApiError(INVALID_FILE_MESSAGE, { kind: "request" });
+  }
+}
+
+async function importData(file) {
+  const button = $("importData");
+
+  try {
+    const data = await readImportFile(file);
+    const count = (table) => (Array.isArray(data?.[table]) ? data[table].length : 0);
+
+    const confirmed = await confirmAction({
+      title: "Importar datos",
+      message: `Se van a cargar ${count("clients")} clientes, ${count("services")} servicios, ${count("products")} productos, ${count("appointments")} turnos y ${count("service_history")} fichas en esta cuenta.`,
+      confirmLabel: "Importar",
+    });
+
+    if (!confirmed) return;
+
+    setBusy(button, true);
+
+    const result = await importAccountData(data);
+
+    if (!result.success) {
+      throw new ApiError(result.error || "No se pudieron importar los datos.", {
+        kind: "request",
+      });
+    }
+
+    await showResult(
+      "success",
+      "Datos importados",
+      "Tu información ya está cargada en esta cuenta.",
+      { hold: true },
+    );
+    window.location.reload();
+  } catch (error) {
+    logError("Error al importar los datos:", error);
+    feedback.show(
+      "error",
+      getErrorMessage(error, "No se pudieron importar los datos."),
+    );
+    setBusy(button, false);
+  }
+}
+
 export function initSettings() {
   const panel = $("settingsPanel");
 
@@ -132,6 +226,16 @@ export function initSettings() {
   $("settingsModalOverlay").addEventListener("click", () =>
     drawer.requestClose(),
   );
+
+  $("exportData").addEventListener("click", exportData);
+  $("importData").addEventListener("click", () => $("importFile").click());
+  $("importFile").addEventListener("change", (event) => {
+    const [file] = event.target.files;
+
+    event.target.value = "";
+
+    if (file) importData(file);
+  });
 
   $("passwordForm").addEventListener("submit", (event) => {
     event.preventDefault();

@@ -4,6 +4,7 @@ require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../config/auth.php';
 require_once __DIR__ . '/../models/UserModel.php';
 require_once __DIR__ . '/../models/AuthAttemptModel.php';
+require_once __DIR__ . '/../models/AccountModel.php';
 
 class AuthController extends BaseController
 {
@@ -15,6 +16,7 @@ class AuthController extends BaseController
         'register',
         'logout',
         'change_password',
+        'account_import',
     ];
 
     // Límites para las credenciales recibidas.
@@ -24,6 +26,8 @@ class AuthController extends BaseController
     private const LOGIN_BY_ACCOUNT = [5, 900];
     private const LOGIN_BY_IP = [20, 900];
     private const REGISTER_BY_IP = [5, 3600];
+
+    private const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
 
     public function __construct()
     {
@@ -157,6 +161,48 @@ class AuthController extends BaseController
                         'created_at' => $account['created_at'],
                     ],
                 ]);
+                break;
+
+            // Devuelve todos los datos de la cuenta para descargarlos.
+            case 'account_export':
+                $user = Auth::currentUser();
+
+                if ($user === null) {
+                    $this->error('No autenticado.', 401);
+                }
+
+                $this->json([
+                    'success' => true,
+                    'data'    => ['exported_at' => date('c')] + (new AccountModel())->export($user['id']),
+                ]);
+                break;
+
+            // Carga una copia descargada en una cuenta sin datos.
+            case 'account_import':
+                $user = Auth::currentUser();
+
+                if ($user === null) {
+                    $this->error('No autenticado.', 401);
+                }
+
+                if ((int)($_SERVER['CONTENT_LENGTH'] ?? 0) > self::MAX_IMPORT_BYTES) {
+                    $this->error('El archivo es demasiado grande (máximo 10 MB).', 413);
+                }
+
+                $input = $this->readInput();
+                $accounts = new AccountModel();
+
+                if (!$accounts->isEmpty($user['id'])) {
+                    $this->error('Solo podés importar datos en una cuenta sin datos cargados.', 409);
+                }
+
+                try {
+                    $totals = $accounts->import($user['id'], is_array($input['data'] ?? null) ? $input['data'] : []);
+                } catch (InvalidArgumentException $e) {
+                    $this->error($e->getMessage());
+                }
+
+                $this->json(['success' => true, 'imported' => $totals]);
                 break;
 
             // Inicia sesión.

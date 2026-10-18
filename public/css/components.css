@@ -1434,7 +1434,8 @@ select.form-select:focus {
   gap: 1.25rem;
 }
 
-.settings-form > .btn {
+.settings-form > .btn,
+.settings-section > .btn {
   align-self: flex-end;
 }
 
@@ -1603,7 +1604,8 @@ select.form-select:focus {
     width: 100%;
   }
 
-  .settings-form > .btn {
+  .settings-form > .btn,
+  .settings-section > .btn {
     align-self: stretch;
   }
 

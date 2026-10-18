@@ -43,7 +43,9 @@ if (in_array($action, [
     'logout',
     'session',
     'change_password',
-    'account'
+    'account',
+    'account_export',
+    'account_import'
 ], true)) {
     $controller = new AuthController();
     $controller->handleRequest();

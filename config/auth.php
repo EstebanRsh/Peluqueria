@@ -38,6 +38,8 @@ final class Auth
         'logout'          => ['owner', 'admin'],
         'change_password' => ['owner', 'admin'],
         'account'         => ['owner', 'admin'],
+        'account_export'  => ['owner', 'admin'],
+        'account_import'  => ['owner', 'admin'],
 
         // Turnos
         'list'          => ['owner'],

@@ -337,6 +337,14 @@ export function fetchAccount() {
   return getJson("account");
 }
 
+export function fetchAccountExport() {
+  return getJson("account_export");
+}
+
+export function importAccountData(data) {
+  return postJson("account_import", { data });
+}
+
 export function changePassword(data) {
   return postJson("change_password", data);
 }

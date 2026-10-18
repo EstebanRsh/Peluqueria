@@ -120,6 +120,20 @@
             </form>
         </section>
 
+        <section class="settings-section" aria-labelledby="settingsDataTitle">
+            <h4 class="history-title" id="settingsDataTitle">Tus datos</h4>
+
+            <p class="form-hint">Descargá una copia de todo lo que guardaste en HairApp: cuenta, clientes, servicios, productos, turnos y fichas.</p>
+
+            <button type="button" class="btn btn--ghost" id="exportData">Descargar mis datos</button>
+
+            <p class="form-hint">También podés cargar una copia descargada de otra cuenta. Solo funciona en una cuenta sin datos cargados.</p>
+
+            <input type="file" id="importFile" accept=".json,application/json" hidden>
+
+            <button type="button" class="btn btn--ghost" id="importData">Importar datos</button>
+        </section>
+
     </div>
 
 
