@@ -27,19 +27,7 @@ final class Auth
     // El registro público sólo se habilita si el perfil activo lo permite.
     public static function publicRegistrationEnabled(): bool
     {
-        $auth = self::environmentConfig();
-
-        if (!$auth['allow_public_registration']) {
-            return false;
-        }
-
-        $rawHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
-        $host = $rawHost === '' ? false : parse_url('//' . $rawHost, PHP_URL_HOST);
-        $host = is_string($host) ? trim($host, '[]') : '';
-
-        return $auth['allow_http_localhost']
-            && in_array($host, $auth['local_hosts'], true)
-            && in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true);
+        return self::environmentConfig()['allow_public_registration'];
     }
 
     // Permisos por acción. Las acciones no incluidas se deniegan.
@@ -49,6 +37,7 @@ final class Auth
         // Autenticación (con sesión)
         'logout'          => ['owner', 'admin'],
         'change_password' => ['owner', 'admin'],
+        'account'         => ['owner', 'admin'],
 
         // Turnos
         'list'          => ['owner'],

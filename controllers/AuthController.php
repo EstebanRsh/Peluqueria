@@ -3,10 +3,12 @@
 require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../config/auth.php';
 require_once __DIR__ . '/../models/UserModel.php';
+require_once __DIR__ . '/../models/AuthAttemptModel.php';
 
 class AuthController extends BaseController
 {
     private UserModel $model;
+    private AuthAttemptModel $attempts;
 
     private const POST_ACTIONS = [
         'login',
@@ -16,12 +18,22 @@ class AuthController extends BaseController
     ];
 
     // Límites para las credenciales recibidas.
-    private const MAX_USERNAME_LENGTH = 50;
     private const MAX_LOGIN_PASSWORD_BYTES = 1024;
+
+    // Límite de intentos: [máximo, ventana en segundos].
+    private const LOGIN_BY_ACCOUNT = [5, 900];
+    private const LOGIN_BY_IP = [20, 900];
+    private const REGISTER_BY_IP = [5, 3600];
 
     public function __construct()
     {
         $this->model = new UserModel();
+        $this->attempts = new AuthAttemptModel();
+    }
+
+    private function clientIp(): string
+    {
+        return (string)($_SERVER['REMOTE_ADDR'] ?? '');
     }
 
     // ============================================================
@@ -46,12 +58,24 @@ class AuthController extends BaseController
                     $this->error('El registro público está deshabilitado.', 403);
                 }
 
+                $ipKey = 'ip|' . $this->clientIp();
+
+                if ($this->attempts->tooMany('register', $ipKey, ...self::REGISTER_BY_IP)) {
+                    $this->error('Hiciste demasiados intentos de registro. Probá de nuevo más tarde.', 429);
+                }
+
                 $input = $this->readInput();
                 $username = $this->str($input['username'] ?? null);
+                $email = UserModel::normalizeEmail($this->str($input['email'] ?? null));
                 $password = is_string($input['password'] ?? null) ? $input['password'] : '';
+                $confirm = is_string($input['password_confirm'] ?? null) ? $input['password_confirm'] : '';
 
                 if (!UserModel::isValidUsername($username)) {
                     $this->error('El usuario debe tener entre 3 y 50 caracteres: letras, números, punto, guion o guion bajo.');
+                }
+
+                if (!UserModel::isValidEmail($email)) {
+                    $this->error('Ingresá un email válido.');
                 }
 
                 $passwordError = UserModel::validatePassword($password);
@@ -59,13 +83,23 @@ class AuthController extends BaseController
                     $this->error($passwordError);
                 }
 
+                if (!hash_equals($password, $confirm)) {
+                    $this->error('Las contraseñas no coinciden.');
+                }
+
+                if (($input['accept_terms'] ?? null) !== true) {
+                    $this->error('Tenés que aceptar los Términos y la Política de privacidad.');
+                }
+
+                $this->attempts->record('register', $ipKey);
+
                 try {
-                    $userId = $this->model->create($username, $password, 'owner');
+                    $userId = $this->model->create($username, $email, $password, true, 'owner');
                 } catch (InvalidArgumentException $e) {
                     $this->error($e->getMessage(), 409);
                 } catch (mysqli_sql_exception $e) {
                     if ($e->getCode() === 1062) {
-                        $this->error('El nombre de usuario ya existe.', 409);
+                        $this->error(UserModel::IDENTITY_TAKEN_MESSAGE, 409);
                     }
 
                     throw $e;
@@ -101,29 +135,68 @@ class AuthController extends BaseController
                 ]);
                 break;
 
+            // Devuelve los datos de la cuenta autenticada.
+            case 'account':
+                $user = Auth::currentUser();
+
+                if ($user === null) {
+                    $this->error('No autenticado.', 401);
+                }
+
+                $account = $this->model->findById($user['id']);
+
+                if ($account === null) {
+                    $this->error('No se encontró la cuenta.', 404);
+                }
+
+                $this->json([
+                    'success' => true,
+                    'account' => [
+                        'username'   => $account['username'],
+                        'email'      => $account['email'],
+                        'created_at' => $account['created_at'],
+                    ],
+                ]);
+                break;
+
             // Inicia sesión.
             case 'login':
                 $input = $this->readInput();
-                $username = $this->str($input['username'] ?? null);
+                $identifier = $this->str($input['username'] ?? null);
                 $password = is_string($input['password'] ?? null) ? $input['password'] : '';
 
-                if ($username === '' || $password === '') {
-                    $this->error('Completá usuario y contraseña.');
+                if ($identifier === '' || $password === '') {
+                    $this->error('Completá usuario o email y contraseña.');
+                }
+
+                $accountKey = 'account|' . mb_strtolower($identifier) . '|' . $this->clientIp();
+                $ipKey = 'ip|' . $this->clientIp();
+
+                if (
+                    $this->attempts->tooMany('login', $accountKey, ...self::LOGIN_BY_ACCOUNT)
+                    || $this->attempts->tooMany('login', $ipKey, ...self::LOGIN_BY_IP)
+                ) {
+                    $this->error('Demasiados intentos fallidos. Esperá unos minutos e intentá de nuevo.', 429);
                 }
 
                 // No revelar si el usuario existe.
                 if (
-                    mb_strlen($username) > self::MAX_USERNAME_LENGTH
+                    mb_strlen($identifier) > UserModel::MAX_EMAIL_LENGTH
                     || strlen($password) > self::MAX_LOGIN_PASSWORD_BYTES
                 ) {
                     $this->error('Usuario o contraseña incorrectos.', 401);
                 }
 
-                $user = $this->model->authenticate($username, $password);
+                $user = $this->model->authenticate($identifier, $password);
 
                 if ($user === null) {
+                    $this->attempts->record('login', $accountKey);
+                    $this->attempts->record('login', $ipKey);
+
                     $this->error('Usuario o contraseña incorrectos.', 401);
                 }
+
+                $this->attempts->clear('login', $accountKey);
 
                 $csrf = Auth::login($user['id']);
 
@@ -152,9 +225,14 @@ class AuthController extends BaseController
                 $input = $this->readInput();
                 $current = is_string($input['current_password'] ?? null) ? $input['current_password'] : '';
                 $new = is_string($input['new_password'] ?? null) ? $input['new_password'] : '';
+                $confirm = is_string($input['new_password_confirm'] ?? null) ? $input['new_password_confirm'] : '';
 
-                if ($current === '' || $new === '') {
-                    $this->error('Completá la contraseña actual y la nueva.');
+                if ($current === '' || $new === '' || $confirm === '') {
+                    $this->error('Completá la contraseña actual, la nueva y su repetición.');
+                }
+
+                if (!hash_equals($new, $confirm)) {
+                    $this->error('Las contraseñas nuevas no coinciden.');
                 }
 
                 if (strlen($current) > self::MAX_LOGIN_PASSWORD_BYTES) {

@@ -9,6 +9,8 @@ class UserModel
 {
     public const ROLES = ['owner', 'admin'];
     public const MIN_PASSWORD_LENGTH = 12;
+    public const MAX_EMAIL_LENGTH = 254;
+    public const IDENTITY_TAKEN_MESSAGE = 'El usuario o el email ya están en uso. Probá con otros datos.';
 
     // Límite compatible con bcrypt.
     public const MAX_PASSWORD_BYTES = 72;
@@ -30,6 +32,20 @@ class UserModel
         return preg_match('/^[A-Za-z0-9._-]{3,50}$/', $username) === 1;
     }
 
+    // Deja el email en minúsculas y sin espacios.
+    public static function normalizeEmail(string $email): string
+    {
+        return mb_strtolower(trim($email));
+    }
+
+    // Valida un email ya normalizado.
+    public static function isValidEmail(string $email): bool
+    {
+        return $email !== ''
+            && mb_strlen($email) <= self::MAX_EMAIL_LENGTH
+            && filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+    }
+
     // Devuelve null si la contraseña es válida.
     public static function validatePassword(string $password): ?string
     {
@@ -38,7 +54,7 @@ class UserModel
         }
 
         if (mb_strlen($password) < self::MIN_PASSWORD_LENGTH) {
-            return 'La nueva contraseña debe tener al menos ' . self::MIN_PASSWORD_LENGTH . ' caracteres.';
+            return 'La contraseña debe tener al menos ' . self::MIN_PASSWORD_LENGTH . ' caracteres.';
         }
 
         if (strlen($password) > self::MAX_PASSWORD_BYTES) {
@@ -56,7 +72,7 @@ class UserModel
     public function findById(int $id): ?array
     {
         $stmt = $this->conn->prepare("
-            SELECT id, username, role, active, last_login_at, password_changed_at, created_at
+            SELECT id, username, email, role, active, last_login_at, password_changed_at, created_at
             FROM users
             WHERE id = ?
             LIMIT 1
@@ -77,11 +93,11 @@ class UserModel
         return $row;
     }
 
-    // Comprueba si el nombre de usuario ya existe.
-    public function usernameExists(string $username): bool
+    // Comprueba si el usuario o el email ya están registrados.
+    public function identityTaken(string $username, string $email): bool
     {
-        $stmt = $this->conn->prepare("SELECT id FROM users WHERE username = ? LIMIT 1");
-        $stmt->bind_param('s', $username);
+        $stmt = $this->conn->prepare("SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1");
+        $stmt->bind_param('ss', $username, $email);
         $stmt->execute();
 
         return $stmt->get_result()->num_rows > 0;
@@ -91,17 +107,20 @@ class UserModel
     // AUTENTICACIÓN
     // ============================================================
 
-    // Valida las credenciales y devuelve los datos públicos del usuario.
-    public function authenticate(string $username, string $password): ?array
+    // Valida las credenciales (usuario o email) y devuelve los datos públicos del usuario.
+    public function authenticate(string $identifier, string $password): ?array
     {
+        $column = str_contains($identifier, '@') ? 'email' : 'username';
+        $value = $column === 'email' ? self::normalizeEmail($identifier) : $identifier;
+
         $stmt = $this->conn->prepare("
             SELECT id, username, password_hash, role, active
             FROM users
-            WHERE username = ?
+            WHERE {$column} = ?
             LIMIT 1
         ");
 
-        $stmt->bind_param('s', $username);
+        $stmt->bind_param('s', $value);
         $stmt->execute();
 
         $row = $stmt->get_result()->fetch_assoc() ?: null;
@@ -144,10 +163,16 @@ class UserModel
     // ============================================================
 
     // Crea un usuario y devuelve su ID.
-    public function create(string $username, string $password, string $role = 'owner'): int
+    public function create(string $username, string $email, string $password, bool $acceptedTerms, string $role = 'owner'): int
     {
         if (!self::isValidUsername($username)) {
             throw new InvalidArgumentException('El usuario debe tener entre 3 y 50 caracteres: letras, números, punto, guion o guion bajo.');
+        }
+
+        $email = self::normalizeEmail($email);
+
+        if (!self::isValidEmail($email)) {
+            throw new InvalidArgumentException('Ingresá un email válido.');
         }
 
         $passwordError = self::validatePassword($password);
@@ -159,18 +184,19 @@ class UserModel
             throw new InvalidArgumentException('Rol inválido.');
         }
 
-        if ($this->usernameExists($username)) {
-            throw new InvalidArgumentException('El nombre de usuario ya existe.');
+        if ($this->identityTaken($username, $email)) {
+            throw new InvalidArgumentException(self::IDENTITY_TAKEN_MESSAGE);
         }
 
         $hash = self::hashPassword($password);
+        $terms = (int)$acceptedTerms;
 
         $stmt = $this->conn->prepare("
-            INSERT INTO users (username, password_hash, role, password_changed_at)
-            VALUES (?, ?, ?, NOW())
+            INSERT INTO users (username, email, password_hash, role, password_changed_at, terms_accepted_at)
+            VALUES (?, ?, ?, ?, NOW(), IF(?, NOW(), NULL))
         ");
 
-        $stmt->bind_param('sss', $username, $hash, $role);
+        $stmt->bind_param('ssssi', $username, $email, $hash, $role, $terms);
         $stmt->execute();
 
         return (int)$this->conn->insert_id;
