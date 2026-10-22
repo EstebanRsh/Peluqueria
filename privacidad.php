@@ -1,4 +1,10 @@
 <?php
+
+// ============================================================
+// POLÍTICA DE PRIVACIDAD
+// Página pública; los datos del responsable salen de la configuración legal del entorno.
+// ============================================================
+
 require_once __DIR__ . '/config/auth.php';
 Auth::guard('auth_page');
 
@@ -15,7 +21,6 @@ $mail = static fn(string $key): string => '<a class="text-link" href="mailto:' .
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Política de privacidad - HairApp</title>
-    <!-- Muestra la página con estilos y tipografías ya cargados -->
     <style>
         html:not(.is-styled) body {
             visibility: hidden;
@@ -111,7 +116,7 @@ $mail = static fn(string $key): string => '<a class="text-link" href="mailto:' .
                 <p>Usamos conexión cifrada (HTTPS), guardamos las contraseñas cifradas, protegemos la sesión con una cookie que el navegador no deja leer a otros programas, y cada cuenta ve únicamente sus propios datos. Ninguna medida es infalible, pero trabajamos para proteger tu información.</p>
 
                 <h2>10. Cookies y almacenamiento en tu navegador</h2>
-                <p>Solo usamos una cookie de sesión, necesaria para que la aplicación funcione. Además, tu navegador guarda en tu dispositivo el nombre del último profesional que elegiste al crear un turno, para ahorrarte tiempo; lo podés borrar cuando quieras desde el navegador. No usamos cookies de publicidad ni de seguimiento.</p>
+                <p>Solo usamos una cookie de sesión, necesaria para que la aplicación funcione. No guardamos datos en tu navegador ni usamos cookies de publicidad ni de seguimiento.</p>
 
                 <h2>11. Menores</h2>
                 <p>HairApp es para profesionales mayores de 18 años.</p>

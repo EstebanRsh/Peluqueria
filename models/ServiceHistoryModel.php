@@ -1,8 +1,12 @@
 <?php
 
+// ============================================================
+// FICHA TÉCNICA
+// Fichas de servicio, descuento de stock de los productos usados e historial técnico.
+// ============================================================
+
 require_once __DIR__ . '/../config/database.php';
 
-// Excepción personalizada para errores de negocio (retorna código de estado HTTP adecuado)
 class ServiceHistoryException extends RuntimeException {}
 
 class ServiceHistoryModel
@@ -18,7 +22,6 @@ class ServiceHistoryModel
     // CONSULTAS DE CONTEXTO (TURNO Y SERVICIO)
     // ============================================================
 
-    // Trae la información técnica del turno para asociarla automáticamente a la ficha
     public function getAppointmentContext(int $ownerId, int $appointmentId): ?array
     {
         $stmt = $this->conn->prepare("
@@ -47,7 +50,6 @@ class ServiceHistoryModel
         return $stmt->get_result()->fetch_assoc() ?: null;
     }
 
-    // Obtiene el nombre del servicio para guardar la captura histórica (snapshot)
     public function getServiceName(int $ownerId, int $serviceId): ?string
     {
         $stmt = $this->conn->prepare("SELECT name FROM services WHERE id = ? AND owner_id = ? LIMIT 1");
@@ -63,8 +65,6 @@ class ServiceHistoryModel
     // GUARDAR FICHA DE SERVICIO (TRANSACCIÓN)
     // ============================================================
 
-    // Registra o actualiza la ficha técnica y procesa el descuento de stock de insumos.
-    // Garantiza atomicidad: si falla el stock de un producto, se revierte toda la ficha.
     public function save(int $ownerId, array $data, array $consumptions = []): int
     {
         $this->conn->begin_transaction();
@@ -72,7 +72,6 @@ class ServiceHistoryModel
         try {
             $details = $data['technical_details'];
 
-            // Mantiene las categorías vacías como objetos de JSON {} en lugar de arrays []
             foreach ($details as $key => $category) {
                 if ($category === []) {
                     $details[$key] = new stdClass();
@@ -84,14 +83,12 @@ class ServiceHistoryModel
                 JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
             );
 
-            // Si viene de un turno, actualiza el registro base preexistente; si es suelto, inserta uno nuevo
             if ($data['appointment_id'] !== null) {
                 $historyId = $this->saveForAppointment($ownerId, $data, $json);
             } else {
                 $historyId = $this->insert($ownerId, $data, $json);
             }
 
-            // Descuenta stock y registra consumos de insumos si existen
             if ($consumptions) {
                 $this->applyConsumptions($ownerId, $historyId, $consumptions);
             }
@@ -105,10 +102,8 @@ class ServiceHistoryModel
         }
     }
 
-    // Completa el registro base de un turno previamente creado
     private function saveForAppointment(int $ownerId, array $data, string $json): int
     {
-        // Se utiliza FOR UPDATE para bloquear el registro y evitar guardar dos fichas concurrentes
         $stmt = $this->conn->prepare("
             SELECT id, technical_details
             FROM service_history
@@ -121,12 +116,10 @@ class ServiceHistoryModel
 
         $row = $stmt->get_result()->fetch_assoc();
 
-        // En caso de que el turno no posea registro base en service_history
         if (!$row) {
             return $this->insert($ownerId, $data, $json);
         }
 
-        // Si ya tenía detalles guardados, se rechaza para no descontar stock doblemente
         if ($row['technical_details'] !== null) {
             throw new ServiceHistoryException('La ficha de este turno ya fue guardada.', 409);
         }
@@ -140,7 +133,6 @@ class ServiceHistoryModel
         return $id;
     }
 
-    // Inserta una ficha de servicio sin turno previo (cliente ocasional o directo)
     private function insert(int $ownerId, array $data, string $json): int
     {
         $stmt = $this->conn->prepare("
@@ -169,10 +161,8 @@ class ServiceHistoryModel
     // APLICAR CONSUMOS Y DESCUENTO DE STOCK
     // ============================================================
 
-    // Registra los productos consumidos en service_consumptions y descuenta del inventario
     private function applyConsumptions(int $ownerId, int $historyId, array $consumptions): void
     {
-        // Se ordenan los IDs de forma ascendente para evitar bloqueos mutuos (deadlocks) en la base de datos
         ksort($consumptions);
 
         $stmtProduct = $this->conn->prepare("
@@ -199,7 +189,7 @@ class ServiceHistoryModel
             $product = $stmtProduct->get_result()->fetch_assoc();
 
             if (!$product) {
-                throw new ServiceHistoryException("El producto con ID {$productId} no existe.", 400);
+                throw new ServiceHistoryException("Uno de los productos ya no existe (identificador {$productId}). Consultá con soporte.", 400);
             }
 
             if (!$product['active']) {
@@ -232,7 +222,6 @@ class ServiceHistoryModel
     // OBTENER FICHA TÉCNICA Y LECTURA
     // ============================================================
 
-    // Trae una ficha individual por su ID de historial
     public function getById(int $ownerId, int $id): ?array
     {
         $stmt = $this->conn->prepare("
@@ -261,7 +250,6 @@ class ServiceHistoryModel
         return $record;
     }
 
-    // Obtiene el "feed" cronológico para el perfil del cliente
     public function getTimelineByClient(int $ownerId, int $clientId): array
     {
         $stmt = $this->conn->prepare("
@@ -279,7 +267,6 @@ class ServiceHistoryModel
 
         $timeline = [];
         while ($row = $result->fetch_assoc()) {
-            // Decodificamos el JSON para que el frontend lo consuma como objeto nativo
             $row['technical_details'] = $row['technical_details'] ? json_decode($row['technical_details'], true) : null;
             $timeline[] = $row;
         }
@@ -287,7 +274,6 @@ class ServiceHistoryModel
         return $timeline;
     }
 
-    // Obtiene los consumos asociados a una ficha específica
     public function getConsumptions(int $ownerId, int $historyId): array
     {
         $stmt = $this->conn->prepare("

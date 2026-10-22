@@ -1,14 +1,10 @@
 // ============================================================
-// AUTOCOMPLETADO ACCESIBLE CON RESULTADOS REMOTOS
-//
-// Componente reutilizable para buscar clientes, productos, etc.
-// Maneja teclado (↑ ↓ Enter Esc), resaltado del texto buscado,
-// estados de carga / sin resultados / error y cancelación de
-// pedidos. El HTML solo necesita un <input> y un <ul> vacío.
+// AUTOCOMPLETADO
+// Buscador accesible con resultados del servidor: teclado, resaltado, estados
+// de carga, vacío y error, y cancelación de pedidos.
 // ============================================================
 
 import { isAbortError, searchClients, logError } from "./api.js";
-import { escapeHtml } from "./dom.js";
 import { setSearching } from "./feedback.js";
 
 const ACCENT_MARKS = /[\u0300-\u036f]/g;
@@ -17,19 +13,16 @@ const LOADING_DELAY_MS = 250;
 const LOADING_MESSAGE = "Buscando…";
 const ERROR_MESSAGE = "No se pudo realizar la búsqueda. Intentá de nuevo.";
 
-// Se aplica carácter por carácter: no recorta, un espacio no debe desaparecer.
 function fold(value) {
   return String(value).normalize("NFD").replace(ACCENT_MARKS, "").toLowerCase();
 }
 
-// Devuelve el texto (escapado) con la coincidencia resaltada en <mark>.
-// Ignora mayúsculas y tildes al comparar.
 function highlightMatch(text, query) {
   const source = String(text ?? "");
   const needle = fold(query.trim());
 
   if (!needle) {
-    return escapeHtml(source);
+    return [source];
   }
 
   const chars = Array.from(source);
@@ -45,7 +38,7 @@ function highlightMatch(text, query) {
   const matchStart = folded.indexOf(needle);
 
   if (matchStart === -1) {
-    return escapeHtml(source);
+    return [source];
   }
 
   const matchEnd = matchStart + needle.length;
@@ -57,23 +50,14 @@ function highlightMatch(text, query) {
   if (from === -1) from = 0;
   if (to === -1) to = chars.length;
 
-  return (
-    escapeHtml(chars.slice(0, from).join("")) +
-    `<mark>${escapeHtml(chars.slice(from, to).join(""))}</mark>` +
-    escapeHtml(chars.slice(to).join(""))
-  );
+  const mark = document.createElement("mark");
+  mark.textContent = chars.slice(from, to).join("");
+
+  return [chars.slice(0, from).join(""), mark, chars.slice(to).join("")];
 }
 
 let instanceCounter = 0;
 
-// Crea un autocompletado sobre un <input> y una lista <ul>.
-//
-//  search(query, signal)  -> Promise<array>  busca resultados
-//  getTitle(item)         -> string          texto principal
-//  getSubtitle(item)      -> string          texto secundario (opcional)
-//  onSelect(item)         -> void            se llama al elegir un resultado
-//  customOption           -> { label(query), onSelect(query) }  opción extra,
-//                            por ejemplo "Usar «texto» como alias" (opcional)
 export function createAutocomplete(config) {
   const {
     input,
@@ -144,7 +128,7 @@ export function createAutocomplete(config) {
     list.appendChild(row);
   }
 
-  function addOption({ titleHtml, subtitle, isAction = false, choose }) {
+  function addOption({ titleParts, subtitle, isAction = false, choose }) {
     const element = document.createElement("li");
 
     element.id = `${uid}-option-${optionNodes.length}`;
@@ -154,7 +138,7 @@ export function createAutocomplete(config) {
 
     const title = document.createElement("span");
     title.className = "autocomplete-item__title";
-    title.innerHTML = titleHtml;
+    title.append(...titleParts);
     element.appendChild(title);
 
     if (subtitle) {
@@ -169,7 +153,7 @@ export function createAutocomplete(config) {
   }
 
   function render(query, state, items = []) {
-    list.innerHTML = "";
+    list.replaceChildren();
     optionNodes = [];
     activeIndex = -1;
     input.removeAttribute("aria-activedescendant");
@@ -185,7 +169,7 @@ export function createAutocomplete(config) {
     if (state === "results") {
       items.forEach((item) => {
         addOption({
-          titleHtml: highlightMatch(getTitle(item), query),
+          titleParts: highlightMatch(getTitle(item), query),
           subtitle: getSubtitle(item),
           choose: () => select(item),
         });
@@ -194,7 +178,7 @@ export function createAutocomplete(config) {
 
     if (customOption && state !== "loading") {
       addOption({
-        titleHtml: escapeHtml(customOption.label(query)),
+        titleParts: [customOption.label(query)],
         subtitle: "",
         isAction: true,
         choose: () => selectCustom(query),
@@ -215,7 +199,7 @@ export function createAutocomplete(config) {
   }
 
   function close() {
-    list.innerHTML = "";
+    list.replaceChildren();
     optionNodes = [];
     activeIndex = -1;
     input.setAttribute("aria-expanded", "false");
@@ -415,7 +399,6 @@ export function createAutocomplete(config) {
   };
 }
 
-// Buscador de clientes por alias, con la opción de usar lo escrito como alias.
 export function createClientAutocomplete({ input, list, onSelect, onAlias }) {
   return createAutocomplete({
     input,

@@ -1,4 +1,8 @@
-// Servicio de llamadas API (Modelo)
+// ============================================================
+// API
+// Toda la comunicación con el servidor: pedidos con tiempo máximo, token CSRF,
+// errores ApiError y una función por cada acción del backend.
+// ============================================================
 
 import { BASE_URL } from "./config.js";
 
@@ -6,17 +10,8 @@ import { BASE_URL } from "./config.js";
 // ERRORES
 // ============================================================
 
-// Tiempo máximo de espera de una petición antes de darla por perdida.
 const DEFAULT_TIMEOUT_MS = 15000;
 
-// Error de la capa de red con un mensaje apto para mostrar al usuario.
-//  kind:
-//   - "network"          no hubo conexión con el servidor
-//   - "timeout"          el servidor tardó demasiado
-//   - "session"          la sesión venció o no existe
-//   - "invalid-response" el servidor respondió algo inesperado
-//   - "server"           error interno del servidor (HTTP 5xx)
-//   - "request"          el servidor rechazó la solicitud (HTTP 4xx o success:false)
 export class ApiError extends Error {
   constructor(message, { kind = "server", status = 0, cause = null } = {}) {
     super(message);
@@ -30,13 +25,10 @@ export class ApiError extends Error {
   }
 }
 
-// Indica si el error proviene de una cancelación pedida con AbortController.
 export function isAbortError(error) {
   return error?.name === "AbortError";
 }
 
-// Devuelve un mensaje seguro para mostrar. Los errores que no provienen de
-// la capa de red (fallos de programación) nunca exponen su texto interno.
 export function getErrorMessage(
   error,
   fallback = "Ocurrió un error inesperado. Intentá de nuevo.",
@@ -44,7 +36,6 @@ export function getErrorMessage(
   return error instanceof ApiError && error.message ? error.message : fallback;
 }
 
-// Registra una línea corta en la consola; omite los errores que ya ve el usuario.
 const EXPECTED_ERRORS = ["request", "network", "timeout", "session"];
 
 export function logError(context, error) {
@@ -78,7 +69,6 @@ function messageForStatus(status) {
 // SESIÓN
 // ============================================================
 
-// Redirige a la pantalla de login cuando la sesión ya no es válida.
 function redirectToLogin() {
   window.location.replace(new URL("login.php?expired=1", window.location.href));
 }
@@ -87,9 +77,6 @@ function redirectToLogin() {
 // PETICIONES: FUNCIÓN CENTRAL
 // ============================================================
 
-// Ejecuta fetch con tiempo máximo y cancelación opcional.
-// Una cancelación pedida por quien llama se propaga como AbortError;
-// el resto de los fallos se convierten en ApiError.
 async function request(
   url,
   {
@@ -150,7 +137,6 @@ async function request(
   }
 }
 
-// Valida la respuesta del servidor y convierte el JSON recibido.
 async function handleJsonResponse(response, { redirectOn401 = true } = {}) {
   const contentType = response.headers.get("content-type");
   const isJson = Boolean(
@@ -188,8 +174,6 @@ async function handleJsonResponse(response, { redirectOn401 = true } = {}) {
   }
 
   if (!isJson) {
-    console.error("Se esperaba JSON y el servidor respondió otra cosa.");
-
     throw new ApiError(
       "El servidor devolvió una respuesta inesperada. Intentá de nuevo en unos minutos.",
       { kind: "invalid-response", status: response.status },
@@ -216,7 +200,6 @@ function resetCsrfToken() {
   csrfTokenPromise = null;
 }
 
-// Obtiene el token CSRF de la sesión activa.
 async function getCsrfToken() {
   if (!csrfTokenPromise) {
     csrfTokenPromise = request(`${BASE_URL}/?action=session`, {
@@ -245,7 +228,6 @@ async function getCsrfToken() {
 // PETICIONES GET Y POST
 // ============================================================
 
-// Arma la URL de una acción con sus parámetros.
 function endpoint(action, params = {}) {
   const query = new URLSearchParams({ action });
 
@@ -256,15 +238,11 @@ function endpoint(action, params = {}) {
   return `${BASE_URL}/?${query.toString()}`;
 }
 
-// Consulta una acción de solo lectura y devuelve el JSON.
 async function getJson(action, params = {}, signal = null) {
   const response = await request(endpoint(action, params), { signal });
   return handleJsonResponse(response);
 }
 
-// Envía una petición POST en JSON incluyendo el token CSRF.
-// Si el servidor rechaza el token (por ejemplo, tras renovarse la
-// sesión), lo vuelve a pedir y reintenta una única vez.
 async function postJson(action, data = {}, signal = null) {
   const send = async () =>
     request(endpoint(action), {
@@ -298,8 +276,6 @@ async function postJson(action, data = {}, signal = null) {
 
 // ============================================================
 // ACCESO (LOGIN, REGISTRO, SESIÓN Y LOGOUT)
-// Las acciones públicas no redirigen en 401: un 401 en el login es
-// "usuario o contraseña incorrectos", no una sesión vencida.
 // ============================================================
 
 async function publicJson(action, data = null, headers = {}) {
@@ -387,13 +363,10 @@ function fetchListPage(
 // TURNOS
 // ============================================================
 
-// Obtiene los turnos de una fecha determinada.
-// Permite filtrar por búsqueda y estado.
 export function fetchAppointments(date, search = "", status = "todos") {
   return getJson("list", { date, search, status });
 }
 
-// Envía un nuevo turno al servidor en formato JSON.
 export function createAppointment(data) {
   return postJson("create", data);
 }
@@ -402,7 +375,6 @@ export function updateAppointment(data) {
   return postJson("update", data);
 }
 
-// Envía al servidor el ID del turno y su nuevo estado.
 export function updateAppointmentStatus(id, targetStatus) {
   return postJson("update_status", {
     id: Number(id),
@@ -410,12 +382,10 @@ export function updateAppointmentStatus(id, targetStatus) {
   });
 }
 
-// Obtiene el historial de estados de un turno.
 export function fetchTimelineHistory(id) {
   return getJson("history", { id });
 }
 
-// Elimina un turno por su ID.
 export function removeAppointment(id) {
   return postJson("delete", { id: Number(id) });
 }
@@ -424,7 +394,6 @@ export function removeAppointment(id) {
 // SERVICIOS
 // ============================================================
 
-// Busca servicios activos cuyo nombre empieza con el texto.
 export function searchServices(query, signal = null) {
   return getJson("services", { q: query }, signal);
 }
@@ -433,28 +402,22 @@ export function fetchAllServices(params) {
   return fetchListPage("services_all", params);
 }
 
-// Crea un nuevo servicio.
 export function createService(data) {
   return postJson("service_create", data);
 }
 
-// Actualiza un servicio existente.
 export function updateService(id, data) {
   return postJson("service_update", { id: Number(id), ...data });
 }
 
-// Activa un servicio.
 export function activateService(id) {
   return postJson("service_activate", { id: Number(id) });
 }
 
-// Desactiva un servicio.
 export function deactivateService(id) {
   return postJson("service_deactivate", { id: Number(id) });
 }
 
-// Elimina un servicio.
-// El backend impide eliminar servicios que tengan turnos asociados.
 export function deleteService(id) {
   return postJson("service_delete", { id: Number(id) });
 }
@@ -467,38 +430,30 @@ export function fetchAllClients(params) {
   return fetchListPage("clients_all", params);
 }
 
-// Obtiene la línea de tiempo técnica de un cliente.
 export function fetchClientTimeline(clientId) {
   return getJson("client_timeline", { client_id: clientId });
 }
 
-// Busca clientes por alias con soporte para cancelaciones (AbortSignal).
 export function searchClients(query, signal = null) {
   return getJson("client_search", { q: query }, signal);
 }
 
-// Crea un nuevo cliente.
 export function createClient(data) {
   return postJson("client_create", data);
 }
 
-// Actualiza un cliente existente.
 export function updateClient(id, data) {
   return postJson("client_update", { id: Number(id), ...data });
 }
 
-// Activa un cliente.
 export function activateClient(id) {
   return postJson("client_activate", { id: Number(id) });
 }
 
-// Desactiva un cliente.
 export function deactivateClient(id) {
   return postJson("client_deactivate", { id: Number(id) });
 }
 
-// Elimina un cliente.
-// El backend impide eliminar clientes que tengan turnos asociados.
 export function deleteClient(id) {
   return postJson("client_delete", { id: Number(id) });
 }
@@ -511,34 +466,26 @@ export function fetchAllProducts(params) {
   return fetchListPage("products_all", params);
 }
 
-// Busca productos por nombre con soporte para cancelaciones (AbortSignal).
 export function searchProducts(query, signal = null) {
   return getJson("product_search", { q: query }, signal);
 }
 
-// Crea un nuevo producto.
 export function createProduct(data) {
   return postJson("product_create", data);
 }
 
-// Actualiza un producto existente.
 export function updateProduct(id, data) {
   return postJson("product_update", { id: Number(id), ...data });
 }
 
-// Activa un producto.
 export function activateProduct(id) {
   return postJson("product_activate", { id: Number(id) });
 }
 
-// Desactiva un producto.
 export function deactivateProduct(id) {
   return postJson("product_deactivate", { id: Number(id) });
 }
 
-// Elimina un producto.
-// El backend impide eliminar productos que ya fueron usados
-// en servicios (consumos).
 export function deleteProduct(id) {
   return postJson("product_delete", { id: Number(id) });
 }
@@ -547,9 +494,6 @@ export function deleteProduct(id) {
 // FICHAS DE SERVICIO (HISTORIAL TÉCNICO)
 // ============================================================
 
-// Guarda una nueva ficha de servicio (color, tratamiento, corte,
-// general/productos) para un cliente registrado o uno sin registrar
-// (client_name suelto).
 export function saveServiceHistory(data) {
   return postJson("service_history_save", data);
 }

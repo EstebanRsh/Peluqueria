@@ -1,3 +1,9 @@
+// ============================================================
+// AUTENTICACIÓN
+// Ingreso, registro y cierre de sesión. Limpia los datos del navegador al
+// abrir el login y al cerrar la sesión.
+// ============================================================
+
 import { BASE_URL } from "./config.js";
 import {
   ApiError,
@@ -29,6 +35,10 @@ export function initAuthPage() {
   const registerForm = document.getElementById("registerForm");
   let csrfToken = null;
   let sessionReady = false;
+
+  clearBrowserStorage().catch((error) =>
+    logError("Error al limpiar los datos del navegador:", error),
+  );
 
   const setFormsEnabled = (enabled) => {
     [loginForm, registerForm].forEach((form) => {
