@@ -1,5 +1,10 @@
 <?php
 
+// ============================================================
+// SERVICIOS
+// Catálogo de servicios del owner: listado, búsqueda, alta, edición, estado y baja.
+// ============================================================
+
 require_once __DIR__ . '/../config/database.php';
 
 class ServiceModel
@@ -19,8 +24,6 @@ class ServiceModel
     // LISTADOS
     // ============================================================
 
-    // Servicios activos para el buscador de nuevos turnos.
-    // Filtra por nombre (empieza con $query) y devuelve máximo 15.
     public function getActive(int $ownerId, string $query = ''): array
     {
         $query = trim($query);
@@ -43,8 +46,6 @@ class ServiceModel
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
-    // Listado paginado (activos e inactivos) para el panel administrativo.
-    // Busca por nombre (empieza con el texto ingresado).
     public function paginate(int $ownerId, string $query, string $filter, int $page, int $perPage): array
     {
         $where = ['owner_id = ?'];
@@ -90,8 +91,6 @@ class ServiceModel
         ];
     }
 
-    // Trae un solo servicio por su ID, esté activo o no
-    // (a diferencia de getActive(), que solo trae los activos).
     public function getById(int $ownerId, int $id): ?array
     {
         $stmt = $this->conn->prepare("
@@ -112,8 +111,6 @@ class ServiceModel
     // ALTA / MODIFICACIÓN
     // ============================================================
 
-    // Crea un servicio activo. Devuelve el ID generado o false si falló.
-    // Indica si el owner ya tiene un servicio con ese nombre (sin distinguir mayúsculas).
     public function nameExists(int $ownerId, string $name, int $excludeId = 0): bool
     {
         $stmt = $this->conn->prepare("SELECT id FROM services WHERE owner_id = ? AND name = ? AND id <> ? LIMIT 1");
@@ -146,8 +143,6 @@ class ServiceModel
         return $this->conn->insert_id;
     }
 
-    // Actualiza nombre, descripción, duración y precio base.
-    // No toca "active" ni los turnos ya creados (appointments.price es independiente).
     public function update(int $ownerId, int $id, array $data): bool
     {
         $stmt = $this->conn->prepare("
@@ -177,13 +172,11 @@ class ServiceModel
     // ACTIVAR / DESACTIVAR
     // ============================================================
 
-    // Reactiva un servicio (vuelve a aparecer en el selector de turnos).
     public function activate(int $ownerId, int $id): bool
     {
         return $this->setActiveState($ownerId, $id, 1);
     }
 
-    // Baja lógica: deja de aparecer en el selector, pero el historial no se afecta.
     public function deactivate(int $ownerId, int $id): bool
     {
         return $this->setActiveState($ownerId, $id, 0);
@@ -201,7 +194,6 @@ class ServiceModel
     // ELIMINACIÓN
     // ============================================================
 
-    // Cuenta turnos y fichas técnicas que usan este servicio.
     public function countRelatedAppointments(int $ownerId, int $id): int
     {
         $stmt = $this->conn->prepare("
@@ -216,8 +208,6 @@ class ServiceModel
         return (int)($stmt->get_result()->fetch_assoc()['total'] ?? 0);
     }
 
-    // Elimina físicamente un servicio. La comprobación de relaciones la hace el
-    // controlador; la FK ON DELETE RESTRICT es la red de seguridad final.
     public function delete(int $ownerId, int $id): bool
     {
         $stmt = $this->conn->prepare("DELETE FROM services WHERE id = ? AND owner_id = ?");

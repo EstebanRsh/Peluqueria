@@ -1,40 +1,36 @@
 <?php
 
+// ============================================================
+// ACCESO Y SESIONES
+// Sesiones, permisos por acción, token CSRF y validación de origen, host y HTTPS.
+// ============================================================
+
 require_once __DIR__ . '/environment.php';
 require_once __DIR__ . '/../models/UserModel.php';
 
-/**
- * Controla el acceso, las sesiones y los permisos de la aplicación.
- */
 final class Auth
 {
     // ============================================================
     // CONFIGURACIÓN
     // ============================================================
 
-    // Tiempo máximo de inactividad de la sesión.
     public const IDLE_TIMEOUT = 1800;
 
-    // Duración máxima de la sesión.
     public const ABSOLUTE_TIMEOUT = 43200;
 
-    // Ruta de la pantalla de login.
     public const LOGIN_PATH = 'login.php';
 
-    // Acciones públicas.
     public const PUBLIC_ACTIONS = ['auth_page', 'login', 'register', 'session'];
 
-    // El registro público sólo se habilita si el perfil activo lo permite.
     public static function publicRegistrationEnabled(): bool
     {
         return self::environmentConfig()['allow_public_registration'];
     }
 
-    // Permisos por acción. Las acciones no incluidas se deniegan.
     public const PERMISSIONS = [
         '' => ['owner'],
 
-        // Autenticación (con sesión)
+        // Autenticación
         'logout'          => ['owner', 'admin'],
         'change_password' => ['owner', 'admin'],
         'account'         => ['owner', 'admin'],
@@ -87,10 +83,8 @@ final class Auth
         'service_history_detail' => ['owner'],
     ];
 
-    // Acciones que mantienen abierta la sesión.
     private const SESSION_WRITE_ACTIONS = ['login', 'register', 'logout', 'change_password'];
 
-    // Consultar estas acciones no renueva la sesión.
     private const NO_TOUCH_ACTIONS = ['session'];
 
     private const ALLOWED_METHODS = ['GET', 'HEAD', 'POST'];
@@ -115,7 +109,6 @@ final class Auth
         $host = self::validatedHost();
         self::enforceHttps($host);
 
-        // No activar HSTS en localhost.
         if (!in_array($host['name'], self::environmentConfig()['local_hosts'], true)) {
             header('Strict-Transport-Security: max-age=31536000');
         }
@@ -132,7 +125,6 @@ final class Auth
 
         $isPublic = in_array($action, self::PUBLIC_ACTIONS, true);
 
-        // Abrir la sesión solo si se recibió la cookie.
         $authenticated = false;
         if (isset($_COOKIE[self::cookieName()])) {
             self::openSession();
@@ -150,7 +142,6 @@ final class Auth
         }
 
         if ($authenticated) {
-            // El login no requiere token CSRF.
             if ($unsafe && $action !== 'login') {
                 self::checkCsrfToken();
             }
@@ -164,7 +155,6 @@ final class Auth
             }
         }
 
-        // Liberar el bloqueo de sesión cuando no hace falta escribir.
         if (
             session_status() === PHP_SESSION_ACTIVE
             && !in_array($action, self::SESSION_WRITE_ACTIONS, true)
@@ -177,7 +167,6 @@ final class Auth
     // SESIÓN PÚBLICA
     // ============================================================
 
-    // Inicia sesión y devuelve el token CSRF.
     public static function login(int $userId): string
     {
         self::openSession();
@@ -213,13 +202,11 @@ final class Auth
         return $csrf;
     }
 
-    // Cierra la sesión actual.
     public static function logout(): void
     {
         self::destroySession();
     }
 
-    // Actualiza la sesión tras cambiar la contraseña.
     public static function onPasswordChanged(): void
     {
         if (session_status() !== PHP_SESSION_ACTIVE || self::$user === null) {
@@ -236,13 +223,11 @@ final class Auth
         $_SESSION['pv'] = (string)($user['password_changed_at'] ?? '');
     }
 
-    // Devuelve el usuario autenticado o null.
     public static function currentUser(): ?array
     {
         return self::$user;
     }
 
-    // Devuelve el token CSRF o null.
     public static function csrfToken(): ?string
     {
         return self::$csrf;
@@ -280,7 +265,6 @@ final class Auth
         }
     }
 
-    // Valida la sesión y carga el usuario actual.
     private static function loadAuthenticatedUser(bool $touch): bool
     {
         $uid = $_SESSION['uid'] ?? null;
@@ -356,7 +340,6 @@ final class Auth
     // CSRF Y ORIGEN
     // ============================================================
 
-    // Valida el token enviado en X-CSRF-Token.
     private static function checkCsrfToken(): void
     {
         $sent = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
@@ -366,7 +349,6 @@ final class Auth
         }
     }
 
-    // Comprueba el origen cuando la petición lo incluye.
     private static function checkOrigin(array $host): void
     {
         $origin = $_SERVER['HTTP_ORIGIN'] ?? null;
@@ -395,7 +377,6 @@ final class Auth
     // HOST Y HTTPS
     // ============================================================
 
-    // Valida el host de la petición.
     private static function validatedHost(): array
     {
         $raw = strtolower($_SERVER['HTTP_HOST'] ?? '');
@@ -428,7 +409,6 @@ final class Auth
         return self::isHttps() ? $auth['session_name_https'] : $auth['session_name_http'];
     }
 
-    // Comprueba si la petición local puede usar HTTP.
     private static function isLocalHttpAllowed(array $host): bool
     {
         $auth = self::environmentConfig();
@@ -452,7 +432,6 @@ final class Auth
             && strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
     }
 
-    // Redirige las peticiones seguras a HTTPS y rechaza las demás.
     private static function enforceHttps(array $host): void
     {
         if (self::isHttps() || self::isLocalHttpAllowed($host)) {
@@ -496,13 +475,11 @@ final class Auth
         exit;
     }
 
-    /** Configuración de seguridad correspondiente al entorno activo. */
     private static function environmentConfig(): array
     {
         return appConfigSection('auth');
     }
 
-    // Devuelve un error JSON y termina la petición.
     private static function deny(string $message, int $status): void
     {
         while (ob_get_level() > 0) {

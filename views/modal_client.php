@@ -1,5 +1,6 @@
 <!-- =====================================================
      PANEL LATERAL — ALTA / EDICIÓN DE CLIENTE
+     Formulario de los datos del cliente.
 ====================================================== -->
 
 <div class="side-drawer-overlay" id="clientModalOverlay"></div>

@@ -1,13 +1,7 @@
 // ============================================================
-// DIÁLOGO DE CONFIRMACIÓN (REEMPLAZA A window.confirm)
-//
-// Uso:
-//   if (await confirmAction({ title: "Eliminar cliente", message: "…",
-//                             confirmLabel: "Eliminar", danger: true })) { … }
-//
-// Devuelve true si el usuario confirma y false si cancela, cierra con
-// Escape o hace clic fuera. Mantiene el foco dentro del diálogo.
-// Con cancelLabel: null muestra solo el botón de confirmar (avisos).
+// CONFIRMACIONES Y PANTALLAS DE RESULTADO
+// Diálogo de confirmación (reemplaza a window.confirm) y pantalla completa
+// de éxito, error o advertencia.
 // ============================================================
 
 const WARNING_ICON =
@@ -19,10 +13,6 @@ let counter = 0;
 
 // ============================================================
 // PANTALLA DE RESULTADO
-//
-// showResult(type, title, message, { hold }): type "success", "error" o
-// "warning". El éxito se cierra solo; el error y la advertencia, con el botón.
-// Con hold la pantalla queda pintada hasta que la página navega.
 // ============================================================
 
 const RESULT_MS = 2000;
@@ -211,7 +201,6 @@ export function confirmAction({
       resolve(result);
     };
 
-    // En captura: Escape y Tab se resuelven aquí y no llegan a otros paneles.
     function handleKeydown(event) {
       if (event.key === "Escape") {
         event.preventDefault();

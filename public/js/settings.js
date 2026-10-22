@@ -1,3 +1,9 @@
+// ============================================================
+// AJUSTES DE LA CUENTA
+// Datos de la cuenta, cambio de contraseña, descarga e importación de datos
+// y eliminación de la cuenta.
+// ============================================================
+
 import {
   ApiError,
   changePassword,

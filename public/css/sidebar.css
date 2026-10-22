@@ -1,8 +1,10 @@
 /* ==========================================================================
+   SIDEBAR
+   Menú lateral de escritorio y menú móvil con su encabezado.
+   ========================================================================== */
+
+/* ==========================================================================
    SIDEBAR: MEDIDAS COMPARTIDAS
-   Los íconos del menú, el avatar y el botón de salir comparten una misma
-   columna: el sidebar colapsado (76px) los deja centrados y al expandirse
-   no se mueven; solo aparecen los textos.
    ========================================================================== */
 
 :root {
@@ -18,7 +20,6 @@
 
 /* ==========================================================================
    SIDEBAR: CONTENEDOR Y CABECERA
-   (la textura --sidebar-texture se define en base.css)
    ========================================================================== */
 
 .premium-sidebar {
@@ -40,7 +41,6 @@
   will-change: transform;
 }
 
-/* Sin textura propia: deja ver la del sidebar para no duplicarla */
 .premium-sidebar__header {
   padding: 1.75rem 1.25rem;
   display: flex;
@@ -120,7 +120,6 @@
     border-color var(--t-base) var(--ease-out);
 }
 
-/* El botón de salir parte de los estilos nativos de <button> */
 .premium-sidebar__logout {
   width: 100%;
   border: 0;
@@ -166,7 +165,6 @@
   background: transparent;
 }
 
-/* El foco queda dentro de la fila: el sidebar recorta lo que se salga */
 .nav-item:focus-visible,
 .premium-sidebar__logout:focus-visible {
   outline-offset: -2px;
@@ -258,9 +256,6 @@
 
 /* ==========================================================================
    SIDEBAR COLAPSABLE (DESKTOP)
-   Fijo y superpuesto: al expandirse no empuja ni redimensiona el contenido.
-   Las filas se maquetan siempre con el ancho expandido y el contenedor
-   las recorta; al expandirse solo se desvanecen los textos.
    ========================================================================== */
 
 @media (min-width: 769px) {
@@ -284,7 +279,6 @@
     box-shadow: var(--shadow-sidebar-open);
   }
 
-  /* Cabecera: la marca mantiene siempre el ancho expandido, así queda centrada al abrir y no se desplaza */
   .premium-sidebar__header {
     padding: 1.75rem 0;
     justify-content: flex-start;
@@ -295,7 +289,6 @@
     flex: 0 0 calc(var(--sidebar-w-expanded) - 1px);
   }
 
-  /* Textos: ocultos con opacidad (siguen en el árbol de accesibilidad) */
   .premium-sidebar__brand,
   .nav-item__label,
   .premium-sidebar__user-info,
@@ -418,7 +411,6 @@
     min-height: 100dvh;
   }
 
-  /* Ajustado exactamente a 60px para eliminar la franja beige superior */
   .app-main-content {
     padding-top: 60px;
     height: 100dvh;
@@ -438,7 +430,6 @@
 
 /* ==========================================================================
    TABLETS Y PANTALLAS TÁCTILES ANCHAS
-   Sin hover no se puede expandir el menú: queda siempre abierto.
    ========================================================================== */
 
 @media (min-width: 769px) and (hover: none) {

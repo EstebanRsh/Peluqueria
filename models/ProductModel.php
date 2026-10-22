@@ -1,12 +1,16 @@
 <?php
 
+// ============================================================
+// PRODUCTOS
+// Productos del inventario del owner: listado, búsqueda, alta, edición, estado y baja.
+// ============================================================
+
 require_once __DIR__ . '/../config/database.php';
 
 class ProductModel
 {
     private mysqli $conn;
 
-    // Campos standard a retornar en las consultas de productos
     private const COLUMNS = "
         id, name, brand, measurement_unit, stock,
         unit_cost, active, created_at, updated_at
@@ -17,13 +21,11 @@ class ProductModel
         $this->conn = getConnection();
     }
 
-    // Escapa % y _ para que se busquen como texto literal en un LIKE.
     private function escapeLike(string $text): string
     {
         return addcslashes($text, '%_\\');
     }
 
-    // Productos activos (con tope de seguridad; para selectores usar search()).
     public function getActive(int $ownerId): array
     {
         $stmt = $this->conn->prepare("
@@ -41,8 +43,6 @@ class ProductModel
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
-    // Listado paginado para el panel de administración.
-    // Busca por nombre (empieza con el texto).
     public function paginate(int $ownerId, string $query, string $filter, int $page, int $perPage): array
     {
         $where = ['owner_id = ?'];
@@ -64,13 +64,11 @@ class ProductModel
 
         $whereSql = implode(' AND ', $where);
 
-        // Total de registros que cumplen el filtro
         $stmt = $this->conn->prepare("SELECT COUNT(*) AS total FROM products WHERE {$whereSql}");
         $stmt->bind_param($types, ...$params);
         $stmt->execute();
         $total = (int)$stmt->get_result()->fetch_assoc()['total'];
 
-        // Página solicitada
         $stmt = $this->conn->prepare("
             SELECT " . self::COLUMNS . "
             FROM products
@@ -90,7 +88,6 @@ class ProductModel
         ];
     }
 
-    // Trae un solo producto por su ID, o null si no existe.
     public function getById(int $ownerId, int $id): ?array
     {
         $stmt = $this->conn->prepare("
@@ -107,7 +104,6 @@ class ProductModel
         return $stmt->get_result()->fetch_assoc() ?: null;
     }
 
-    // Autocompletado: productos activos cuyo nombre empieza con el texto, máximo 15.
     public function search(int $ownerId, string $query): array
     {
         $query = trim($query);
@@ -133,7 +129,6 @@ class ProductModel
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
-    // Inserta un producto nuevo en la base de datos.
     public function create(
         int $ownerId,
         string $name,
@@ -152,7 +147,6 @@ class ProductModel
         return $stmt->execute();
     }
 
-    // Actualiza todos los datos de un producto existente.
     public function update(
         int $ownerId,
         int $id,
@@ -178,7 +172,6 @@ class ProductModel
         return $stmt->execute();
     }
 
-    // Activa / desactiva un producto (solo cambia la columna "active").
     public function activate(int $ownerId, int $id): bool
     {
         return $this->setActive($ownerId, $id, 1);
@@ -197,7 +190,6 @@ class ProductModel
         return $stmt->execute();
     }
 
-    // ¿Fue consumido en alguna ficha técnica? Si sí, no se puede eliminar.
     public function hasConsumptions(int $ownerId, int $id): bool
     {
         $stmt = $this->conn->prepare("
@@ -210,7 +202,6 @@ class ProductModel
         return (bool)$stmt->get_result()->fetch_assoc()['used'];
     }
 
-    // Borra el producto definitivamente. Vuelve a chequear consumos por seguridad.
     public function delete(int $ownerId, int $id): bool
     {
         if ($this->hasConsumptions($ownerId, $id)) {

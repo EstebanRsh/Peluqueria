@@ -1,7 +1,17 @@
 <?php
+
+// ============================================================
+// PUNTO DE ENTRADA
+// Responde los errores no controlados, valida el acceso y deriva cada acción a su
+// controlador. Sin acción, muestra el calendario.
+// ============================================================
+
+// ============================================================
+// ERRORES NO CONTROLADOS
+// ============================================================
+
 date_default_timezone_set('America/Argentina/Buenos_Aires');
 
-// Registra los errores no controlados y responde con JSON.
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
@@ -18,9 +28,12 @@ set_exception_handler(function (Throwable $e) {
     );
 });
 
+// ============================================================
+// ACCESO
+// ============================================================
+
 require_once __DIR__ . '/config/auth.php';
 
-// Valida la petición antes de despachar la acción.
 Auth::guard($_GET['action'] ?? '');
 
 require_once __DIR__ . '/controllers/AuthController.php';
@@ -31,12 +44,12 @@ require_once __DIR__ . '/controllers/ClientController.php';
 require_once __DIR__ . '/controllers/ProductController.php';
 require_once __DIR__ . '/controllers/ServiceHistoryController.php';
 
-// Router principal: según el "action" recibido, decide qué controlador
-// se hace cargo del pedido. Cada bloque de abajo agrupa las acciones
-// (?action=...) que le corresponden a un mismo controlador.
 $action = $_GET['action'] ?? '';
 
-// Acciones de autenticación
+// ============================================================
+// AUTENTICACIÓN Y CUENTA
+// ============================================================
+
 if (in_array($action, [
     'login',
     'register',
@@ -53,7 +66,10 @@ if (in_array($action, [
     exit;
 }
 
-// Acciones relacionadas con turnos
+// ============================================================
+// TURNOS
+// ============================================================
+
 if (in_array($action, [
     'list',
     'create',
@@ -67,7 +83,10 @@ if (in_array($action, [
     exit;
 }
 
-// Acciones relacionadas con la gestión de servicios
+// ============================================================
+// SERVICIOS
+// ============================================================
+
 if (in_array($action, [
     'services',
     'services_all',
@@ -83,7 +102,10 @@ if (in_array($action, [
     exit;
 }
 
-// Acciones relacionadas con la gestión de clientes
+// ============================================================
+// CLIENTES
+// ============================================================
+
 if (in_array($action, [
     'clients_all',
     'client_get',
@@ -99,7 +121,10 @@ if (in_array($action, [
     exit;
 }
 
-// Acciones relacionadas con la gestión de productos
+// ============================================================
+// PRODUCTOS
+// ============================================================
+
 if (in_array($action, [
     'products',
     'products_all',
@@ -116,7 +141,10 @@ if (in_array($action, [
     exit;
 }
 
-// Ficha Rápida de servicio (historial técnico y timeline)
+// ============================================================
+// FICHA TÉCNICA
+// ============================================================
+
 if (in_array($action, [
     'service_history_save',
     'client_timeline',
@@ -126,6 +154,10 @@ if (in_array($action, [
     $controller->handleRequest();
     exit;
 }
+
+// ============================================================
+// ACCIÓN DESCONOCIDA Y CALENDARIO
+// ============================================================
 
 if ($action !== '') {
     http_response_code(404);

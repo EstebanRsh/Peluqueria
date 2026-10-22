@@ -1,3 +1,8 @@
+// ============================================================
+// TÉRMINOS Y PRIVACIDAD
+// Muestra los textos legales en una ventana dentro de la página.
+// ============================================================
+
 import { fetchLegalPage, getErrorMessage, logError } from "./api.js";
 import { $ } from "./dom.js";
 

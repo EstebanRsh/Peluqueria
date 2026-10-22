@@ -1,6 +1,8 @@
-// Retira el service worker obsoleto que quedó registrado en este origen.
-// Se mantiene temporalmente para que los navegadores lo actualicen y dejen de
-// interceptar las peticiones de la aplicación.
+// ============================================================
+// SERVICE WORKER OBSOLETO
+// Se desregistra al activarse para que los navegadores dejen de usar la versión antigua.
+// ============================================================
+
 self.addEventListener("install", () => {
   self.skipWaiting();
 });

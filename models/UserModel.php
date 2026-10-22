@@ -1,10 +1,12 @@
 <?php
 
+// ============================================================
+// USUARIOS
+// Usuarios y contraseñas: validación, alta, credenciales y cambio de contraseña.
+// ============================================================
+
 require_once __DIR__ . '/../config/database.php';
 
-/**
- * Acceso a los usuarios del sistema y sus contraseñas.
- */
 class UserModel
 {
     public const ROLES = ['owner', 'admin'];
@@ -12,7 +14,6 @@ class UserModel
     public const MAX_EMAIL_LENGTH = 254;
     public const IDENTITY_TAKEN_MESSAGE = 'El usuario o el email ya están en uso. Probá con otros datos.';
 
-    // Límite compatible con bcrypt.
     public const MAX_PASSWORD_BYTES = 72;
 
     private mysqli $conn;
@@ -26,19 +27,16 @@ class UserModel
     // VALIDACIONES
     // ============================================================
 
-    // Valida el nombre de usuario.
     public static function isValidUsername(string $username): bool
     {
         return preg_match('/^[A-Za-z0-9._-]{3,50}$/', $username) === 1;
     }
 
-    // Deja el email en minúsculas y sin espacios.
     public static function normalizeEmail(string $email): string
     {
         return mb_strtolower(trim($email));
     }
 
-    // Valida un email ya normalizado.
     public static function isValidEmail(string $email): bool
     {
         return $email !== ''
@@ -46,7 +44,6 @@ class UserModel
             && filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
     }
 
-    // Devuelve null si la contraseña es válida.
     public static function validatePassword(string $password): ?string
     {
         if (str_contains($password, "\0")) {
@@ -68,7 +65,6 @@ class UserModel
     // LECTURA
     // ============================================================
 
-    // Devuelve un usuario por ID, sin incluir el hash.
     public function findById(int $id): ?array
     {
         $stmt = $this->conn->prepare("
@@ -93,7 +89,6 @@ class UserModel
         return $row;
     }
 
-    // Comprueba si el usuario o el email ya están registrados.
     public function identityTaken(string $username, string $email): bool
     {
         $stmt = $this->conn->prepare("SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1");
@@ -107,7 +102,6 @@ class UserModel
     // AUTENTICACIÓN
     // ============================================================
 
-    // Valida las credenciales (usuario o email) y devuelve los datos públicos del usuario.
     public function authenticate(string $identifier, string $password): ?array
     {
         $column = str_contains($identifier, '@') ? 'email' : 'username';
@@ -146,7 +140,6 @@ class UserModel
         ];
     }
 
-    // Comprueba la contraseña de un usuario.
     public function verifyUserPassword(int $id, string $password): bool
     {
         $stmt = $this->conn->prepare("SELECT password_hash FROM users WHERE id = ? LIMIT 1");
@@ -162,7 +155,6 @@ class UserModel
     // ESCRITURA
     // ============================================================
 
-    // Crea un usuario y devuelve su ID.
     public function create(string $username, string $email, string $password, bool $acceptedTerms, string $role = 'owner'): int
     {
         if (!self::isValidUsername($username)) {
@@ -202,7 +194,6 @@ class UserModel
         return (int)$this->conn->insert_id;
     }
 
-    // Actualiza la contraseña de un usuario.
     public function changePassword(int $id, string $newPassword): bool
     {
         $passwordError = self::validatePassword($newPassword);
@@ -228,7 +219,6 @@ class UserModel
     // INTERNOS
     // ============================================================
 
-    // Usa Argon2id o bcrypt según el soporte de PHP.
     private static function hashAlgo(): string
     {
         return defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_BCRYPT;
@@ -248,7 +238,6 @@ class UserModel
         return password_hash($password, self::hashAlgo(), self::hashOptions());
     }
 
-    // Verifica la contraseña; si no hay usuario, calcula un hash de relleno.
     private function verifyPassword(string $password, ?string $hash): bool
     {
         if ($hash === null) {
@@ -259,7 +248,6 @@ class UserModel
         return password_verify($password, $hash);
     }
 
-    // Actualiza el hash sin cambiar la fecha de cambio de contraseña.
     private function updateHash(int $id, string $hash): void
     {
         $stmt = $this->conn->prepare("UPDATE users SET password_hash = ? WHERE id = ?");

@@ -1,5 +1,10 @@
 <?php
 
+// ============================================================
+// SERVICIOS (API)
+// Listado, búsqueda, alta, edición, activación y baja de servicios.
+// ============================================================
+
 require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../models/ServiceModel.php';
 
@@ -7,8 +12,8 @@ class ServiceController extends BaseController
 {
     private ServiceModel $model;
 
-    private const MAX_DURATION = 1440;      // minutos (24 hs)
-    private const MAX_PRICE = 99999999.99;  // límite de DECIMAL(10,2)
+    private const MAX_DURATION = 1440;
+    private const MAX_PRICE = 99999999.99;
 
     private const POST_ACTIONS = [
         'service_create',
@@ -27,29 +32,22 @@ class ServiceController extends BaseController
     // MANEJO DE PETICIONES
     // ============================================================
 
-    // Punto de entrada: index.php llama a este método para cualquier
-    // ?action= de servicios. Acá se decide qué hacer según la acción.
     public function handleRequest(): void
     {
         ob_start();
 
         $action = $_GET['action'] ?? '';
 
-        // Las acciones que modifican datos (crear, editar, borrar, etc.)
-        // solo se pueden pedir por POST, nunca por GET.
         if (in_array($action, self::POST_ACTIONS, true)) {
             $this->requirePost();
         }
 
         switch ($action) {
 
-            // Servicios activos que empiezan con ?q=texto (buscador de nuevos turnos)
             case 'services':
                 $this->json($this->model->getActive($this->ownerId(), $this->str($_GET['q'] ?? '')));
                 break;
 
-            // Listado paginado (activos e inactivos) para administración:
-            // ?page=1&per_page=25&filter=todos|activos|inactivos&q=texto
             case 'services_all':
                 [$page, $perPage] = $this->pagination();
                 $this->json($this->model->paginate(
@@ -61,7 +59,6 @@ class ServiceController extends BaseController
                 ));
                 break;
 
-            // Trae un servicio puntual (para abrir el formulario de edición).
             case 'service_get':
                 $id = $this->validId($_GET['id'] ?? 0, 'servicio');
                 $service = $this->model->getById($this->ownerId(), $id);
@@ -73,7 +70,6 @@ class ServiceController extends BaseController
                 $this->json($service);
                 break;
 
-            // Crea un servicio nuevo (siempre queda activo).
             case 'service_create':
                 $data = $this->buildServiceData($this->readInput());
                 $error = $this->validateServiceData($data);
@@ -95,7 +91,6 @@ class ServiceController extends BaseController
                 ]);
                 break;
 
-            // Edita un servicio existente (nombre, descripción, duración, precio).
             case 'service_update':
                 $input = $this->readInput();
                 $id = $this->validId($input['id'] ?? 0, 'servicio');
@@ -120,7 +115,6 @@ class ServiceController extends BaseController
                     $this->error('Ya tenés un servicio llamado «' . $data['name'] . '». Elegí otro nombre.', 409);
                 }
 
-                // El cambio de precio base NO altera los turnos ya creados.
                 $success = $this->model->update($this->ownerId(), $id, $data);
 
                 $this->json([
@@ -129,7 +123,6 @@ class ServiceController extends BaseController
                 ]);
                 break;
 
-            // Activar / desactivar comparten la misma lógica (ver más abajo).
             case 'service_activate':
                 $this->handleToggleActive(true);
                 break;
@@ -138,8 +131,6 @@ class ServiceController extends BaseController
                 $this->handleToggleActive(false);
                 break;
 
-            // Borra un servicio definitivamente. Solo si no tiene turnos ni
-            // fichas técnicas asociadas (si tiene, se rechaza el borrado).
             case 'service_delete':
                 $input = $this->readInput();
                 $id = $this->validId($input['id'] ?? 0, 'servicio');
@@ -148,7 +139,6 @@ class ServiceController extends BaseController
                     $this->error('El servicio no existe.', 404);
                 }
 
-                // Eliminación segura: no se borra un servicio con turnos o fichas asociadas.
                 if ($this->model->countRelatedAppointments($this->ownerId(), $id) > 0) {
                     $this->error(
                         'Este servicio tiene turnos o fichas asociadas y no puede eliminarse. ' .
@@ -166,7 +156,6 @@ class ServiceController extends BaseController
                 break;
         }
 
-        // Si el switch no encontró ningún case (acción desconocida), llega acá.
         $this->error('Acción no válida.', 404);
     }
 
@@ -174,8 +163,6 @@ class ServiceController extends BaseController
     // ACTIVAR / DESACTIVAR (LÓGICA COMPARTIDA)
     // ============================================================
 
-    // Lógica compartida por service_activate y service_deactivate:
-    // solo cambia la columna "active" del servicio.
     private function handleToggleActive(bool $active): void
     {
         $input = $this->readInput();
@@ -198,8 +185,6 @@ class ServiceController extends BaseController
     // CONSTRUIR DATOS DEL SERVICIO
     // ============================================================
 
-    // Ordena y castea lo que llegó del body (JSON) a los tipos que espera el modelo.
-    // No valida nada acá; eso lo hace validateServiceData().
     private function buildServiceData(array $input): array
     {
         return [
@@ -214,8 +199,6 @@ class ServiceController extends BaseController
     // VALIDAR DATOS DEL SERVICIO
     // ============================================================
 
-    // Revisa que los datos del servicio sean válidos antes de guardar.
-    // Devuelve "true" si está todo OK, o un mensaje de error (string) si no.
     private function validateServiceData(array $data)
     {
         if ($data['name'] === '') {
@@ -226,8 +209,6 @@ class ServiceController extends BaseController
             return 'El nombre del servicio no puede superar los 100 caracteres.';
         }
 
-        // "duration" viene de filter_var(..., FILTER_VALIDATE_INT): si no era un
-        // entero válido, acá vale "false".
         if (
             $data['duration'] === false ||
             $data['duration'] <= 0 ||
@@ -236,8 +217,6 @@ class ServiceController extends BaseController
             return 'La duración debe ser un número entero entre 1 y ' . self::MAX_DURATION . ' minutos.';
         }
 
-        // "price" viene en -1 desde buildServiceData() si no era numérico,
-        // así que ese caso también cae acá (queda fuera del rango permitido).
         if ($data['price'] < 0 || $data['price'] > self::MAX_PRICE) {
             return 'El precio debe estar entre 0 y 99.999.999,99.';
         }

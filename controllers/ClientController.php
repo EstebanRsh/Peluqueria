@@ -1,5 +1,10 @@
 <?php
 
+// ============================================================
+// CLIENTES (API)
+// Listado, búsqueda, alta, edición, activación y baja de clientes.
+// ============================================================
+
 require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../models/ClientModel.php';
 
@@ -24,23 +29,18 @@ class ClientController extends BaseController
     // MANEJO DE PETICIONES
     // ============================================================
 
-    // Punto de entrada: index.php llama a este método para cualquier
-    // ?action= de clientes. Acá se decide qué hacer según la acción.
     public function handleRequest(): void
     {
         ob_start();
 
         $action = $_GET['action'] ?? '';
 
-        // Las acciones que modifican datos (crear, editar, borrar, etc.)
-        // solo se pueden pedir por POST, nunca por GET.
         if (in_array($action, self::POST_ACTIONS, true)) {
             $this->requirePost();
         }
 
         switch ($action) {
 
-            // Listado paginado: ?page=1&per_page=25&filter=todos|activos|inactivos&q=texto
             case 'clients_all':
                 [$page, $perPage] = $this->pagination();
                 $this->json($this->model->paginate(
@@ -52,7 +52,6 @@ class ClientController extends BaseController
                 ));
                 break;
 
-            // Trae un cliente puntual (para abrir el formulario de edición).
             case 'client_get':
                 $id = $this->validId($_GET['id'] ?? 0, 'cliente');
                 $client = $this->model->getById($this->ownerId(), $id);
@@ -64,13 +63,11 @@ class ClientController extends BaseController
                 $this->json($client);
                 break;
 
-            // Autocompletado por alias (máximo 15 resultados)
             case 'client_search':
                 $q = $this->str($_GET['q'] ?? '');
                 $this->json($q === '' ? [] : $this->model->search($this->ownerId(), $q));
                 break;
 
-            // Crea un cliente nuevo.
             case 'client_create':
                 $data = $this->buildClientData($this->readInput());
                 $error = $this->validateClientData($data);
@@ -87,8 +84,6 @@ class ClientController extends BaseController
                 ]);
                 break;
 
-            // Edita un cliente existente. Primero se busca el registro actual
-            // para poder conservar los campos que no vengan en el body.
             case 'client_update':
                 $input = $this->readInput();
                 $id = $this->validId($input['id'] ?? 0, 'cliente');
@@ -113,7 +108,6 @@ class ClientController extends BaseController
                 ]);
                 break;
 
-            // Activar / desactivar comparten la misma lógica (ver más abajo).
             case 'client_activate':
                 $this->handleToggleActive(true);
                 break;
@@ -122,8 +116,6 @@ class ClientController extends BaseController
                 $this->handleToggleActive(false);
                 break;
 
-            // Borra un cliente definitivamente. Solo si no tiene turnos ni
-            // fichas técnicas asociadas (si tiene, se rechaza el borrado).
             case 'client_delete':
                 $input = $this->readInput();
                 $id = $this->validId($input['id'] ?? 0, 'cliente');
@@ -141,7 +133,6 @@ class ClientController extends BaseController
                 break;
         }
 
-        // Si el switch no encontró ningún case (acción desconocida), llega acá.
         $this->error('Acción no válida.', 404);
     }
 
@@ -149,8 +140,6 @@ class ClientController extends BaseController
     // ACTIVAR / DESACTIVAR (LÓGICA COMPARTIDA)
     // ============================================================
 
-    // Lógica compartida por client_activate y client_deactivate:
-    // solo cambia la columna "active" del cliente.
     private function handleToggleActive(bool $active): void
     {
         $input = $this->readInput();
@@ -173,14 +162,10 @@ class ClientController extends BaseController
     // CONSTRUIR DATOS DEL CLIENTE (NORMALIZACIÓN INCLUIDA)
     // ============================================================
 
-    // Si es una edición ($existing), los campos de diagnóstico y el código
-    // que no vengan en el JSON conservan su valor actual (no se borran).
     private function buildClientData(array $input, ?array $existing = null): array
     {
         $keep = fn(string $key) => $existing !== null && !array_key_exists($key, $input);
 
-        // Normaliza el código interno (ej: "1" -> "CLI-0001").
-        // Si no vino código y es una edición, se conserva el que ya tenía.
         $code = $this->formatInternalCode($this->str($input['internal_code'] ?? null));
         if ($code === null && $existing !== null) {
             $code = $existing['internal_code'];
@@ -206,8 +191,6 @@ class ClientController extends BaseController
     // VALIDAR DATOS DEL CLIENTE
     // ============================================================
 
-    // Revisa que los datos del cliente sean válidos antes de guardar.
-    // Devuelve "true" si está todo OK, o un mensaje de error (string) si no.
     private function validateClientData(array $data, int $currentId = 0)
     {
         if ($data['alias'] === '') {
@@ -253,12 +236,10 @@ class ClientController extends BaseController
             return null;
         }
 
-        // Números puros ("26" -> "CLI-0026")
         if (ctype_digit($code)) {
             return sprintf('CLI-%04d', (int)$code);
         }
 
-        // Formatos incompletos ("CLI-1" -> "CLI-0001")
         if (preg_match('/^CLI-(\d+)$/i', $code, $matches)) {
             return sprintf('CLI-%04d', (int)$matches[1]);
         }

@@ -1,6 +1,7 @@
 <?php require_once __DIR__ . '/../models/AccountModel.php'; ?>
 <!-- =====================================================
      PANEL LATERAL — ELIMINAR CUENTA
+     Pide la contraseña y la frase de confirmación antes de borrar la cuenta.
 ====================================================== -->
 
 <div class="side-drawer-overlay side-drawer-overlay--nested" id="deleteModalOverlay"></div>

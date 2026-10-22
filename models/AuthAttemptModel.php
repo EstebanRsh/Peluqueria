@@ -1,11 +1,13 @@
 <?php
 
+// ============================================================
+// INTENTOS DE ACCESO
+// Limita la fuerza bruta y los registros masivos. Guarda solo el hash de la clave,
+// nunca la IP, el usuario ni el email.
+// ============================================================
+
 require_once __DIR__ . '/../config/database.php';
 
-/**
- * Registro de intentos de acceso para limitar la fuerza bruta y los registros masivos.
- * Guarda solo el hash de la clave, nunca la IP, el usuario ni el email.
- */
 class AuthAttemptModel
 {
     private mysqli $conn;

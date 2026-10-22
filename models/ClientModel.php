@@ -1,5 +1,10 @@
 <?php
 
+// ============================================================
+// CLIENTES
+// Clientes del owner: listado, búsqueda, alta, edición, estado y baja.
+// ============================================================
+
 require_once __DIR__ . '/../config/database.php';
 
 class ClientModel
@@ -16,14 +21,11 @@ class ClientModel
         $this->conn = getConnection();
     }
 
-    // Escapa % y _ para que se busquen como texto literal en un LIKE.
     private function escapeLike(string $text): string
     {
         return addcslashes($text, '%_\\');
     }
 
-    // Listado paginado para el panel de administración.
-    // Busca solo por alias (empieza con el texto ingresado).
     public function paginate(int $ownerId, string $query, string $filter, int $page, int $perPage): array
     {
         $where = ['owner_id = ?'];
@@ -69,7 +71,6 @@ class ClientModel
         ];
     }
 
-    // Trae un solo cliente por su ID, o null si no existe.
     public function getById(int $ownerId, int $id): ?array
     {
         $stmt = $this->conn->prepare("
@@ -86,7 +87,6 @@ class ClientModel
         return $stmt->get_result()->fetch_assoc() ?: null;
     }
 
-    // Autocompletado: solo por alias, clientes activos, máximo 15.
     public function search(int $ownerId, string $query): array
     {
         $query = trim($query);
@@ -112,8 +112,6 @@ class ClientModel
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
-    // Inserta un cliente nuevo.
-    // $d: alias, internal_code, natural_base_tone, hair_type, allergies, notes
     public function create(int $ownerId, array $d): bool
     {
         $this->conn->begin_transaction();
@@ -139,7 +137,6 @@ class ClientModel
 
             $newId = $this->conn->insert_id;
 
-            // Sin código interno: se genera uno a partir del ID (CLI-0001)
             if ($d['internal_code'] === null) {
                 $finalCode = sprintf('CLI-%04d', $newId);
 
@@ -157,7 +154,6 @@ class ClientModel
         }
     }
 
-    // Actualiza todos los campos de un cliente existente.
     public function update(int $ownerId, int $id, array $d): bool
     {
         $stmt = $this->conn->prepare("
@@ -187,7 +183,6 @@ class ClientModel
         return $stmt->execute();
     }
 
-    // Activa / desactiva un cliente (solo cambia la columna "active").
     public function activate(int $ownerId, int $id): bool
     {
         return $this->setActive($ownerId, $id, 1);
@@ -206,7 +201,6 @@ class ClientModel
         return $stmt->execute();
     }
 
-    // ¿Tiene turnos o fichas técnicas asociadas? Si sí, no se puede eliminar.
     public function hasRelatedRecords(int $ownerId, int $id): bool
     {
         $stmt = $this->conn->prepare("
@@ -222,9 +216,6 @@ class ClientModel
         return (bool)$stmt->get_result()->fetch_assoc()['used'];
     }
 
-    // Borra el cliente definitivamente. Vuelve a chequear que no tenga
-    // turnos ni fichas asociadas, como respaldo extra (el controller ya
-    // lo valida antes de llamar a este método).
     public function delete(int $ownerId, int $id): bool
     {
         if ($this->hasRelatedRecords($ownerId, $id)) {
@@ -237,8 +228,6 @@ class ClientModel
         return $stmt->execute();
     }
 
-    // ¿Ya existe otro cliente con este código interno? (excluyendo $excludeId,
-    // útil al editar para no chocar con el propio registro).
     public function existsInternalCode(int $ownerId, string $code, int $excludeId = 0): bool
     {
         $stmt = $this->conn->prepare("

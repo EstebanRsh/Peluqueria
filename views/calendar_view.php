@@ -1,16 +1,10 @@
 <?php
 
-/**
- * @var int   $month
- * @var int   $year
- * @var int   $prevMonth
- * @var int   $prevYear
- * @var int   $nextMonth
- * @var int   $nextYear
- * @var int   $firstDay
- * @var int   $daysInMonth
- * @var array $events
- */
+// ============================================================
+// VISTA DEL CALENDARIO
+// Grilla del mes (6 semanas), resumen, panel del día y ventanita de estado.
+// ============================================================
+
 $monthNames = [
     '',
     'Enero',
@@ -29,19 +23,15 @@ $monthNames = [
 $dayNames   = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
 $today      = date('Y-m-d');
 
-// Valores numéricos garantizados antes de imprimirlos o armar fechas
 $month     = (int)$month;
 $year      = (int)$year;
 $monthName = $monthNames[$month] ?? '';
 
-// El calendario siempre muestra 6 semanas (42 celdas), sin importar el mes
 $totalCalendarCells = 42;
 
-/** Indica si un evento corresponde a un turno RESERVADO. */
 $isReservado = static fn(array $dayEvent): bool =>
 mb_strtolower((string)($dayEvent['status'] ?? ''), 'UTF-8') === 'reservado';
 
-/** Cantidad de turnos de un día con el estado indicado (por ejemplo, "finalizado"). */
 $countStatus = static function (array $dayEvents, string $status): int {
     $total = 0;
     foreach ($dayEvents as $dayEvent) {
@@ -57,7 +47,6 @@ $monthTotalReservados = 0;
 $monthTotalFinalizados = 0;
 $busyDays = 0;
 
-// Totales del mes: turnos reservados y finalizados
 foreach ($events as $dayEvents) {
     $monthTotalFinalizados += $countStatus($dayEvents, 'finalizado');
     $hasReservations = false;
@@ -152,7 +141,7 @@ foreach ($events as $dayEvents) {
                 <?php endfor; ?>
             </div>
 
-            <!-- Resumen del mes y leyenda de colores en una sola franja -->
+            <!-- Resumen del mes y leyenda -->
             <ul class="calendar__legend" aria-label="Resumen del mes">
                 <li class="legend__item">
                     <span class="legend__swatch cell__status-badge--reservado" aria-hidden="true"></span>

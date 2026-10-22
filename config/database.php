@@ -1,5 +1,10 @@
 <?php
 
+// ============================================================
+// BASE DE DATOS
+// Conexión MySQL con los datos del entorno activo.
+// ============================================================
+
 require_once __DIR__ . '/environment.php';
 
 $database = appConfigSection('database');
@@ -19,7 +24,6 @@ function getConnection(): mysqli
         $conn->set_charset('utf8mb4');
         return $conn;
     } catch (mysqli_sql_exception $e) {
-        // No se expone el detalle al cliente; el manejador global responde JSON 500.
         error_log('Error de conexión: ' . $e->getMessage());
         throw new RuntimeException('Error de conexión a la base de datos.');
     }

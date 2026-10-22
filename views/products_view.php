@@ -1,9 +1,12 @@
+<!-- =====================================================
+     VISTA DE PRODUCTOS
+     Listado de productos y ventanita de fila.
+====================================================== -->
+
 <div class="admin-view">
 
     <!-- =====================================================
          ENCABEZADO
-         El botón "Nuevo producto" está oculto: lo activa el botón
-         flotante de acciones rápidas (fab.js).
     ====================================================== -->
 
     <div class="day-panel__header">
@@ -79,7 +82,7 @@
 
 </div>
 
-<!-- Ventanita de la fila (celular): datos y acciones -->
+<!-- Ventanita de la fila -->
 <dialog class="status-dialog" id="productRowDialog" aria-labelledby="productRowDialogName">
     <div class="status-dialog__body">
         <div class="status-dialog__header">

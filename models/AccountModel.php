@@ -1,10 +1,12 @@
 <?php
 
+// ============================================================
+// CUENTA
+// Descarga, importación y eliminación de todos los datos de una cuenta.
+// ============================================================
+
 require_once __DIR__ . '/../config/database.php';
 
-/**
- * Operaciones sobre todos los datos de una cuenta (owner): descarga e importación.
- */
 class AccountModel
 {
     public const DELETE_CONFIRMATION = 'ELIMINAR MI CUENTA';
@@ -58,7 +60,6 @@ class AccountModel
     // DESCARGA
     // ============================================================
 
-    // Devuelve la cuenta (sin contraseña) y todos sus registros.
     public function export(int $ownerId): array
     {
         $stmt = $this->conn->prepare("
@@ -96,9 +97,6 @@ class AccountModel
     // ELIMINACIÓN
     // ============================================================
 
-    // Borra de forma definitiva la cuenta y todos sus datos, en una sola transacción.
-    // Se borra en orden porque servicios y productos no se pueden eliminar mientras
-    // haya turnos, fichas o consumos que los usen.
     public function deleteOwner(int $ownerId): void
     {
         $this->conn->begin_transaction();
@@ -140,8 +138,6 @@ class AccountModel
         return true;
     }
 
-    // Valida un archivo de descarga completo y lo carga en la cuenta en una sola transacción.
-    // Devuelve la cantidad de registros cargados por tabla.
     public function import(int $ownerId, array $data): array
     {
         if (($data['format'] ?? self::EXPORT_FORMAT) !== self::EXPORT_FORMAT || ($data['version'] ?? self::EXPORT_VERSION) !== self::EXPORT_VERSION) {
@@ -303,7 +299,6 @@ class AccountModel
         return $result;
     }
 
-    // Las copias anteriores no traen esta tabla: en ese caso cada turno queda con su servicio.
     private function validateAppointmentServices(array $data, array $appointments, array $services): array
     {
         $result = [];

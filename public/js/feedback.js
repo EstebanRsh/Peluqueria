@@ -1,5 +1,7 @@
 // ============================================================
-// MENSAJES DE FORMULARIO, ESTADO OCUPADO Y CAMBIOS SIN GUARDAR
+// AVISOS DE FORMULARIO Y PANELES LATERALES
+// Avisos y campos inválidos, estado ocupado, cambios sin guardar y apertura
+// y cierre de los paneles laterales.
 // ============================================================
 
 import { showResult } from "./confirm.js";
@@ -10,14 +12,6 @@ const ALERT_TITLES = {
   warning: "Revisá antes de continuar",
 };
 
-// Manejo de avisos y campos inválidos de un panel lateral. Los avisos se
-// muestran en la pantalla de resultado; al cerrarla el foco va al primer
-// campo marcado.
-//
-//  show(type, message)  type: "error" (falla) | "warning" (datos a revisar)
-//  invalidate(ids)      marca campos con aria-invalid
-//  focusInvalid()       lleva el foco al primer campo marcado
-//  clearInvalid()       quita todas las marcas de error
 export function createFeedback(panel) {
   return {
     async show(type, message) {
@@ -47,8 +41,6 @@ export function createFeedback(panel) {
 const UNSAVED_MESSAGE =
   "Hay datos sin guardar. Usá Cancelar o × para descartarlos.";
 
-// Panel lateral de alta / edición: abre, cierra y devuelve el foco.
-// requestClose() avisa en vez de cerrar si hay datos sin guardar.
 export function createDrawer({ overlay, panel, feedback, dirty }) {
   let opener = null;
 
@@ -94,13 +86,11 @@ export function clearInvalidOnInput(panel) {
   panel.addEventListener("change", handler);
 }
 
-// Muestra el círculo de carga dentro de un buscador (".search-field").
 export function setSearching(input, searching) {
   input?.closest(".search-field")?.classList.toggle("is-loading", searching);
   input?.toggleAttribute("aria-busy", searching);
 }
 
-// Pone un botón en estado ocupado (deshabilitado y con indicador de carga).
 export function setBusy(button, busy) {
   if (!button) {
     return;
@@ -111,8 +101,6 @@ export function setBusy(button, busy) {
   button.setAttribute("aria-busy", String(busy));
 }
 
-// Detecta cambios sin guardar comparando los valores actuales de un panel
-// con los que tenía cuando se tomó la foto inicial.
 export function createDirtyTracker(panel) {
   const serialize = () =>
     Array.from(panel.querySelectorAll("input, select, textarea"))

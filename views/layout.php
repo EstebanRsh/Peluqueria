@@ -1,9 +1,14 @@
 <?php
+
+// ============================================================
+// ESTRUCTURA DE LA APLICACIÓN
+// Documento base: sidebar, menú móvil, vistas, paneles, botón flotante y pantallas de mensaje.
+// ============================================================
+
 $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
 $baseAttr = htmlspecialchars($base, ENT_QUOTES, 'UTF-8');
 $currentUser = Auth::currentUser();
 
-// La inicial se calcula sobre el nombre original y recién después se escapa
 $rawUsername = trim((string)($currentUser['username'] ?? '')) ?: 'Usuario';
 $username = htmlspecialchars($rawUsername, ENT_QUOTES, 'UTF-8');
 $userInitial = htmlspecialchars(
@@ -12,7 +17,6 @@ $userInitial = htmlspecialchars(
     'UTF-8'
 );
 
-// URL de un recurso público con versión (fecha de modificación) para evitar caché vieja
 $asset = static function (string $path) use ($baseAttr): string {
     $file = dirname(__DIR__) . '/public/' . $path;
     $version = is_file($file) ? '?v=' . filemtime($file) : '';
@@ -20,7 +24,6 @@ $asset = static function (string $path) use ($baseAttr): string {
     return $baseAttr . '/public/' . $path . $version;
 };
 
-// Atributos comunes de los íconos del menú
 $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"';
 ?>
 <!DOCTYPE html>
@@ -30,7 +33,6 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HairApp</title>
-    <!-- Muestra la página con estilos y tipografías ya cargados -->
     <style>
         html:not(.is-styled) body { visibility: hidden; animation: boot-show 0s 5s forwards; }
         @keyframes boot-show { to { visibility: visible; } }

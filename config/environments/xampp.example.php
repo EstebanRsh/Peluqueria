@@ -1,18 +1,18 @@
 <?php
 
-/*
- * Perfil de desarrollo local (XAMPP).
- *
- * Copiá este archivo como xampp.php y ajustá los datos de database si hace
- * falta. xampp.php está ignorado por Git; este ejemplo no contiene secretos.
- */
+// ============================================================
+// PERFIL LOCAL XAMPP (EJEMPLO)
+// Copiá este archivo como xampp.php y ajustá database si hace falta.
+// xampp.php está ignorado por Git; este ejemplo no tiene secretos.
+// ============================================================
+
 return [
     'database' => [
         'host'     => 'localhost',
         'port'     => 3306,
         'name'     => 'peluqueria',
         'user'     => 'root',
-        'password' => '',
+        'password' => '1234',
     ],
     'auth' => [
         'session_name_https'   => '__Host-peluqueria_sid',

@@ -1,8 +1,6 @@
 <!-- =====================================================
      PANEL LATERAL — ALTA / EDICIÓN DE SERVICIO
-     Mismo drawer que el resto: overlay + aside con
-     day-panel__header / formulario / botones. Es una capa anidada
-     porque también se abre sobre el formulario del turno.
+     Formulario de los datos del servicio.
 ====================================================== -->
 
 <div class="side-drawer-overlay side-drawer-overlay--nested" id="serviceModalOverlay"></div>

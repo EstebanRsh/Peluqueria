@@ -1,10 +1,10 @@
 // ============================================================
-// UTILIDADES COMPARTIDAS DE INTERFAZ
+// UTILIDADES DE INTERFAZ
+// Atajos del DOM, escape de HTML, foco, paneles inertes, filtros y contraseñas.
 // ============================================================
 
 export const $ = (id) => document.getElementById(id);
 
-// Escapa un valor para insertarlo de forma segura en HTML.
 export function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -14,8 +14,6 @@ export function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-// Devuelve el foco a un elemento si sigue en la página. Espera un instante
-// para que el fondo de un panel recién cerrado deje de estar inerte.
 export function restoreFocus(element) {
   queueMicrotask(() => {
     if (element && element.isConnected) {
@@ -24,10 +22,6 @@ export function restoreFocus(element) {
   });
 }
 
-// Mientras hay un panel modal abierto, el resto de la página queda inerte
-// (sin foco ni clics). Con paneles apilados, solo el último está activo.
-// Los fondos y los diálogos de confirmación siguen activos. Con un <dialog>
-// nativo abierto no se aplica: showModal() ya bloquea el resto.
 const OPEN_PANEL = '[role="dialog"][aria-modal="true"].is-open';
 const STAYS_ACTIVE = ".side-drawer-overlay, .confirm-dialog";
 
@@ -84,19 +78,16 @@ export function initPanelFocusTrap() {
   });
 }
 
-// Registro activo (estricto): el campo "active" debe valer true o 1.
 export function isActive(record) {
   return record.active === true || Number(record.active) === 1;
 }
 
-// Recorta textos largos para que no rompan una tabla.
 export function truncate(text, maxLength = 40) {
   const value = String(text ?? "");
 
   return value.length <= maxLength ? value : `${value.slice(0, maxLength)}…`;
 }
 
-// Marca los botones de filtro como seleccionados (clase y aria-pressed).
 export function setActiveFilter(buttons, activeButton) {
   buttons.forEach((button) => {
     const isSelected = button === activeButton;
@@ -110,7 +101,6 @@ export function goToLogin() {
   window.location.replace(new URL("login.php", window.location.href));
 }
 
-// Conecta los botones de ojo (.password-field) para mostrar u ocultar la contraseña.
 export function initPasswordToggles(root = document) {
   root.querySelectorAll("[data-toggle-password]").forEach((button) => {
     const input = button.closest(".password-field").querySelector("input");

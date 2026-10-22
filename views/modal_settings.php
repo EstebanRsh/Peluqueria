@@ -1,5 +1,6 @@
 <!-- =====================================================
      PANEL LATERAL — AJUSTES DE LA CUENTA
+     Datos de la cuenta, cambio de contraseña, descarga, importación y eliminación.
 ====================================================== -->
 
 <div class="side-drawer-overlay" id="settingsModalOverlay"></div>

@@ -1,9 +1,12 @@
+<!-- =====================================================
+     VISTA DE CLIENTES
+     Listado de clientes, perfil y ventanita de fila.
+====================================================== -->
+
 <div class="admin-view">
 
     <!-- =====================================================
          ENCABEZADO
-         El botón "Nuevo cliente" está oculto: lo activa el botón
-         flotante de acciones rápidas (fab.js).
     ====================================================== -->
 
     <div class="day-panel__header">
@@ -168,7 +171,7 @@
     </div>
 </aside>
 
-<!-- Ventanita de la fila (celular): datos y acciones -->
+<!-- Ventanita de la fila -->
 <dialog class="status-dialog" id="clientRowDialog" aria-labelledby="clientRowDialogName">
     <div class="status-dialog__body">
         <div class="status-dialog__header">

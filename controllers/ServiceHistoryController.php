@@ -1,5 +1,10 @@
 <?php
 
+// ============================================================
+// FICHA TÉCNICA (API)
+// Guarda fichas de servicio y devuelve el historial técnico de un cliente.
+// ============================================================
+
 require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../models/ServiceHistoryModel.php';
 require_once __DIR__ . '/../models/ClientModel.php';
@@ -10,8 +15,8 @@ class ServiceHistoryController extends BaseController
     private ClientModel $clientModel;
 
     private const MAX_CONSUMPTION_ITEMS = 50;
-    private const MAX_QUANTITY = 999999.99;   // Límite de la columna DECIMAL(8,2)
-    private const MAX_DETAILS_BYTES = 100000; // Límite de tamaño para el JSON de datos técnicos (~100 KB)
+    private const MAX_QUANTITY = 999999.99;
+    private const MAX_DETAILS_BYTES = 100000;
 
     public function __construct()
     {
@@ -29,7 +34,6 @@ class ServiceHistoryController extends BaseController
 
         $action = $_GET['action'] ?? '';
 
-        // Guardar ficha técnica de servicio (con o sin turno asociado)
         if ($action === 'service_history_save') {
             $this->requirePost();
 
@@ -54,7 +58,6 @@ class ServiceHistoryController extends BaseController
             $this->json(['success' => true, 'id' => $newId, 'error' => null]);
         }
 
-        // Obtener historial completo de un cliente (para el perfil tipo feed)
         if ($action === 'client_timeline') {
             $clientId = filter_var($_GET['client_id'] ?? null, FILTER_VALIDATE_INT);
 
@@ -66,7 +69,6 @@ class ServiceHistoryController extends BaseController
             $this->json(['success' => true, 'data' => $timeline]);
         }
 
-        // Obtener detalle completo de una ficha individual (incluyendo consumos)
         if ($action === 'service_history_detail') {
             $historyId = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
 
@@ -92,7 +94,6 @@ class ServiceHistoryController extends BaseController
     // CONSTRUIR DATOS DE LA FICHA
     // ============================================================
 
-    // Mapea y estructura los parámetros técnicos recibidos desde la petición HTTP
     private function buildData(array $input): array
     {
         $clientId = filter_var($input['client_id'] ?? null, FILTER_VALIDATE_INT);
@@ -124,7 +125,6 @@ class ServiceHistoryController extends BaseController
         ];
     }
 
-    // Normaliza el array de consumos agrupando cantidades por product_id
     private function buildConsumptions(mixed $raw): array|string
     {
         if (!is_array($raw) || $raw === []) {
@@ -174,14 +174,12 @@ class ServiceHistoryController extends BaseController
     // VALIDACIÓN DE NEGOCIO
     // ============================================================
 
-    // Modifica $data por referencia para autocompletar contexto desde el turno
     private function validate(array &$data, array|string $consumptions)
     {
         if (is_string($consumptions)) {
             return $consumptions;
         }
 
-        // Validación con turno asociado
         if ($data['appointment_id'] !== null) {
             $appointment = $this->model->getAppointmentContext($this->ownerId(), $data['appointment_id']);
 
@@ -200,7 +198,6 @@ class ServiceHistoryController extends BaseController
             $data['service_id'] = (int)$appointment['service_id'];
             $data['service_name_snapshot'] = $appointment['service_name'];
         } else {
-            // Validación para ficha suelta (sin turno)
             if ($data['client_id'] === null && $data['client_name'] === null) {
                 return 'Debe seleccionar un cliente registrado o indicar un nombre.';
             }
@@ -224,7 +221,6 @@ class ServiceHistoryController extends BaseController
             }
         }
 
-        // Verifica que la ficha no esté vacía (debe incluir detalles técnicos o productos consumidos)
         if (!$this->hasMeaningfulData($data['technical_details']) && $consumptions === []) {
             return 'Complete al menos un campo de alguna categoría antes de guardar.';
         }
@@ -242,7 +238,6 @@ class ServiceHistoryController extends BaseController
     // COMPROBAR CONTENIDO EN CATEGORÍAS
     // ============================================================
 
-    // Revisa que al menos un campo dentro del JSON contenga información no vacía
     private function hasMeaningfulData(array $technicalDetails): bool
     {
         foreach ($technicalDetails as $category) {

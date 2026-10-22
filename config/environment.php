@@ -1,18 +1,13 @@
 <?php
 
-/**
- * Selector único de entorno.
- *
- * Cambiá solamente este valor para usar otro perfil. Cada perfil se encuentra
- * en config/environments/<entorno>.php y debe devolver un array de configuración.
- */
+// ============================================================
+// ENTORNO
+// Para usar otro perfil, cambiá solo HAIRAPP_ENVIRONMENT. Cada perfil vive en
+// config/environments/<entorno>.php; si no es válido, la petición termina sin usar otro.
+// ============================================================
+
 const HAIRAPP_ENVIRONMENT = 'xampp';
 
-/**
- * Devuelve la configuración completa del entorno seleccionado.
- * Si el selector o el perfil no son válidos, finaliza la petición de forma
- * controlada; nunca selecciona otro entorno como alternativa.
- */
 function appConfig(): array
 {
     static $config = null;
@@ -49,7 +44,6 @@ function appConfig(): array
     return $config;
 }
 
-/** Devuelve una sección validada de la configuración del entorno. */
 function appConfigSection(string $section): array
 {
     $config = appConfig();
@@ -61,7 +55,6 @@ function appConfigSection(string $section): array
     return $config[$section];
 }
 
-/** Comprueba la estructura mínima que usan base de datos y autenticación. */
 function validateAppConfig(array $config): void
 {
     $database = $config['database'] ?? null;
@@ -110,7 +103,6 @@ function validateAppConfig(array $config): void
     }
 }
 
-/** Emite un error seguro y controlado sin exponer rutas ni credenciales. */
 function appConfigurationError(string $message): void
 {
     error_log('HairApp: ' . $message);
@@ -125,5 +117,4 @@ function appConfigurationError(string $message): void
     exit;
 }
 
-// Validar el perfil al iniciar la aplicación, incluso antes de conectarse a MySQL.
 appConfig();

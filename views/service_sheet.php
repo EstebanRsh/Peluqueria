@@ -1,5 +1,6 @@
 <!-- =====================================================
     FICHA DE SERVICIO
+    Panel de la ficha técnica: cliente, categorías (color, tratamiento, corte) y productos usados.
 ====================================================== -->
 <div class="side-drawer-overlay" id="quickEntryOverlay"></div>
 
@@ -15,7 +16,7 @@
 
     <div class="day-panel__body">
 
-        <!-- CLIENTE: búsqueda o alias en un solo campo -->
+        <!-- CLIENTE -->
         <div class="form-group">
             <label for="quickEntryClientSearch">Cliente</label>
 

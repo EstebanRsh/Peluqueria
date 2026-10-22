@@ -1,7 +1,7 @@
 /* ==========================================================================
-   VARIABLES Y DISEÑO BASE (ESTILO VINTAGE / ATELIER DE LUJO)
-   Única fuente de colores de la aplicación: ningún otro archivo CSS debe
-   declarar colores literales (hex, rgb, rgba, hsl).
+   VARIABLES Y DISEÑO BASE
+   Paleta «Atelier Dorado», tipografías, escalas y estilos globales.
+   Única fuente de colores de la aplicación.
    ========================================================================== */
 
 /* ==========================================================================
@@ -38,7 +38,7 @@
   --color-gold: rgb(var(--gold-rgb));
   --color-gold-light: #f3e0b5;
   --color-gold-dark: #b6913f;
-  --color-gold-text: #8a6a24; /* Dorado oscuro para texto sobre fondo claro (contraste ≥ 4.5:1) */
+  --color-gold-text: #8a6a24;
 
   /* --- Paleta Base: "Atelier Dorado" ------------------------------------ */
   --color-bg: #f5f2eb;
@@ -55,7 +55,7 @@
   --color-field-border: #c9bb98;
   --color-border-subtle: #e6e0d3;
 
-  /* Superficies y estados interactivos derivados del dorado */
+  /* Superficies y estados interactivos */
   --color-gold-wash: rgba(var(--gold-rgb), 0.05);
   --color-hover: rgba(var(--gold-rgb), 0.07);
   --color-gold-tint: rgba(var(--gold-rgb), 0.08);
@@ -65,7 +65,7 @@
   --color-gold-line: rgba(var(--gold-rgb), 0.4);
   --color-gold-line-strong: rgba(var(--gold-rgb), 0.6);
 
-  /* Pergamino translúcido (cabeceras, resúmenes, celdas fuera de mes) */
+  /* Pergamino translúcido */
   --color-bg-translucent: rgba(245, 242, 235, 0.6);
   --color-bg-faint: rgba(245, 242, 235, 0.3);
 
@@ -74,7 +74,7 @@
   --color-danger-soft: #f0cfcf;
   --color-danger-ring: rgba(168, 42, 42, 0.14);
 
-  /* Radios: Estilo rectilíneo vintage */
+  /* Radios */
   --radius: 0px;
   --radius-sm: 4px;
 
@@ -117,7 +117,7 @@
   --z-drawer-nested: 1600;
   --z-fab: 900;
 
-  /* Fondos de capa y overlays */
+  /* Fondos de capa */
   --overlay-fab: rgba(28, 21, 16, 0.25);
   --overlay-drawer: rgba(28, 21, 16, 0.35);
   --overlay-sidebar: rgba(0, 0, 0, 0.4);
@@ -136,7 +136,7 @@
   --sidebar-active-to: rgba(var(--gold-rgb), 0.02);
   --sidebar-avatar-from: rgba(var(--gold-rgb), 0.25);
 
-  /* Texturas e íconos (los colores de un data-URI no admiten var(): se declaran aquí) */
+  /* Texturas e íconos */
   --sidebar-texture:
     radial-gradient(
       circle at 50% 0%,
@@ -208,7 +208,6 @@ body {
   color: var(--color-text);
 }
 
-/* Scrollbar fina estilizada en dorado/bronce */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-gold) transparent;
@@ -256,7 +255,6 @@ body {
   height: 100dvh;
   position: relative;
 
-  /* Fondo texturado pergamino / luz de taller vintage */
   background-color: var(--color-bg);
   background-image:
     radial-gradient(
@@ -272,13 +270,11 @@ body {
   background-attachment: fixed;
 }
 
-/* Utilidad para alternar secciones completas de la aplicación */
 .is-hidden,
 [hidden] {
   display: none !important;
 }
 
-/* Contenido solo para lectores de pantalla */
 .sr-only {
   position: absolute;
   width: 1px;

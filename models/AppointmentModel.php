@@ -1,12 +1,16 @@
 <?php
 
+// ============================================================
+// TURNOS
+// Turnos del owner, sus servicios y su historial de estados.
+// ============================================================
+
 require_once __DIR__ . '/../config/database.php';
 
 class AppointmentModel
 {
     private mysqli $conn;
 
-    // Estados oficiales del turno dentro del flujo de la agenda
     public const STATUSES = [
         'Reservado',
         'Finalizado',
@@ -14,7 +18,6 @@ class AppointmentModel
         'Ausente',
     ];
 
-    // Mapeo de slugs de URL (?status=...) hacia el nombre real registrado en la base de datos
     public const STATUS_SLUGS = [
         'reservado'  => 'Reservado',
         'finalizado' => 'Finalizado',
@@ -31,8 +34,6 @@ class AppointmentModel
     // OBTENER TURNOS
     // ============================================================
 
-    // Trae la lista de turnos de un día específico con datos relacionales (servicio y cliente).
-    // $status debe ser 'todos' o el nombre exacto del estado.
     public function getByDate(int $ownerId, string $date, string $search = '', string $status = 'todos'): array
     {
         $query = "
@@ -57,7 +58,6 @@ class AppointmentModel
         $types = 'is';
         $params = [$ownerId, $date];
 
-        // Búsqueda por cliente: el alias empieza con el texto (dentro del día)
         if ($search !== '') {
             $query .= " AND COALESCE(clients.alias, appointments.client_name) LIKE ?";
 
@@ -80,8 +80,6 @@ class AppointmentModel
         return $this->attachServices($ownerId, $stmt->get_result()->fetch_all(MYSQLI_ASSOC));
     }
 
-    // Suma a cada turno su lista de servicios (con el precio y la duración con que se agendaron),
-    // los nombres unidos y la duración total.
     private function attachServices(int $ownerId, array $appointments): array
     {
         if (!$appointments) {
@@ -128,7 +126,6 @@ class AppointmentModel
         return $appointments;
     }
 
-    // Servicios de un turno, en orden: [id, ...].
     private function getServiceIds(int $ownerId, int $appointmentId): array
     {
         $stmt = $this->conn->prepare("
@@ -146,7 +143,6 @@ class AppointmentModel
     // CONSULTAS AUXILIARES
     // ============================================================
 
-    // Retorna el ID y estado de un turno por su ID, o null si no existe
     public function getById(int $ownerId, int $id): ?array
     {
         $stmt = $this->conn->prepare("SELECT id, status, client_id, service_id FROM appointments WHERE id = ? AND owner_id = ? LIMIT 1");
@@ -164,7 +160,6 @@ class AppointmentModel
         return $row;
     }
 
-    // Consulta los datos de un cliente para verificar existencia y estado
     public function getClientById(int $ownerId, int $clientId): ?array
     {
         $stmt = $this->conn->prepare("
@@ -181,7 +176,6 @@ class AppointmentModel
         return $stmt->get_result()->fetch_assoc() ?: null;
     }
 
-    // Consulta los datos de un servicio para verificar existencia y estado
     public function getServiceById(int $ownerId, int $serviceId): ?array
     {
         $stmt = $this->conn->prepare("
@@ -198,7 +192,6 @@ class AppointmentModel
         return $stmt->get_result()->fetch_assoc() ?: null;
     }
 
-    // Servicios (del owner) por id, en el mismo orden en que se pidieron.
     public function getServicesByIds(int $ownerId, array $ids): array
     {
         $services = [];
@@ -214,9 +207,6 @@ class AppointmentModel
         return $services;
     }
 
-    // Guarda la lista de servicios de un turno. Conserva el precio y la duración con que
-    // ya estaba cada servicio ($kept) y usa los actuales del catálogo para los nuevos.
-    // $durations (duración elegida para este turno) tiene prioridad.
     private function insertServices(int $ownerId, int $appointmentId, array $services, array $durations = [], array $kept = []): void
     {
         $stmt = $this->conn->prepare("
@@ -239,8 +229,6 @@ class AppointmentModel
     // CREAR TURNO
     // ============================================================
 
-    // Crea un turno en la agenda, inicializa el historial de estados y genera un
-    // registro base en service_history (sin detalles técnicos aún). Todo en una transacción.
     public function create(int $ownerId, array $data): bool
     {
         $this->conn->begin_transaction();
@@ -249,7 +237,6 @@ class AppointmentModel
             $clientId = $data['client_id'] ?? null;
             $clientName = trim((string)($data['client_name'] ?? ''));
 
-            // Si es un cliente registrado sin nombre provisto, se usa su alias actual
             if ($clientId !== null && $clientName === '') {
                 $client = $this->getClientById($ownerId, (int)$clientId);
                 $clientName = trim((string)($client['alias'] ?? ''));
@@ -259,7 +246,6 @@ class AppointmentModel
             $serviceName = implode(' + ', array_column($services, 'name'));
             $firstServiceId = (int)$services[0]['id'];
 
-            // ---- 1. Guardar turno ----
             $stmt = $this->conn->prepare("
                 INSERT INTO appointments
                     (owner_id, client_id, client_name, service_id, stylist, price, notes,
@@ -287,7 +273,6 @@ class AppointmentModel
 
             $this->insertServices($ownerId, $appointmentId, $services, $data['service_durations']);
 
-            // ---- 2. Registrar el estado inicial ----
             $stmtHist = $this->conn->prepare("
                 INSERT INTO appointment_history (owner_id, appointment_id, status_from, status_to)
                 VALUES (?, ?, NULL, ?)
@@ -295,7 +280,6 @@ class AppointmentModel
             $stmtHist->bind_param('iis', $ownerId, $appointmentId, $data['status']);
             $stmtHist->execute();
 
-            // ---- 3. Generar la ficha técnica base ----
             $shClientId = $clientId;
             $shClientName = $clientId === null ? $clientName : null;
             $performedAt = $data['date'] . ' ' . $data['time_start'];
@@ -333,9 +317,6 @@ class AppointmentModel
     // EDITAR TURNO
     // ============================================================
 
-    // Actualiza los datos del turno, registra el cambio de estado si lo hubo y mantiene
-    // sincronizada la ficha base. Si la ficha ya fue guardada, el cliente y el servicio
-    // no se pueden cambiar (InvalidArgumentException).
     public function update(int $ownerId, int $id, array $data): bool
     {
         $this->conn->begin_transaction();
@@ -469,14 +450,11 @@ class AppointmentModel
     // ACTUALIZAR ESTADO
     // ============================================================
 
-    // Cambia el estado del turno y agrega el paso al historial.
-    // Si el estado enviado es igual al actual, omite el guardado para no duplicar historial.
     public function updateStatus(int $ownerId, int $id, string $newStatus): bool
     {
         $this->conn->begin_transaction();
 
         try {
-            // Se usa FOR UPDATE para bloquear la fila y prevenir inconsistencias por concurrencia
             $stmtOld = $this->conn->prepare("SELECT status FROM appointments WHERE id = ? AND owner_id = ? FOR UPDATE");
             $stmtOld->bind_param('ii', $id, $ownerId);
             $stmtOld->execute();
@@ -490,7 +468,6 @@ class AppointmentModel
 
             $oldStatus = $row['status'];
 
-            // Si no cambió de estado, cerramos la transacción sin modificar nada
             if ($oldStatus === $newStatus) {
                 $this->conn->commit();
                 return true;
@@ -522,7 +499,6 @@ class AppointmentModel
     // HISTORIAL DE ESTADOS
     // ============================================================
 
-    // Retorna la trazabilidad cronológica de los cambios de estado de un turno
     public function getHistory(int $ownerId, int $appointmentId): array
     {
         $stmt = $this->conn->prepare("
@@ -543,14 +519,11 @@ class AppointmentModel
     // ELIMINAR TURNO
     // ============================================================
 
-    // Elimina un turno. Solo elimina el registro de service_history asociado si este
-    // NO tiene detalles técnicos completados; si ya posee ficha cargada se preserva.
     public function delete(int $ownerId, int $id): bool
     {
         $this->conn->begin_transaction();
 
         try {
-            // Borra la ficha técnica base vacía (si aún no fue completada)
             $stmtSh = $this->conn->prepare("
                 DELETE FROM service_history
                 WHERE appointment_id = ?

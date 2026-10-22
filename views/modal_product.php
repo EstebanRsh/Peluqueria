@@ -1,5 +1,6 @@
 <!-- =====================================================
      PANEL LATERAL — ALTA / EDICIÓN DE PRODUCTO
+     Formulario de los datos del producto.
 ====================================================== -->
 
 <div class="side-drawer-overlay" id="productModalOverlay"></div>

@@ -1,5 +1,10 @@
 <?php
 
+// ============================================================
+// AUTENTICACIÓN Y CUENTA (API)
+// Sesión, registro, cambio de contraseña, descarga, importación y eliminación de la cuenta.
+// ============================================================
+
 require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../config/auth.php';
 require_once __DIR__ . '/../models/UserModel.php';
@@ -20,10 +25,8 @@ class AuthController extends BaseController
         'account_delete',
     ];
 
-    // Límites para las credenciales recibidas.
     private const MAX_LOGIN_PASSWORD_BYTES = 1024;
 
-    // Límite de intentos: [máximo, ventana en segundos].
     private const LOGIN_BY_ACCOUNT = [5, 900];
     private const LOGIN_BY_IP = [20, 900];
     private const REGISTER_BY_IP = [5, 3600];
@@ -45,7 +48,6 @@ class AuthController extends BaseController
     // MANEJO DE PETICIONES
     // ============================================================
 
-    // Procesa las acciones de autenticación.
     public function handleRequest(): void
     {
         ob_start();
@@ -124,7 +126,6 @@ class AuthController extends BaseController
                 ], 201);
                 break;
 
-            // Devuelve el estado de la sesión.
             case 'session':
                 $user = Auth::currentUser();
 
@@ -140,7 +141,6 @@ class AuthController extends BaseController
                 ]);
                 break;
 
-            // Devuelve los datos de la cuenta autenticada.
             case 'account':
                 $user = Auth::currentUser();
 
@@ -164,7 +164,6 @@ class AuthController extends BaseController
                 ]);
                 break;
 
-            // Devuelve todos los datos de la cuenta para descargarlos.
             case 'account_export':
                 $user = Auth::currentUser();
 
@@ -178,7 +177,6 @@ class AuthController extends BaseController
                 ]);
                 break;
 
-            // Carga una copia descargada en una cuenta sin datos.
             case 'account_import':
                 $user = Auth::currentUser();
 
@@ -206,7 +204,6 @@ class AuthController extends BaseController
                 $this->json(['success' => true, 'imported' => $totals]);
                 break;
 
-            // Elimina la cuenta y todos sus datos. Exige la contraseña.
             case 'account_delete':
                 $user = Auth::currentUser();
 
@@ -246,7 +243,6 @@ class AuthController extends BaseController
                 $this->json(['success' => true]);
                 break;
 
-            // Inicia sesión.
             case 'login':
                 $input = $this->readInput();
                 $identifier = $this->str($input['username'] ?? null);
@@ -266,7 +262,6 @@ class AuthController extends BaseController
                     $this->error('Demasiados intentos fallidos. Esperá unos minutos e intentá de nuevo.', 429);
                 }
 
-                // No revelar si el usuario existe.
                 if (
                     mb_strlen($identifier) > UserModel::MAX_EMAIL_LENGTH
                     || strlen($password) > self::MAX_LOGIN_PASSWORD_BYTES
@@ -294,14 +289,12 @@ class AuthController extends BaseController
                 ]);
                 break;
 
-            // Cierra la sesión.
             case 'logout':
                 Auth::logout();
 
                 $this->json(['success' => true]);
                 break;
 
-            // Cambia la contraseña.
             case 'change_password':
                 $user = Auth::currentUser();
 
@@ -343,7 +336,6 @@ class AuthController extends BaseController
                     $this->error('No se pudo actualizar la contraseña.', 500);
                 }
 
-                // Actualizar la sesión e invalidar las demás.
                 Auth::onPasswordChanged();
 
                 $this->json(['success' => true]);

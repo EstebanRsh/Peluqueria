@@ -1,4 +1,10 @@
 <?php
+
+// ============================================================
+// LOGIN
+// Página de ingreso y registro de cuentas.
+// ============================================================
+
 require_once __DIR__ . '/config/auth.php';
 Auth::guard('auth_page');
 
@@ -13,7 +19,6 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Acceso - HairApp</title>
-    <!-- Muestra la página con estilos y tipografías ya cargados -->
     <style>
         html:not(.is-styled) body {
             visibility: hidden;
@@ -56,12 +61,11 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
     </script>
 </head>
 
-<!-- El fondo (textura SVG del sidebar) y todo el layout del login viven en app-core.css (.login-page) -->
 
 <body class="login-page">
     <div class="login-shell">
 
-        <!-- Columna izquierda: marca y la historia de la app (el texto tiene su propio scroll en escritorio) -->
+        <!-- Columna izquierda -->
         <div class="login-col login-col--main">
             <header class="login-hero">
                 <h1 class="login-hero__brand" aria-label="HairApp">
@@ -88,7 +92,7 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
             </article>
         </div>
 
-        <!-- Columna derecha: acceso y vista previa de los módulos -->
+        <!-- Columna derecha -->
         <div class="login-col login-col--side">
             <main class="admin-view">
                 <header class="day-panel__header">
@@ -241,7 +245,6 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
     <script>
         window.BASE_URL = <?= json_encode($base, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 
-        // Saludo según la hora local de quien entra
         (function() {
             var hour = new Date().getHours();
             var greeting = hour < 6 ? 'Buenas noches' : hour < 13 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches';

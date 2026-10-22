@@ -1,5 +1,7 @@
 // ============================================================
-// CONTROL PRINCIPAL DE LA APLICACIÓN
+// CONTROL PRINCIPAL
+// Punto de entrada de la aplicación: calendario, navegación entre vistas,
+// menú móvil, módulos y errores no controlados.
 // ============================================================
 import { openPanelForDate, closePanel, bindCalendarBadge } from "./ui.js";
 import { initModal } from "./modal.js";
@@ -178,8 +180,6 @@ initLegal();
 initQuickEntry();
 initLogout();
 
-// Los errores inesperados se registran en la consola y se informan al usuario
-// sin mostrar detalles técnicos. Se limita la frecuencia para no saturar.
 const UNEXPECTED_ERROR_MESSAGE =
   "Ocurrió un error inesperado. Si el problema continúa, recargá la página.";
 const NOTICE_INTERVAL_MS = 5000;

@@ -1,12 +1,11 @@
 <?php
 
-/*
- * Plantilla del perfil productivo.
- *
- * Copiá este archivo como hosting.php y completá los valores de database con
- * los datos entregados por el hosting. hosting.php está ignorado por Git y el
- * directorio deniega el acceso web directo mediante .htaccess.
- */
+// ============================================================
+// PERFIL DE PRODUCCIÓN (EJEMPLO)
+// Copiá este archivo como hosting.php y completá database con los datos del hosting.
+// hosting.php está ignorado por Git y la carpeta no se puede abrir desde la web.
+// ============================================================
+
 return [
     'database' => [
         'host'     => '',

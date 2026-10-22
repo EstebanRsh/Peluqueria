@@ -1,9 +1,12 @@
+<!-- =====================================================
+     VISTA DE SERVICIOS
+     Listado de servicios y ventanita de fila.
+====================================================== -->
+
 <div class="admin-view">
 
     <!-- =====================================================
          ENCABEZADO
-         El botón "Nuevo servicio" está oculto: lo activa el botón
-         flotante de acciones rápidas (fab.js).
     ====================================================== -->
 
     <div class="day-panel__header">
@@ -78,7 +81,7 @@
 
 </div>
 
-<!-- Ventanita de la fila (celular): datos y acciones -->
+<!-- Ventanita de la fila -->
 <dialog class="status-dialog" id="serviceRowDialog" aria-labelledby="serviceRowDialogName">
     <div class="status-dialog__body">
         <div class="status-dialog__header">

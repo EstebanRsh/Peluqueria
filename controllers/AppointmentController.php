@@ -1,5 +1,11 @@
 <?php
 
+// ============================================================
+// TURNOS (API)
+// Listado del día, alta, edición, cambio de estado, historial y baja de turnos,
+// con sus reglas de negocio.
+// ============================================================
+
 require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../models/AppointmentModel.php';
 
@@ -7,13 +13,10 @@ class AppointmentController extends BaseController
 {
     private AppointmentModel $model;
 
-    // Límite numérico para la columna price DECIMAL(10,2)
     private const MAX_PRICE = 99999999.99;
 
-    // Servicios por turno
     private const MAX_SERVICES = 10;
 
-    // Acciones que requieren estrictamente un método POST
     private const POST_ACTIONS = ['create', 'update', 'update_status', 'delete'];
 
     public function __construct()
@@ -31,14 +34,12 @@ class AppointmentController extends BaseController
 
         $action = $_GET['action'] ?? '';
 
-        // Valida la restricción de método POST para acciones de escritura
         if (in_array($action, self::POST_ACTIONS, true)) {
             $this->requirePost();
         }
 
         switch ($action) {
 
-            // Retorna los turnos agendados para un día en particular
             case 'list':
                 $date = $this->str($_GET['date'] ?? '') ?: date('Y-m-d');
 
@@ -54,7 +55,6 @@ class AppointmentController extends BaseController
                 ));
                 break;
 
-            // Agendar un nuevo turno
             case 'create':
                 $data = $this->buildAppointmentData($this->readInput());
                 $error = $this->validateAppointmentData($data);
@@ -71,7 +71,6 @@ class AppointmentController extends BaseController
                 ]);
                 break;
 
-            // Editar los datos de un turno existente
             case 'update':
                 $input = $this->readInput();
                 $id = $this->validId($input['id'] ?? 0, 'turno');
@@ -100,7 +99,6 @@ class AppointmentController extends BaseController
                 ]);
                 break;
 
-            // Cambiar de estado un turno existente (ej. de Reservado a Finalizado)
             case 'update_status':
                 $input = $this->readInput();
                 $id = $this->validId($input['id'] ?? 0, 'turno');
@@ -122,13 +120,11 @@ class AppointmentController extends BaseController
                 ]);
                 break;
 
-            // Obtener el historial de cambios de estado del turno
             case 'history':
                 $id = $this->validId($_GET['id'] ?? 0, 'turno');
                 $this->json($this->model->getHistory($this->ownerId(), $id));
                 break;
 
-            // Eliminar un turno de la agenda
             case 'delete':
                 $input = $this->readInput();
                 $id = $this->validId($input['id'] ?? 0, 'turno');
@@ -153,7 +149,6 @@ class AppointmentController extends BaseController
     // FILTRO DE ESTADO (acepta "finalizado" o "Finalizado")
     // ============================================================
 
-    // Transforma slugs de URL al texto plano exacto que utiliza la BD
     private function normalizeStatusFilter(string $status): string
     {
         if ($status === '' || $status === 'todos') {
@@ -176,7 +171,6 @@ class AppointmentController extends BaseController
     // CONSTRUIR DATOS DEL TURNO
     // ============================================================
 
-    // Normaliza y formatea los parámetros recibidos en el payload JSON
     private function buildAppointmentData(array $input): array
     {
         $clientId = filter_var($input['client_id'] ?? 0, FILTER_VALIDATE_INT);
@@ -196,8 +190,6 @@ class AppointmentController extends BaseController
         ];
     }
 
-    // Lista de servicios del turno ("service_ids", o un "service_id" suelto). Devuelve false
-    // si algún valor no es un entero positivo o si se repite un servicio.
     private function serviceIds(array $input): array|false
     {
         $raw = $input['service_ids'] ?? (isset($input['service_id']) ? [$input['service_id']] : []);
@@ -221,8 +213,6 @@ class AppointmentController extends BaseController
         return $ids;
     }
 
-    // Duración propia de este turno por servicio ({"<service_id>": minutos}). Devuelve false
-    // si algún valor no es un entero entre 1 y 1440.
     private function serviceDurations(array $input): array|false
     {
         $raw = $input['service_durations'] ?? [];
@@ -250,10 +240,8 @@ class AppointmentController extends BaseController
     // VALIDAR DATOS DEL TURNO
     // ============================================================
 
-    // Revisa todas las reglas de negocio para guardar o editar un turno
     private function validateAppointmentData(array $data, ?array $current = null)
     {
-        // Validar que exista al menos cliente registrado o nombre ocasional
         if ($data['client_id'] === null && $data['client_name'] === '') {
             return 'Debe seleccionar un cliente o ingresar un alias de referencia.';
         }
@@ -272,7 +260,6 @@ class AppointmentController extends BaseController
             }
         }
 
-        // Validar servicios existentes y activos (sin repetir)
         if ($data['service_ids'] === false) {
             return 'Los servicios seleccionados no son válidos o están repetidos.';
         }
@@ -298,22 +285,18 @@ class AppointmentController extends BaseController
             }
         }
 
-        // Validar estilista
         if (mb_strlen($data['stylist']) > 100) {
             return 'El nombre del profesional no puede superar los 100 caracteres.';
         }
 
-        // Validar precio
         if ($data['price'] < 0 || $data['price'] > self::MAX_PRICE) {
             return 'El precio debe estar entre 0 y 99.999.999,99.';
         }
 
-        // Validar estado
         if (!in_array($data['status'], AppointmentModel::STATUSES, true)) {
             return 'El estado seleccionado no es válido.';
         }
 
-        // Validar fecha y rango horario
         return $this->validateDateTime($data['date'], $data['time_start'], $data['time_end']);
     }
 
@@ -321,7 +304,6 @@ class AppointmentController extends BaseController
     // VALIDAR FECHA Y HORARIOS
     // ============================================================
 
-    // Verifica formatos de fecha, horas válidas y coherencia cronológica (time_start < time_end)
     private function validateDateTime(string $date, string $timeStart, string $timeEnd)
     {
         if ($date === '') {
@@ -366,7 +348,6 @@ class AppointmentController extends BaseController
         return $d && $d->format('Y-m-d') === $date;
     }
 
-    // Convierte HH:MM o HH:MM:SS a segundos. Retorna false si el formato o los rangos son inválidos.
     private function parseTime(string $time): int|false
     {
         if (!preg_match('/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/', $time, $m)) {

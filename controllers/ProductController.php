@@ -1,5 +1,10 @@
 <?php
 
+// ============================================================
+// PRODUCTOS (API)
+// Listado, búsqueda, alta, edición, activación y baja de productos.
+// ============================================================
+
 require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../models/ProductModel.php';
 
@@ -7,14 +12,11 @@ class ProductController extends BaseController
 {
     private ProductModel $model;
 
-    // Unidades de medida válidas para los insumos de la peluquería
     private const UNITS = ['ml', 'g', 'unidad'];
 
-    // Límites de las columnas SQL: stock DECIMAL(10,2) y unit_cost DECIMAL(10,4)
     private const MAX_STOCK = 99999999.99;
     private const MAX_COST = 999999.9999;
 
-    // Acciones que requieren estrictamente un método POST
     private const POST_ACTIONS = [
         'product_create',
         'product_update',
@@ -38,19 +40,16 @@ class ProductController extends BaseController
 
         $action = $_GET['action'] ?? '';
 
-        // Si la acción modifica datos, exige POST
         if (in_array($action, self::POST_ACTIONS, true)) {
             $this->requirePost();
         }
 
         switch ($action) {
 
-            // Productos activos (tope 500). Para selectores rápidos usar product_search.
             case 'products':
                 $this->json($this->model->getActive($this->ownerId()));
                 break;
 
-            // Listado paginado para abm: ?page=1&per_page=25&filter=todos|activos|inactivos&q=texto
             case 'products_all':
                 [$page, $perPage] = $this->pagination();
                 $this->json($this->model->paginate(
@@ -62,7 +61,6 @@ class ProductController extends BaseController
                 ));
                 break;
 
-            // Obtiene los datos completos de un producto por ID para edición
             case 'product_get':
                 $id = $this->validId($_GET['id'] ?? 0, 'producto');
                 $product = $this->model->getById($this->ownerId(), $id);
@@ -74,13 +72,11 @@ class ProductController extends BaseController
                 $this->json($product);
                 break;
 
-            // Autocompletado rápido al armar ficha de servicio (máximo 15 resultados)
             case 'product_search':
                 $q = $this->str($_GET['q'] ?? '');
                 $this->json($q === '' ? [] : $this->model->search($this->ownerId(), $q));
                 break;
 
-            // Alta de nuevo producto
             case 'product_create':
                 $data = $this->buildProductData($this->readInput());
                 $error = $this->validateProductData($data);
@@ -104,7 +100,6 @@ class ProductController extends BaseController
                 ]);
                 break;
 
-            // Modificación o ajuste manual de stock de un producto
             case 'product_update':
                 $input = $this->readInput();
                 $id = $this->validId($input['id'] ?? 0, 'producto');
@@ -136,17 +131,14 @@ class ProductController extends BaseController
                 ]);
                 break;
 
-            // Activa un producto previamente dado de baja
             case 'product_activate':
                 $this->handleToggleActive(true);
                 break;
 
-            // Desactiva un producto para ocultarlo en las búsquedas
             case 'product_deactivate':
                 $this->handleToggleActive(false);
                 break;
 
-            // Eliminación física (solo si nunca fue utilizado en un consumo de servicio)
             case 'product_delete':
                 $input = $this->readInput();
                 $id = $this->validId($input['id'] ?? 0, 'producto');
@@ -202,7 +194,6 @@ class ProductController extends BaseController
             'name'             => $this->str($input['name'] ?? null),
             'brand'            => $this->str($input['brand'] ?? null) ?: null,
             'measurement_unit' => $this->str($input['measurement_unit'] ?? 'ml'),
-            // Un string vacío cuenta como 0; si no es numérico la validación lo rechaza.
             'stock'            => $stock === '' ? 0 : $stock,
             'unit_cost'        => $unitCost === '' ? 0 : $unitCost,
         ];
@@ -238,7 +229,6 @@ class ProductController extends BaseController
             return 'El costo unitario debe ser un número mayor o igual a 0.';
         }
 
-        // Redondeo de precisión según columnas en BD
         $data['stock'] = round((float)$data['stock'], 2);
         $data['unit_cost'] = round((float)$data['unit_cost'], 4);
 
