@@ -66,7 +66,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-5) 1.75rem;
+  padding: var(--space-5) var(--space-6);
   border-bottom: 1px solid var(--color-border);
   background: linear-gradient(
     180deg,
@@ -86,7 +86,7 @@
 }
 
 .calendar__month {
-  margin-right: 0.4rem;
+  margin-right: var(--space-2);
 }
 
 .calendar__year {
@@ -102,11 +102,11 @@
 
 .calendar__nav {
   display: flex;
-  gap: 0.35rem;
+  gap: var(--space-1);
 }
 
 .nav-btn.nav-btn--today {
-  padding: 0 0.85rem;
+  padding: 0 var(--space-3);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -145,7 +145,7 @@
 .calendar__cell {
   position: relative;
   min-height: var(--cell-min-h);
-  padding: 0.65rem var(--space-3);
+  padding: var(--space-3) var(--space-3);
   border-right: 1px solid var(--color-border);
   border-bottom: 1px solid var(--color-border);
   display: flex;
@@ -267,9 +267,9 @@
   flex-wrap: wrap;
   align-content: center;
   align-items: center;
-  gap: 0.35rem var(--space-5);
+  gap: var(--space-1) var(--space-5);
   min-height: calc(3rem + 56px + 0.75rem);
-  padding: var(--space-3) 5.5rem var(--space-3) 1.75rem;
+  padding: var(--space-3) 5.5rem var(--space-3) var(--space-6);
   list-style: none;
   background: var(--color-bg-translucent);
   border-top: 1px solid var(--color-border);
@@ -279,7 +279,7 @@
 .legend__item {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--space-2);
   color: var(--color-text-muted);
   font-size: 0.8rem;
 }
@@ -376,7 +376,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-5);
-  padding: 0.9rem var(--space-5);
+  padding: var(--space-4) var(--space-5);
   cursor: pointer;
   transition: background var(--t-fast) ease;
 }
@@ -429,11 +429,11 @@
   }
 
   .calendar__day-name {
-    padding: 0.45rem 0;
+    padding: var(--space-2) 0;
   }
 
   .calendar__cell {
-    padding: 0.35rem var(--space-2);
+    padding: var(--space-1) var(--space-2);
     gap: var(--space-1);
   }
 
@@ -495,7 +495,7 @@
 }
 
 .login-col--main {
-  gap: 1.75rem;
+  gap: var(--space-6);
 }
 
 .login-col--side {
@@ -559,7 +559,7 @@
 }
 
 .login-story__title {
-  margin: 0.6rem 0 var(--space-6);
+  margin: var(--space-2) 0 var(--space-6);
   font-family: var(--font-serif);
   font-size: clamp(1.45rem, 3.4vw, 2rem);
   font-weight: 700;
@@ -571,7 +571,7 @@
 .login-story__body {
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: var(--space-4);
   font-size: 1rem;
   line-height: 1.75;
   color: var(--sidebar-muted);
@@ -579,7 +579,7 @@
 
 .login-story__body p:first-child::first-letter {
   float: left;
-  padding: 0.3rem 0.55rem 0 0;
+  padding: var(--space-1) var(--space-2) 0 0;
   font-family: "Alex Brush", cursive;
   font-size: 4rem;
   line-height: 0.75;
@@ -613,7 +613,7 @@
 .legal-doc {
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  gap: var(--space-4);
   color: var(--color-text);
   line-height: 1.7;
 }
@@ -628,7 +628,7 @@
 
 .legal-doc ul {
   display: grid;
-  gap: 0.4rem;
+  gap: var(--space-2);
   padding-left: var(--space-5);
   list-style: disc;
 }
@@ -640,7 +640,7 @@
 
 .login-fieldset .btn {
   width: 100%;
-  padding-block: 0.8rem;
+  padding-block: var(--space-3);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -840,7 +840,7 @@
   }
 
   .calendar__header {
-    padding: var(--space-3) 0.85rem;
+    padding: var(--space-3) var(--space-3);
     gap: var(--space-2);
     flex-shrink: 0;
   }
@@ -851,12 +851,12 @@
   }
 
   .calendar__month {
-    margin-right: 0.2rem;
+    margin-right: var(--space-1);
   }
 
   .calendar__nav {
     flex-shrink: 0;
-    gap: 0.2rem;
+    gap: var(--space-1);
   }
 
   .nav-btn {
@@ -874,11 +874,11 @@
 
   .calendar__day-name {
     font-size: 0.65rem;
-    padding: 0.4rem 0;
+    padding: var(--space-2) 0;
   }
 
   .calendar__cell {
-    padding: 0.35rem 0.2rem;
+    padding: var(--space-1) var(--space-1);
     height: 100%;
     min-height: 0;
   }
@@ -900,7 +900,7 @@
 
   .calendar__legend {
     min-height: calc(3rem + env(safe-area-inset-bottom) + 52px + 0.75rem);
-    padding: 0.6rem 5rem 0.6rem var(--space-4);
+    padding: var(--space-2) 5rem var(--space-2) var(--space-4);
   }
 
   .day-panel__header {
@@ -909,7 +909,7 @@
 
   .appointment-card__row {
     gap: var(--space-3);
-    padding: 0.85rem var(--space-4) var(--space-2);
+    padding: var(--space-3) var(--space-4) var(--space-2);
   }
 
   .appointment-card__name {
@@ -940,6 +940,6 @@
   .appointment-card__status {
     flex: 1 0 100%;
     justify-content: space-between;
-    padding: 0 var(--space-4) 0.85rem;
+    padding: 0 var(--space-4) var(--space-3);
   }
 }
