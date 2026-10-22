@@ -149,7 +149,6 @@ if (in_array($action, [
 if (in_array($action, [
     'service_history_save',
     'client_timeline',
-    'client_last_record',
     'service_history_detail'
 ], true)) {
     $controller = new ServiceHistoryController();

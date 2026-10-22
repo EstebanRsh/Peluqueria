@@ -5,7 +5,6 @@
 
 import {
   ApiError,
-  fetchClientLastRecord,
   getErrorMessage,
   saveServiceHistory,
   searchProducts,
@@ -16,7 +15,7 @@ import { createAutocomplete, createClientAutocomplete } from "./autocomplete.js"
 import { UNIT_SHORTS } from "./constants.js";
 import { $, escapeHtml, setActiveFilter } from "./dom.js";
 import { clearInvalidOnInput, createFeedback, setBusy } from "./feedback.js";
-import { confirmAction, showError, showResult } from "./confirm.js";
+import { confirmAction, showResult } from "./confirm.js";
 import { appState } from "./state.js";
 import { loadAppointments, syncCalendarDay } from "./ui.js";
 import { missingAppointmentNotice } from "./utils.js";
@@ -29,36 +28,6 @@ const NUMBER_FIELDS = [
   "treatmentTempValue",
   "treatmentPassesValue",
 ];
-
-const DETAIL_FIELDS = {
-  color: {
-    type: "colorType",
-    ratio: "colorOxidantRatio",
-    formula: "colorFormula",
-    brand: "colorBrand",
-    color_grams: "colorQuantityValue",
-    oxidant_vol: "colorOxidantValue",
-    exposure_time_min: "colorTimeValue",
-    application: "colorApplication",
-    result: "colorResult",
-  },
-  treatment: {
-    type: "treatmentType",
-    product: "treatmentProduct",
-    quantity_ml: "treatmentMlValue",
-    iron_temp_c: "treatmentTempValue",
-    iron_passes: "treatmentPassesValue",
-    processes: "treatmentProcess",
-    results: "treatmentResult",
-  },
-  cut: {
-    type: "cutType",
-    length: "cutLength",
-    condition: "cutCondition",
-    tools: "cutTools",
-    finish: "cutFinish",
-  },
-};
 
 function categoryHasData(category) {
   return Object.values(category).some((value) =>
@@ -207,13 +176,11 @@ export function initQuickEntry() {
   const clientIdInput = $("quickEntryClientId");
   const clientChip = $("quickClientSelected");
   const clientHelp = $("quickClientHelp");
-  const repeatButton = $("quickRepeatLast");
 
-  const showClientChip = (title, meta, registered) => {
+  const showClientChip = (title, meta) => {
     $("quickClientChipTitle").textContent = title;
     $("quickClientChipMeta").textContent = meta;
     clientChip.hidden = false;
-    repeatButton.hidden = !registered;
     clientSearchInput.hidden = true;
     clientSearchInput.value = "";
     clientSearchInput.removeAttribute("aria-invalid");
@@ -230,7 +197,6 @@ export function initQuickEntry() {
       client.internal_code
         ? `Código ${client.internal_code}`
         : "Cliente registrado",
-      true,
     );
   };
 
@@ -239,7 +205,7 @@ export function initQuickEntry() {
     aliasName = text;
     clientIdInput.value = "";
 
-    showClientChip(text, "Alias de referencia · sin cliente registrado", false);
+    showClientChip(text, "Alias de referencia · sin cliente registrado");
   };
 
   const linkAppointment = (appointment, finishing) => {
@@ -269,7 +235,6 @@ export function initQuickEntry() {
     aliasName = "";
     clientIdInput.value = "";
     clientChip.hidden = true;
-    repeatButton.hidden = true;
     clientSearchInput.hidden = false;
     clientHelp.hidden = false;
     clientAutocomplete?.reset();
@@ -631,111 +596,6 @@ export function initQuickEntry() {
       const raw = $(id)?.value ?? "";
       return raw !== "" && !/^[1-9]\d*$/.test(raw);
     });
-
-  // ============================================================
-  // COPIAR LA ÚLTIMA FICHA DEL CLIENTE
-  // ============================================================
-
-  const setFieldValue = (id, value) => {
-    const field = $(id);
-    if (!field) return;
-
-    field.value = value === null || value === undefined ? "" : String(value);
-    field.dispatchEvent(new Event("input", { bubbles: true }));
-  };
-
-  const repeatLastRecord = async () => {
-    if (!selectedClient) return;
-
-    setBusy(repeatButton, true);
-
-    try {
-      const response = await fetchClientLastRecord(selectedClient.id);
-
-      if (!response?.success) {
-        throw new ApiError(
-          response?.error || "La ficha anterior llegó con un formato inesperado.",
-          { kind: "invalid-response" },
-        );
-      }
-
-      const last = response.data;
-
-      if (!last) {
-        showResult(
-          "warning",
-          "Sin fichas anteriores",
-          "Este cliente todavía no tiene fichas para copiar.",
-        );
-        return;
-      }
-
-      const current = buildJSON().details;
-      const hasCurrent = Object.keys(DETAIL_FIELDS).some((category) =>
-        categoryHasData(current[category]),
-      );
-
-      if (hasCurrent) {
-        const confirmed = await confirmAction({
-          title: "Reemplazar los datos cargados",
-          message:
-            "Ya completaste datos de color, tratamiento o corte. Si copiás la última ficha, se van a reemplazar.",
-          confirmLabel: "Reemplazar",
-          danger: true,
-        });
-
-        if (!confirmed) return;
-      }
-
-      let firstFilled = null;
-
-      Object.entries(DETAIL_FIELDS).forEach(([category, fields]) => {
-        const source = last.technical_details[category] || {};
-
-        Object.entries(fields).forEach(([key, id]) =>
-          setFieldValue(id, source[key]),
-        );
-
-        if (!firstFilled && categoryHasData(source)) {
-          firstFilled = category;
-        }
-      });
-
-      if (firstFilled) {
-        setActive(firstFilled);
-      }
-
-      const date = String(last.performed_at)
-        .slice(0, 10)
-        .split("-")
-        .reverse()
-        .join("/");
-
-      const copied = showResult(
-        "success",
-        "Ficha copiada",
-        `Se copiaron los datos de la ficha del ${date}. Revisalos antes de guardar.`,
-      );
-
-      const reminder = last.technical_details.general?.next_visit_notes;
-
-      if (reminder) {
-        await copied;
-        showResult(
-          "warning",
-          "Recordatorio",
-          `Para esta visita habías anotado: ${reminder}`,
-        );
-      }
-    } catch (error) {
-      logError("Error al copiar la última ficha:", error);
-      showError(getErrorMessage(error, "No se pudo copiar la última ficha."));
-    } finally {
-      setBusy(repeatButton, false);
-    }
-  };
-
-  repeatButton?.addEventListener("click", repeatLastRecord);
 
   // ============================================================
   // GUARDAR

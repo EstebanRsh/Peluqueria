@@ -126,7 +126,6 @@
   --z-sidebar-mobile: 1020;
   --z-burger: 1025;
   --z-drawer: 1500;
-  --z-modal: 2000;
   --z-drawer-nested: 1600;
   --z-fab: 900;
 
@@ -176,9 +175,11 @@
   --color-reservado-line: #334155;
   --color-espera-solid: #b45309;
   --color-atencion-solid: #047857;
-  --color-success: var(--color-atencion-solid);
-  --color-warning: var(--color-espera-solid);
-  --color-error: var(--color-cancelado-solid);
+  --color-success-solid: var(--color-atencion-solid);
+  --color-error-solid: var(--color-cancelado-solid);
+  --color-warning-solid: var(--color-espera-solid);
+  --color-confirm-solid: var(--color-warning-solid);
+  --color-info-solid: #255d8f;
   --color-finalizado-solid: var(--color-gold);
   --color-finalizado-solid-text: var(--color-text);
   --color-finalizado-line: #a17d36;

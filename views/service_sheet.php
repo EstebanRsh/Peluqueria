@@ -26,7 +26,6 @@
                     <span class="selected-chip__meta" id="quickClientChipMeta"></span>
                 </div>
                 <div class="selected-chip__actions">
-                    <button type="button" class="btn btn--ghost btn--sm" id="quickRepeatLast" hidden>Copiar última ficha</button>
                     <button type="button" class="btn btn--ghost btn--sm" id="quickClientChange">Cambiar</button>
                 </div>
             </div>

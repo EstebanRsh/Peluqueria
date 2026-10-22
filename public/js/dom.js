@@ -23,7 +23,7 @@ export function restoreFocus(element) {
 }
 
 const OPEN_PANEL = '[role="dialog"][aria-modal="true"].is-open';
-const STAYS_ACTIVE = ".side-drawer-overlay, .confirm-dialog";
+const STAYS_ACTIVE = ".side-drawer-overlay";
 
 export function initPanelFocusTrap() {
   const stack = [];

@@ -205,24 +205,31 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
         </div>
     </dialog>
 
-    <dialog class="result-screen" id="resultScreen" aria-labelledby="resultTitle" aria-describedby="resultMessage" tabindex="-1">
-        <svg class="result-screen__icon result-screen__icon--success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+    <dialog class="message-screen" id="messageScreen" aria-labelledby="messageTitle" aria-describedby="messageText" tabindex="-1">
+        <svg class="message-screen__icon message-screen__icon--success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
             <circle cx="12" cy="12" r="10" />
-            <path class="result-screen__mark" d="M7.5 12.5l3 3 6-7" pathLength="1" />
+            <path class="message-screen__mark" d="M7.5 12.5l3 3 6-7" pathLength="1" />
         </svg>
-        <svg class="result-screen__icon result-screen__icon--error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <svg class="message-screen__icon message-screen__icon--error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
             <circle cx="12" cy="12" r="10" />
-            <path class="result-screen__mark" d="M8.5 8.5l7 7M15.5 8.5l-7 7" pathLength="1" />
+            <path class="message-screen__mark" d="M8.5 8.5l7 7M15.5 8.5l-7 7" pathLength="1" />
         </svg>
-        <svg class="result-screen__icon result-screen__icon--warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <svg class="message-screen__icon message-screen__icon--warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
             <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-            <path class="result-screen__mark" d="M12 9v4M12 17h.01" pathLength="1" />
+            <path class="message-screen__mark" d="M12 9v4M12 17h.01" pathLength="1" />
         </svg>
-        <div id="resultBody">
-            <h2 class="result-screen__title" id="resultTitle"></h2>
-            <p class="result-screen__message" id="resultMessage"></p>
+        <svg class="message-screen__icon message-screen__icon--info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="10" />
+            <path class="message-screen__mark" d="M12 11v5M12 8h.01" pathLength="1" />
+        </svg>
+        <div class="message-screen__body" id="messageBody">
+            <h2 class="message-screen__title" id="messageTitle"></h2>
+            <p class="message-screen__text" id="messageText"></p>
         </div>
-        <button type="button" class="btn result-screen__close" id="resultClose" hidden>Entendido</button>
+        <div class="message-screen__actions">
+            <button type="button" class="btn message-screen__button message-screen__button--cancel" id="messageCancel" hidden>Cancelar</button>
+            <button type="button" class="btn message-screen__button" id="messageAccept" hidden>Entendido</button>
+        </div>
     </dialog>
 
     <script>

@@ -442,10 +442,6 @@ export function fetchClientAppointments(clientId, page = 1) {
   });
 }
 
-export function fetchClientLastRecord(clientId) {
-  return getJson("client_last_record", { client_id: clientId });
-}
-
 export function searchClients(query, signal = null) {
   return getJson("client_search", { q: query }, signal);
 }

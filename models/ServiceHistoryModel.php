@@ -274,50 +274,6 @@ class ServiceHistoryModel
         return $timeline;
     }
 
-    public function getLastWithDetails(int $ownerId, int $clientId): ?array
-    {
-        $stmt = $this->conn->prepare("
-            SELECT id, appointment_id, service_name_snapshot, performed_at, technical_details
-            FROM service_history
-            WHERE owner_id = ?
-              AND client_id = ?
-              AND technical_details IS NOT NULL
-            ORDER BY performed_at DESC
-        ");
-
-        $stmt->bind_param('ii', $ownerId, $clientId);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        while ($row = $result->fetch_assoc()) {
-            $details = json_decode($row['technical_details'], true);
-
-            if (is_array($details) && $this->hasTechnicalData($details)) {
-                $row['technical_details'] = $details;
-                return $row;
-            }
-        }
-
-        return null;
-    }
-
-    private function hasTechnicalData(array $details): bool
-    {
-        foreach (['color', 'treatment', 'cut'] as $category) {
-            if (!is_array($details[$category] ?? null)) {
-                continue;
-            }
-
-            foreach ($details[$category] as $value) {
-                if (is_array($value) ? $value !== [] : $value !== null) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
     public function getConsumptions(int $ownerId, int $historyId): array
     {
         $stmt = $this->conn->prepare("

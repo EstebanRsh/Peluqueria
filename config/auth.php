@@ -81,7 +81,6 @@ final class Auth
         // Ficha técnica
         'service_history_save'   => ['owner'],
         'client_timeline'        => ['owner'],
-        'client_last_record'     => ['owner'],
         'service_history_detail' => ['owner'],
     ];
 
