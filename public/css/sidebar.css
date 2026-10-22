@@ -42,7 +42,7 @@
 }
 
 .premium-sidebar__header {
-  padding: 1.75rem 1.25rem;
+  padding: 1.75rem var(--space-5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -89,7 +89,7 @@
 
 .premium-sidebar__nav {
   flex: 1;
-  padding: 1.5rem 0;
+  padding: var(--space-6) 0;
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
@@ -103,8 +103,8 @@
 .premium-sidebar__logout {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.9rem 1.5rem 0.9rem var(--sidebar-item-pad-left);
+  gap: var(--space-4);
+  padding: 0.9rem var(--space-6) 0.9rem var(--sidebar-item-pad-left);
   color: var(--sidebar-muted);
   text-decoration: none;
   font-size: 0.9rem;
@@ -193,7 +193,7 @@
    ========================================================================== */
 
 .premium-sidebar__footer {
-  padding: 0.5rem 0 0.75rem;
+  padding: var(--space-2) 0 var(--space-3);
   border-top: 1px solid var(--sidebar-border);
   background: var(--sidebar-footer-bg);
   display: flex;
@@ -206,8 +206,8 @@
 .premium-sidebar__user-box {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1.25rem 0.85rem var(--sidebar-avatar-pad-left);
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5) 0.85rem var(--sidebar-avatar-pad-left);
   margin-bottom: 0.35rem;
   border-bottom: 1px solid var(--sidebar-border);
 }
@@ -324,7 +324,7 @@
     background-image: var(--sidebar-texture);
     background-repeat: repeat;
     color: var(--sidebar-text);
-    padding: 0 1.25rem;
+    padding: 0 var(--space-5);
     height: 60px;
     position: fixed;
     top: 0;

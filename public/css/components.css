@@ -350,7 +350,7 @@
   justify-content: center;
   font-size: 0.7rem;
   font-weight: 700;
-  padding: 0.25rem 0.65rem;
+  padding: var(--space-1) 0.65rem;
   border-radius: 999px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -391,7 +391,7 @@
   font-family: var(--font);
   font-size: 0.78rem;
   font-weight: 600;
-  padding: 0.35rem 0.75rem;
+  padding: 0.35rem var(--space-3);
   border-radius: 999px;
   cursor: pointer;
   white-space: nowrap;
@@ -506,7 +506,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: var(--space-5);
 }
 
 .drawer-form {
@@ -518,7 +518,7 @@
 
 .drawer-form > .alert,
 .side-drawer > .alert {
-  margin: 0 1.5rem 1rem;
+  margin: 0 var(--space-6) var(--space-4);
 }
 
 /* ==========================================================================
@@ -568,7 +568,7 @@
 .profile-drawer__section {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .client-row {
@@ -590,10 +590,10 @@
    ========================================================================== */
 
 .panel-controls {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 .panel-search {
   min-height: 2.75rem;
@@ -637,7 +637,7 @@
 .panel-loading,
 .panel-error {
   text-align: center;
-  padding: 2rem 0;
+  padding: var(--space-7) 0;
 }
 
 .panel-error,
@@ -652,7 +652,7 @@
 .form-privacy-note {
   display: flex;
   align-items: flex-start;
-  gap: 0.5rem;
+  gap: var(--space-2);
   font-size: 0.82rem;
   line-height: 1.45;
   color: var(--color-text-muted);
@@ -672,7 +672,7 @@
 }
 .form-row {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 .form-group {
   flex: 1;
@@ -835,8 +835,8 @@ select.form-select:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 1.5rem;
+  gap: var(--space-4);
+  padding: var(--space-6);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -846,26 +846,26 @@ select.form-select:focus {
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--space-1);
 }
 
 .appointment-detail-body {
-  padding: 1.5rem;
+  padding: var(--space-6);
   overflow-y: auto;
   display: grid;
-  gap: 1.25rem;
+  gap: var(--space-5);
 }
 
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .detail-card {
   display: grid;
   gap: 0.35rem;
-  padding: 0.9rem 1rem;
+  padding: 0.9rem var(--space-4);
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border-subtle);
   background: var(--color-bg);
@@ -891,9 +891,9 @@ select.form-select:focus {
 
 .appointment-history-log {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   margin-top: 0.6rem;
-  padding-top: 0.5rem;
+  padding-top: var(--space-2);
   border-top: 1px dashed var(--color-border);
 }
 
@@ -909,10 +909,10 @@ select.form-select:focus {
   font-size: 0.9rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
   max-height: 220px;
   overflow-y: auto;
-  padding-right: 0.5rem;
+  padding-right: var(--space-2);
 }
 
 .timeline-container {
@@ -926,7 +926,7 @@ select.form-select:focus {
 .profile-appointment {
   display: grid;
   gap: 0.55rem;
-  padding: 0.75rem 0;
+  padding: var(--space-3) 0;
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -935,7 +935,7 @@ select.form-select:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .timeline-header {
@@ -947,7 +947,7 @@ select.form-select:focus {
   align-items: center;
   justify-content: flex-start;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: var(--space-3);
   color: var(--color-text-muted);
   font-size: 0.82rem;
 }
@@ -1001,10 +1001,10 @@ select.form-select:focus {
 
 .appointment-detail-footer {
   display: flex;
-  gap: 0.75rem;
+  gap: var(--space-3);
   align-items: center;
   justify-content: flex-end;
-  padding: 1rem 1.5rem 1.5rem;
+  padding: var(--space-4) var(--space-6) var(--space-6);
   border-top: 1px solid var(--color-border);
   background: var(--color-bg);
 }
@@ -1035,7 +1035,7 @@ select.form-select:focus {
 .confirm-dialog__icon {
   display: flex;
   justify-content: center;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-2);
   color: var(--color-espera-solid);
   line-height: 1;
 }
@@ -1046,12 +1046,12 @@ select.form-select:focus {
 }
 
 .confirm-dialog__title {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
   font-size: 1.1rem;
 }
 
 .confirm-dialog__desc {
-  margin: 0 0 1.5rem;
+  margin: 0 0 var(--space-6);
   color: var(--color-text-muted);
   font-size: 0.95rem;
   line-height: 1.4;
@@ -1061,7 +1061,7 @@ select.form-select:focus {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 /* ==========================================================================
@@ -1076,7 +1076,7 @@ select.form-select:focus {
   max-width: none;
   max-height: none;
   margin: 0;
-  padding: 1.5rem;
+  padding: var(--space-6);
   border: 0;
   background: var(--result-color);
   color: var(--color-solid-text);
@@ -1100,7 +1100,7 @@ select.form-select:focus {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
+  gap: var(--space-4);
   animation: result-in var(--t-base) var(--ease-out);
 }
 
@@ -1127,7 +1127,7 @@ select.form-select:focus {
 
 .result-screen__close {
   min-width: 10rem;
-  margin-top: 1rem;
+  margin-top: var(--space-4);
   background: var(--color-on-dark);
   color: var(--result-color);
 }
@@ -1138,7 +1138,7 @@ select.form-select:focus {
 }
 
 .result-screen__title {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
   font-size: 1.5rem;
 }
 
@@ -1209,15 +1209,15 @@ select.form-select:focus {
 
 .status-dialog__body {
   display: grid;
-  gap: 1rem;
-  padding: 1.25rem;
+  gap: var(--space-4);
+  padding: var(--space-5);
 }
 
 .status-dialog__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .status-dialog__name {
@@ -1234,7 +1234,7 @@ select.form-select:focus {
 
 .status-dialog__options {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .status-dialog__option {
@@ -1245,7 +1245,7 @@ select.form-select:focus {
   justify-content: space-between;
   width: 100%;
   min-height: 2.75rem;
-  padding: 0 1rem;
+  padding: 0 var(--space-4);
   background: var(--option-bg);
   color: var(--option-text);
   border: 1px solid var(--color-border);
@@ -1283,7 +1283,7 @@ select.form-select:focus {
 .row-dialog__data div {
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-4);
   padding-bottom: 0.6rem;
   border-bottom: 1px dashed var(--color-border);
   font-size: 0.9rem;
@@ -1324,7 +1324,7 @@ select.form-select:focus {
 
 .row-dialog__actions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .row-dialog__actions .btn {
@@ -1375,7 +1375,7 @@ select.form-select:focus {
 
 .data-table th,
 .data-table td {
-  padding: 0.75rem 1rem;
+  padding: var(--space-3) var(--space-4);
   vertical-align: middle;
   text-align: left;
   font-size: 0.88rem;
@@ -1436,8 +1436,8 @@ select.form-select:focus {
 .service-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin: 0.75rem 0 0;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -1450,8 +1450,8 @@ select.form-select:focus {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  column-gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  column-gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
 }
@@ -1496,20 +1496,20 @@ select.form-select:focus {
 .settings-section {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1.25rem 0 0;
+  gap: var(--space-4);
+  padding: var(--space-5) 0 0;
   border-top: 1px solid var(--color-border-subtle);
 }
 
 .settings-section:first-child {
-  padding-top: 0.25rem;
+  padding-top: var(--space-1);
   border-top: 0;
 }
 
 .settings-form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: var(--space-5);
 }
 
 .settings-form > .btn,
@@ -1537,7 +1537,7 @@ select.form-select:focus {
   .data-table tr {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
-    margin-bottom: 0.75rem;
+    margin-bottom: var(--space-3);
     padding: 0;
     position: relative;
   }
@@ -1546,9 +1546,9 @@ select.form-select:focus {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 0.75rem;
+    gap: var(--space-3);
     border-bottom: 1px dashed var(--color-border);
-    padding: 0.6rem 1rem;
+    padding: 0.6rem var(--space-4);
   }
 
   .data-table td:last-child {
@@ -1663,18 +1663,18 @@ select.form-select:focus {
   }
 
   .appointment-detail-header {
-    padding: 1.25rem;
-    padding-top: max(1.25rem, env(safe-area-inset-top));
+    padding: var(--space-5);
+    padding-top: max(var(--space-5), env(safe-area-inset-top));
   }
 
   .appointment-detail-body {
-    padding: 1.25rem;
+    padding: var(--space-5);
   }
 
   .appointment-detail-footer {
-    padding: 1rem 1.25rem;
+    padding: var(--space-4) var(--space-5);
     flex-direction: column-reverse;
-    gap: 0.75rem;
+    gap: var(--space-3);
   }
 
   .appointment-detail-footer .btn {
@@ -1740,7 +1740,7 @@ select.form-select:focus {
 
 .dynamic-panel {
   display: none;
-  padding-top: 1rem;
+  padding-top: var(--space-4);
   border-top: 1px dashed var(--color-border);
 }
 
@@ -1776,7 +1776,7 @@ select.form-select:focus {
 }
 
 .dynamic-panel > * + * {
-  margin-top: 1rem;
+  margin-top: var(--space-4);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1860,7 +1860,7 @@ select.form-select:focus {
 }
 
 .autocomplete-list li {
-  padding: 0.6rem 0.75rem;
+  padding: 0.6rem var(--space-3);
   font-size: 0.9rem;
   cursor: pointer;
 }
@@ -1923,8 +1923,8 @@ select.form-select:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.55rem 0.75rem;
+  gap: var(--space-3);
+  padding: 0.55rem var(--space-3);
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-left: 3px solid var(--color-gold);
@@ -1959,7 +1959,7 @@ select.form-select:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--space-3);
   width: 100%;
   height: 3.5rem;
   padding: 0 0.85rem;
@@ -2042,7 +2042,7 @@ select.form-select:focus {
 }
 
 .panel-empty__action {
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
 /* ==========================================================================
@@ -2053,7 +2053,7 @@ select.form-select:focus {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--space-3);
 }
 
 /* ==========================================================================
@@ -2063,7 +2063,7 @@ select.form-select:focus {
 .input-with-unit {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .input-with-unit input {
@@ -2139,7 +2139,7 @@ select.form-select:focus {
 
 .confirm-phrase {
   margin: 0;
-  padding: 0.7rem 1rem;
+  padding: 0.7rem var(--space-4);
   text-align: center;
   font-family: var(--font-serif);
   font-size: 1rem;
