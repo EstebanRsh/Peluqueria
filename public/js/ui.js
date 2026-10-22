@@ -557,6 +557,22 @@ function renderAppointmentsList(container, appointments) {
 // DETALLE DE TURNO
 // ============================================================
 
+// Con varios servicios, cada uno aparece con su precio.
+function serviceDetailHtml(appointment) {
+  const services = appointment.services ?? [];
+
+  if (services.length < 2) {
+    return escapeHtml(appointment.service_name || "No disponible");
+  }
+
+  return services
+    .map(
+      (service) =>
+        `${escapeHtml(service.name)} · $${escapeHtml(service.price)}`,
+    )
+    .join("<br>");
+}
+
 function openAppointmentDetailModal(appointmentId) {
   const appointment = appointmentMap.get(String(appointmentId));
 
@@ -616,7 +632,7 @@ function openAppointmentDetailModal(appointmentId) {
           <div class="detail-card">
             <span class="detail-label">Servicio</span>
             <span class="detail-value">
-              ${escapeHtml(appointment.service_name || "No disponible")}
+              ${serviceDetailHtml(appointment)}
             </span>
           </div>
 
@@ -704,6 +720,29 @@ function openAppointmentDetailModal(appointmentId) {
         >
           Eliminar turno
         </button>
+
+        <button
+          type="button"
+          class="btn btn--ghost"
+          data-action="edit"
+          data-id="${escapeHtml(appointment.id)}"
+        >
+          Editar turno
+        </button>
+
+        ${
+          appointment.status === "Finalizado" &&
+          Number(appointment.has_record) !== 1
+            ? `<button
+          type="button"
+          class="btn btn--primary"
+          data-action="record"
+          data-id="${escapeHtml(appointment.id)}"
+        >
+          Cargar ficha
+        </button>`
+            : ""
+        }
       </div>
   `;
 
@@ -778,6 +817,14 @@ function attachDetailModalEvents(detailPanel, detailOverlay) {
         openStatusDialog(actionButton.dataset.id);
         break;
 
+      case "edit":
+        openAppointmentForm(actionButton.dataset.id, false);
+        break;
+
+      case "record":
+        openRecordForm(actionButton.dataset.id);
+        break;
+
       case "delete":
         await deleteAppointment(actionButton);
         break;
@@ -804,6 +851,33 @@ async function setAppointmentStatus(id, status) {
   }
 
   return previous;
+}
+
+// Cierra el detalle y abre el formulario del turno (edición o finalización).
+function openAppointmentForm(id, finish) {
+  const appointment = appointmentMap.get(String(id));
+
+  if (!appointment) {
+    return;
+  }
+
+  closeAppointmentDetailModal({ restore: false });
+  document.dispatchEvent(
+    new CustomEvent("appointment:edit", { detail: { appointment, finish } }),
+  );
+}
+
+function openRecordForm(id) {
+  const appointment = appointmentMap.get(String(id));
+
+  if (!appointment) {
+    return;
+  }
+
+  closeAppointmentDetailModal({ restore: false });
+  document.dispatchEvent(
+    new CustomEvent("quickentry:open", { detail: { appointment } }),
+  );
 }
 
 async function refreshDay() {
@@ -868,6 +942,11 @@ async function changeStatusFromDialog(id, status) {
   const appointment = appointmentMap.get(String(id));
 
   if (!appointment || appointment.status === status) {
+    return;
+  }
+
+  if (status === "Finalizado") {
+    openAppointmentForm(id, true);
     return;
   }
 

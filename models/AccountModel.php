@@ -7,11 +7,14 @@ require_once __DIR__ . '/../config/database.php';
  */
 class AccountModel
 {
+    public const DELETE_CONFIRMATION = 'ELIMINAR MI CUENTA';
+
     private const OWNED_TABLES = [
         'clients',
         'services',
         'products',
         'appointments',
+        'appointment_services',
         'appointment_history',
         'service_history',
         'service_consumptions',
@@ -22,6 +25,7 @@ class AccountModel
         'clients'              => 'Clientes',
         'products'             => 'Productos',
         'appointments'         => 'Turnos',
+        'appointment_services' => 'Servicios de los turnos',
         'appointment_history'  => 'Historial de estados',
         'service_history'      => 'Fichas',
         'service_consumptions' => 'Consumos',
@@ -89,6 +93,35 @@ class AccountModel
     }
 
     // ============================================================
+    // ELIMINACIÓN
+    // ============================================================
+
+    // Borra de forma definitiva la cuenta y todos sus datos, en una sola transacción.
+    // Se borra en orden porque servicios y productos no se pueden eliminar mientras
+    // haya turnos, fichas o consumos que los usen.
+    public function deleteOwner(int $ownerId): void
+    {
+        $this->conn->begin_transaction();
+
+        try {
+            foreach (['service_consumptions', 'service_history', 'appointment_history', 'appointment_services', 'appointments', 'clients', 'products', 'services'] as $table) {
+                $stmt = $this->conn->prepare("DELETE FROM {$table} WHERE owner_id = ?");
+                $stmt->bind_param('i', $ownerId);
+                $stmt->execute();
+            }
+
+            $stmt = $this->conn->prepare("DELETE FROM users WHERE id = ?");
+            $stmt->bind_param('i', $ownerId);
+            $stmt->execute();
+
+            $this->conn->commit();
+        } catch (Throwable $e) {
+            $this->conn->rollback();
+            throw $e;
+        }
+    }
+
+    // ============================================================
     // IMPORTACIÓN
     // ============================================================
 
@@ -119,6 +152,7 @@ class AccountModel
         $clients = $this->validateClients($this->table($data, 'clients'));
         $products = $this->validateProducts($this->table($data, 'products'));
         $appointments = $this->validateAppointments($this->table($data, 'appointments'), $services, $clients);
+        $appointmentServices = $this->validateAppointmentServices($data, $appointments, $services);
         $history = $this->validateAppointmentHistory($this->table($data, 'appointment_history'), $appointments);
         $records = $this->validateServiceHistory($this->table($data, 'service_history'), $clients, $appointments, $services);
         $consumptions = $this->validateConsumptions($this->table($data, 'service_consumptions'), $records, $products);
@@ -130,6 +164,7 @@ class AccountModel
             $clientIds = $this->insertClients($ownerId, $clients);
             $productIds = $this->insertProducts($ownerId, $products);
             $appointmentIds = $this->insertAppointments($ownerId, $appointments, $serviceIds, $clientIds);
+            $this->insertAppointmentServices($ownerId, $appointmentServices, $appointmentIds, $serviceIds);
             $this->insertAppointmentHistory($ownerId, $history, $appointmentIds);
             $recordIds = $this->insertServiceHistory($ownerId, $records, $clientIds, $appointmentIds, $serviceIds);
             $this->insertConsumptions($ownerId, $consumptions, $recordIds, $productIds);
@@ -262,6 +297,52 @@ class AccountModel
                 'time_start'  => $start,
                 'time_end'    => $end,
                 'created_at'  => $this->dateTime($row, 'created_at', 'la fecha de alta', false),
+            ];
+        }
+
+        return $result;
+    }
+
+    // Las copias anteriores no traen esta tabla: en ese caso cada turno queda con su servicio.
+    private function validateAppointmentServices(array $data, array $appointments, array $services): array
+    {
+        $result = [];
+        $used = [];
+
+        if (array_key_exists('appointment_services', $data)) {
+            foreach ($this->table($data, 'appointment_services') as $i => $row) {
+                $this->recordId($row, $i, $result);
+
+                $appointmentId = $this->reference($row, 'appointment_id', 'el turno', $appointments, true);
+                $serviceId = $this->reference($row, 'service_id', 'el servicio', $services, true);
+
+                if (isset($used[$appointmentId][$serviceId])) {
+                    $this->fail('el servicio está repetido en el turno.');
+                }
+
+                $used[$appointmentId][$serviceId] = true;
+
+                $result[] = [
+                    'appointment_id' => $appointmentId,
+                    'service_id'     => $serviceId,
+                    'position'       => $this->integer($row, 'position', 'la posición', 1, 255),
+                    'price'          => $this->decimal($row, 'price', 'el precio', 0, self::MAX_PRICE),
+                    'duration'       => $this->integer($row, 'duration', 'la duración', 1, self::MAX_DURATION),
+                ];
+            }
+        }
+
+        foreach ($appointments as $appointmentId => $appointment) {
+            if (!empty($used[$appointmentId])) {
+                continue;
+            }
+
+            $result[] = [
+                'appointment_id' => $appointmentId,
+                'service_id'     => $appointment['service_id'],
+                'position'       => 1,
+                'price'          => $appointment['price'],
+                'duration'       => $services[$appointment['service_id']]['duration'],
             ];
         }
 
@@ -427,6 +508,22 @@ class AccountModel
         }
 
         return $ids;
+    }
+
+    private function insertAppointmentServices(int $ownerId, array $rows, array $appointmentIds, array $serviceIds): void
+    {
+        $stmt = $this->conn->prepare("
+            INSERT INTO appointment_services (owner_id, appointment_id, service_id, position, price, duration)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ");
+
+        foreach ($rows as $r) {
+            $appointmentId = $appointmentIds[$r['appointment_id']];
+            $serviceId = $serviceIds[$r['service_id']];
+
+            $stmt->bind_param('iiiisi', $ownerId, $appointmentId, $serviceId, $r['position'], $r['price'], $r['duration']);
+            $stmt->execute();
+        }
     }
 
     private function insertAppointmentHistory(int $ownerId, array $rows, array $appointmentIds): void

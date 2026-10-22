@@ -9,12 +9,16 @@ import {
   saveServiceHistory,
   searchProducts,
   logError,
+  updateAppointment,
 } from "./api.js";
 import { createAutocomplete, createClientAutocomplete } from "./autocomplete.js";
 import { UNIT_SHORTS } from "./constants.js";
 import { $, escapeHtml } from "./dom.js";
 import { clearInvalidOnInput, createFeedback, setBusy } from "./feedback.js";
 import { confirmAction, showError, showResult } from "./confirm.js";
+import { appState } from "./state.js";
+import { loadAppointments, syncCalendarDay } from "./ui.js";
+import { missingAppointmentNotice } from "./utils.js";
 
 // Campos numéricos de la ficha (enteros mayores a 0).
 const NUMBER_FIELDS = [
@@ -93,15 +97,21 @@ export function initQuickEntry() {
 
   let selectedClient = null;
   let aliasName = "";
+  let linkedAppointment = null;
+  let pendingFinish = null;
 
   // ============================================================
   // APERTURA Y CIERRE
   // ============================================================
 
-  const openDrawer = () => {
+  const openDrawer = (appointment = null, finishing = null) => {
     opener = document.activeElement;
 
     feedback.clearInvalid();
+
+    if (appointment) {
+      linkAppointment(appointment, finishing);
+    }
 
     panel.setAttribute("aria-hidden", "false");
     panel.classList.add("is-open");
@@ -117,7 +127,7 @@ export function initQuickEntry() {
 
   const closeDrawer = () => {
     panel.setAttribute("aria-hidden", "true");
-    panel.classList.remove("is-open");
+    panel.classList.remove("is-open", "is-parked");
     overlay.classList.remove("is-open");
     resetForm();
 
@@ -136,16 +146,57 @@ export function initQuickEntry() {
       return;
     }
 
+    if (!linkedAppointment) {
+      closeDrawer();
+    }
+  };
+
+  const cancelDrawer = async () => {
+    const options = pendingFinish
+      ? {
+          title: "Cancelar la finalización",
+          message:
+            "El turno no se finaliza y se descartan los cambios que hiciste.",
+          confirmLabel: "Descartar",
+          cancelLabel: "Seguir",
+        }
+      : {
+          title: "Descartar la ficha",
+          message: "Hay datos sin guardar. Si salís ahora, se pierden.",
+          confirmLabel: "Descartar",
+          cancelLabel: "Seguir editando",
+        };
+
+    if ((pendingFinish || isDirty()) && !(await confirmAction({ ...options, danger: true }))) {
+      return;
+    }
+
     closeDrawer();
   };
 
-  document.addEventListener("quickentry:open", openDrawer);
-  btnClose?.addEventListener("click", closeDrawer);
-  btnCancel?.addEventListener("click", closeDrawer);
+  document.addEventListener("quickentry:open", (event) => {
+    const appointment = event.detail?.appointment ?? null;
+    const finishing = event.detail?.finishing ?? null;
+
+    if (finishing && panel.classList.contains("is-open")) {
+      linkAppointment(appointment, finishing);
+      panel.classList.remove("is-parked");
+      requestAnimationFrame(() => panel.focus({ preventScroll: true }));
+      return;
+    }
+
+    openDrawer(appointment, finishing);
+  });
+  btnClose?.addEventListener("click", cancelDrawer);
+  btnCancel?.addEventListener("click", cancelDrawer);
   overlay.addEventListener("click", requestClose);
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && panel.classList.contains("is-open")) {
+    if (
+      event.key === "Escape" &&
+      panel.classList.contains("is-open") &&
+      !$("appointmentFormPanel")?.classList.contains("is-open")
+    ) {
       requestClose();
     }
   });
@@ -192,6 +243,29 @@ export function initQuickEntry() {
     clientIdInput.value = "";
 
     showClientChip(text, "Alias de referencia · sin cliente registrado", false);
+  };
+
+  // Ficha de un turno: el cliente y el servicio son los del turno.
+  const linkAppointment = (appointment, finishing) => {
+    linkedAppointment = appointment;
+    pendingFinish = finishing;
+    $("quickEntryBack").hidden = !finishing;
+    btnCancel.hidden = Boolean(finishing);
+    $("quickEntryFinishOnly").hidden = !finishing;
+
+    if (appointment.client_id) {
+      selectClient({
+        id: appointment.client_id,
+        alias: appointment.client_name,
+        internal_code: appointment.client_internal_code,
+      });
+    } else {
+      useAlias(appointment.client_name || "");
+    }
+
+    $("quickClientChange").hidden = true;
+    $("quickEntryTitle").textContent =
+      `Ficha de servicio · ${appointment.service_name}`;
   };
 
   const clearClientUi = () => {
@@ -507,6 +581,7 @@ export function initQuickEntry() {
     const typedName = aliasName || clientSearchInput.value.trim();
 
     return {
+      appointment_id: linkedAppointment?.id ?? null,
       client_id: clientId,
       client_name: clientId ? null : typedName || null,
       consumptions: cartItems.map((item) => ({
@@ -527,9 +602,9 @@ export function initQuickEntry() {
 
   const isDirty = () =>
     Boolean(
-      selectedClient ||
-      aliasName ||
-      clientSearchInput.value.trim() ||
+      (!linkedAppointment &&
+        (selectedClient || aliasName || clientSearchInput.value.trim())) ||
+      cartItems.length > 0 ||
       hasData(buildJSON()),
     );
 
@@ -718,7 +793,9 @@ export function initQuickEntry() {
     if (!hasData(data)) {
       feedback.show(
         "warning",
-        "Completá al menos un dato de algún servicio antes de guardar.",
+        pendingFinish
+          ? "Completá al menos un dato de la ficha o usá «Finalizar sin ficha»."
+          : "Completá al menos un dato de algún servicio antes de guardar.",
       );
       return;
     }
@@ -741,7 +818,19 @@ export function initQuickEntry() {
     isSaving = true;
     setBusy(btnSave, true);
 
+    const finishing = pendingFinish;
+    let turnSaved = false;
+
     try {
+      if (finishing) {
+        await commitFinish(finishing);
+        pendingFinish = null;
+        turnSaved = true;
+        $("quickEntryBack").hidden = true;
+        btnCancel.hidden = false;
+        $("quickEntryFinishOnly").hidden = true;
+      }
+
       const result = await saveServiceHistory(data);
 
       if (!result.success) {
@@ -750,25 +839,155 @@ export function initQuickEntry() {
         });
       }
 
+      const savedForAppointment = linkedAppointment !== null;
+
       showResult(
         "success",
-        "Ficha guardada",
-        "Ya figura en el historial del cliente.",
+        finishing ? "Turno finalizado" : "Ficha guardada",
+        finishing
+          ? `Se guardaron el turno y la ficha. ${recordSummary(data)}${missingAppointmentNotice(finishing.data)}`
+          : `Ya figura en el historial del cliente. ${recordSummary(data)}`,
       );
       closeDrawer();
+
+      if (finishing) {
+        refreshAgenda(finishing);
+      } else if (savedForAppointment && appState.activeDay) {
+        loadAppointments(appState.activeDay, { showLoading: false });
+      }
     } catch (error) {
       logError("Error al guardar ficha:", error);
+
+      const reason = getErrorMessage(
+        error,
+        "No se pudo guardar la ficha. Intentá de nuevo.",
+      );
+
       feedback.show(
         "error",
-        getErrorMessage(
-          error,
-          "No se pudo guardar la ficha. Intentá de nuevo.",
-        ),
+        turnSaved
+          ? `El turno ya quedó finalizado, pero la ficha no se guardó: ${reason} Podés reintentar o cargarla después con «Cargar ficha» desde el detalle.`
+          : reason,
       );
+
+      if (turnSaved) {
+        refreshAgenda(finishing);
+      }
     } finally {
       isSaving = false;
       setBusy(btnSave, false);
     }
+  };
+
+  // Guarda el turno como Finalizado.
+  const commitFinish = async (finishing) => {
+    const result = await updateAppointment(finishing.data);
+
+    if (!result.success) {
+      throw new ApiError(result.error || "No se pudo finalizar el turno.", {
+        kind: "request",
+      });
+    }
+  };
+
+  const refreshAgenda = (finishing) => {
+    syncCalendarDay(finishing.data.date);
+
+    if (finishing.previousDate !== finishing.data.date) {
+      syncCalendarDay(finishing.previousDate);
+    }
+
+    if (appState.activeDay) {
+      loadAppointments(appState.activeDay, { showLoading: false });
+    }
+  };
+
+  const finishWithoutRecord = async () => {
+    const finishing = pendingFinish;
+    const button = $("quickEntryFinishOnly");
+
+    if (isSaving || !finishing) return;
+
+    if (
+      (cartItems.length > 0 || hasData(buildJSON())) &&
+      !(await confirmAction({
+        title: "Finalizar sin ficha",
+        message: "Los datos que cargaste en la ficha no se van a guardar.",
+        confirmLabel: "Finalizar igual",
+        cancelLabel: "Volver a la ficha",
+        danger: true,
+      }))
+    ) {
+      return;
+    }
+
+    isSaving = true;
+    setBusy(button, true);
+
+    try {
+      await commitFinish(finishing);
+
+      showResult(
+        "success",
+        "Turno finalizado",
+        `Se guardaron los datos del turno. La ficha quedó sin cargar: la cargás con «Cargar ficha» desde el detalle del turno.${missingAppointmentNotice(finishing.data)}`,
+      );
+      closeDrawer();
+      refreshAgenda(finishing);
+    } catch (error) {
+      logError("Error al finalizar el turno:", error);
+      feedback.show(
+        "error",
+        getErrorMessage(error, "No se pudo finalizar el turno."),
+      );
+    } finally {
+      isSaving = false;
+      setBusy(button, false);
+    }
+  };
+
+  $("quickEntryFinishOnly")?.addEventListener("click", finishWithoutRecord);
+
+  document.addEventListener("quickentry:abort", closeDrawer);
+
+  document.addEventListener("appointment:closed", () => {
+    panel.classList.remove("is-parked");
+  });
+
+  $("quickEntryBack")?.addEventListener("click", () => {
+    if (!pendingFinish) return;
+
+    panel.classList.add("is-parked");
+
+    document.dispatchEvent(
+      new CustomEvent("appointment:edit", {
+        detail: {
+          appointment: { ...pendingFinish.data, ...linkedAppointment },
+          finish: true,
+          previousDate: pendingFinish.previousDate,
+          returning: true,
+        },
+      }),
+    );
+  });
+
+  // Qué se guardó en la ficha y qué quedó sin cargar.
+  const recordSummary = (data) => {
+    const saved = [];
+    const empty = [];
+
+    tabs.forEach((tab) => {
+      const category = data.details[tab.dataset.category] ?? {};
+
+      (categoryHasData(category) ? saved : empty).push(tab.dataset.label);
+    });
+
+    (data.consumptions.length > 0 ? saved : empty).push("productos usados");
+
+    return (
+      `Se guardó: ${saved.join(", ")}.` +
+      (empty.length > 0 ? ` Sin cargar: ${empty.join(", ")}.` : "")
+    );
   };
 
   btnSave?.addEventListener("click", saveRecord);
@@ -789,6 +1008,13 @@ export function initQuickEntry() {
     });
 
     clearClientUi();
+    linkedAppointment = null;
+    pendingFinish = null;
+    $("quickEntryBack").hidden = true;
+    btnCancel.hidden = false;
+    $("quickEntryFinishOnly").hidden = true;
+    $("quickClientChange").hidden = false;
+    $("quickEntryTitle").textContent = "Ficha de servicio";
     productAutocomplete?.reset();
 
     activeCategory = DEFAULT_CATEGORY;

@@ -10,8 +10,11 @@ class AppointmentController extends BaseController
     // Límite numérico para la columna price DECIMAL(10,2)
     private const MAX_PRICE = 99999999.99;
 
+    // Servicios por turno
+    private const MAX_SERVICES = 10;
+
     // Acciones que requieren estrictamente un método POST
-    private const POST_ACTIONS = ['create', 'update_status', 'delete'];
+    private const POST_ACTIONS = ['create', 'update', 'update_status', 'delete'];
 
     public function __construct()
     {
@@ -65,6 +68,35 @@ class AppointmentController extends BaseController
                 $this->json([
                     'success' => $success,
                     'error'   => $success ? null : 'No se pudo guardar el turno en la base de datos.'
+                ]);
+                break;
+
+            // Editar los datos de un turno existente
+            case 'update':
+                $input = $this->readInput();
+                $id = $this->validId($input['id'] ?? 0, 'turno');
+                $current = $this->model->getById($this->ownerId(), $id);
+
+                if (!$current) {
+                    $this->error('El turno no existe.', 404);
+                }
+
+                $data = $this->buildAppointmentData($input);
+                $error = $this->validateAppointmentData($data, $current);
+
+                if ($error !== true) {
+                    $this->error($error);
+                }
+
+                try {
+                    $success = $this->model->update($this->ownerId(), $id, $data);
+                } catch (InvalidArgumentException $e) {
+                    $this->error($e->getMessage(), 409);
+                }
+
+                $this->json([
+                    'success' => $success,
+                    'error'   => $success ? null : 'No se pudo guardar el turno.'
                 ]);
                 break;
 
@@ -152,7 +184,8 @@ class AppointmentController extends BaseController
         return [
             'client_id'   => ($clientId === false || $clientId <= 0) ? null : $clientId,
             'client_name' => $this->str($input['client_name'] ?? null),
-            'service_id'  => filter_var($input['service_id'] ?? 0, FILTER_VALIDATE_INT),
+            'service_ids' => $this->serviceIds($input),
+            'service_durations' => $this->serviceDurations($input),
             'stylist'     => $this->str($input['stylist'] ?? null),
             'price'       => is_numeric($input['price'] ?? null) ? (float)$input['price'] : -1,
             'notes'       => $this->str($input['notes'] ?? null),
@@ -163,12 +196,62 @@ class AppointmentController extends BaseController
         ];
     }
 
+    // Lista de servicios del turno ("service_ids", o un "service_id" suelto). Devuelve false
+    // si algún valor no es un entero positivo o si se repite un servicio.
+    private function serviceIds(array $input): array|false
+    {
+        $raw = $input['service_ids'] ?? (isset($input['service_id']) ? [$input['service_id']] : []);
+
+        if (!is_array($raw)) {
+            return false;
+        }
+
+        $ids = [];
+
+        foreach ($raw as $value) {
+            $id = filter_var($value, FILTER_VALIDATE_INT);
+
+            if ($id === false || $id <= 0 || in_array($id, $ids, true)) {
+                return false;
+            }
+
+            $ids[] = $id;
+        }
+
+        return $ids;
+    }
+
+    // Duración propia de este turno por servicio ({"<service_id>": minutos}). Devuelve false
+    // si algún valor no es un entero entre 1 y 1440.
+    private function serviceDurations(array $input): array|false
+    {
+        $raw = $input['service_durations'] ?? [];
+
+        if (!is_array($raw)) {
+            return false;
+        }
+
+        $durations = [];
+
+        foreach ($raw as $id => $minutes) {
+            $minutes = filter_var($minutes, FILTER_VALIDATE_INT);
+
+            if (!is_numeric($id) || $minutes === false || $minutes < 1 || $minutes > 1440) {
+                return false;
+            }
+
+            $durations[(int)$id] = $minutes;
+        }
+
+        return $durations;
+    }
+
     // ============================================================
     // VALIDAR DATOS DEL TURNO
     // ============================================================
 
     // Revisa todas las reglas de negocio para guardar o editar un turno
-    private function validateAppointmentData(array $data)
+    private function validateAppointmentData(array $data, ?array $current = null)
     {
         // Validar que exista al menos cliente registrado o nombre ocasional
         if ($data['client_id'] === null && $data['client_name'] === '') {
@@ -182,20 +265,37 @@ class AppointmentController extends BaseController
         if ($data['client_id'] !== null) {
             $client = $this->model->getClientById($this->ownerId(), $data['client_id']);
 
-            if (!$client || !$client['active']) {
+            $unchangedClient = $current !== null && (int)$current['client_id'] === $data['client_id'];
+
+            if (!$client || (!$client['active'] && !$unchangedClient)) {
                 return 'El cliente seleccionado no existe o está inactivo.';
             }
         }
 
-        // Validar servicio existente y activo
-        if ($data['service_id'] === false || $data['service_id'] <= 0) {
-            return 'Debe seleccionar un servicio válido.';
+        // Validar servicios existentes y activos (sin repetir)
+        if ($data['service_ids'] === false) {
+            return 'Los servicios seleccionados no son válidos o están repetidos.';
         }
 
-        $service = $this->model->getServiceById($this->ownerId(), $data['service_id']);
+        if ($data['service_ids'] === []) {
+            return 'Debe seleccionar al menos un servicio.';
+        }
 
-        if (!$service || !$service['active']) {
-            return 'El servicio seleccionado no existe o está inactivo.';
+        if (count($data['service_ids']) > self::MAX_SERVICES) {
+            return 'Un turno no puede tener más de ' . self::MAX_SERVICES . ' servicios.';
+        }
+
+        if ($data['service_durations'] === false) {
+            return 'La duración de los servicios debe ser un número entero de minutos (entre 1 y 1440).';
+        }
+
+        foreach ($data['service_ids'] as $serviceId) {
+            $service = $this->model->getServiceById($this->ownerId(), $serviceId);
+            $unchangedService = $current !== null && in_array($serviceId, $current['service_ids'], true);
+
+            if (!$service || (!$service['active'] && !$unchangedService)) {
+                return 'Alguno de los servicios seleccionados no existe o está inactivo.';
+            }
         }
 
         // Validar estilista

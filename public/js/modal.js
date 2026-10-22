@@ -5,13 +5,19 @@
 import {
   createAppointment,
   fetchAppointments,
+  updateAppointment,
   getErrorMessage,
   searchServices,
   logError,
 } from "./api.js";
 import { DEFAULT_APPOINTMENT_STATUS, INACTIVE_STATUSES } from "./constants.js";
-import { $, restoreFocus } from "./dom.js";
-import { formatDate, pad, todayIso } from "./utils.js";
+import { $, escapeHtml, restoreFocus } from "./dom.js";
+import {
+  formatDate,
+  missingAppointmentNotice,
+  pad,
+  todayIso,
+} from "./utils.js";
 import { appState } from "./state.js";
 import { loadAppointments, syncCalendarDay } from "./ui.js";
 import {
@@ -19,7 +25,7 @@ import {
   createClientAutocomplete,
 } from "./autocomplete.js";
 import { clearInvalidOnInput, createFeedback, setBusy } from "./feedback.js";
-import { showResult } from "./confirm.js";
+import { confirmAction, showResult } from "./confirm.js";
 
 // ============================================================
 // ELEMENTOS DEL MODAL
@@ -39,8 +45,11 @@ const LAST_STYLIST_KEY = "hairapp:lastStylist";
 // ESTADO DEL MODAL
 // ============================================================
 
-let selectedService = null;
+let selectedServices = [];
+let servicesLocked = false;
 let serviceAutocomplete = null;
+
+let priceIsAutomatic = true;
 
 let endTimeIsAutomatic = true;
 
@@ -56,6 +65,12 @@ let dayContextToken = 0;
 let isSaving = false;
 
 let modalOpener = null;
+
+let editingAppointment = null;
+
+let returningFromRecord = false;
+
+let editSnapshot = "";
 
 let clientAutocomplete = null;
 
@@ -125,11 +140,20 @@ export function initModal() {
     openModal(event.detail?.client ?? null);
   });
 
+  document.addEventListener("appointment:edit", (event) => {
+    openEditModal(
+      event.detail.appointment,
+      event.detail.finish,
+      event.detail.previousDate,
+      event.detail.returning,
+    );
+  });
+
   // ----------------------------------------------------------
   // CERRAR MODAL
   // ----------------------------------------------------------
   [modalClose, modalCancel].forEach((element) => {
-    element?.addEventListener("click", closeModal);
+    element?.addEventListener("click", cancelModal);
   });
 
   const requestCloseModal = () => {
@@ -141,14 +165,19 @@ export function initModal() {
       return;
     }
 
-    closeModal();
+    if (!editingAppointment) {
+      closeModal();
+    }
   };
 
   modalOverlay.addEventListener("click", requestCloseModal);
 
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    if (modalPanel.classList.contains("is-open")) {
+    if (
+      modalPanel.classList.contains("is-open") &&
+      !$("serviceFormPanel").classList.contains("is-open")
+    ) {
       requestCloseModal();
     }
   });
@@ -165,7 +194,26 @@ export function initModal() {
     onAlias: useAlias,
   });
 
-  $("clientChange")?.addEventListener("click", clearClient);
+  $("clientSelected")?.addEventListener("click", () =>
+    changeSelected($("clientSelected"), $("clientSearch"), $("clientHelp")),
+  );
+  keepSelected(
+    $("clientSelected"),
+    $("clientSearch"),
+    $("clientHelp"),
+    () => $("clientId").value || $("clientName").value,
+    () => clientAutocomplete?.reset(),
+  );
+
+  $("appointmentStatus")?.addEventListener("change", () => {
+    if (editingAppointment) {
+      modalSave.textContent =
+        $("appointmentStatus").value === "Finalizado" &&
+        editingAppointment.status !== "Finalizado"
+          ? "Continuar"
+          : "Guardar cambios";
+    }
+  });
 
   // ----------------------------------------------------------
   // SERVICIO
@@ -177,10 +225,29 @@ export function initModal() {
     search: (query, signal) => searchServices(query, signal),
     getTitle: (service) => service.name,
     getSubtitle: serviceMeta,
-    onSelect: selectService,
+    onSelect: addService,
+    customOption: {
+      label: (query) => `Crear servicio «${query}»`,
+      onSelect: (name) =>
+        document.dispatchEvent(
+          new CustomEvent("service:new", { detail: { name } }),
+        ),
+    },
   });
 
-  $("serviceChange")?.addEventListener("click", clearService);
+  document.addEventListener("service:saved", (event) => {
+    if (modalPanel.classList.contains("is-open")) {
+      addService(event.detail.service);
+    }
+  });
+
+  $("serviceList").addEventListener("click", handleServiceListClick);
+  $("serviceList").addEventListener("change", handleServiceDurationChange);
+
+  $("price")?.addEventListener("input", () => {
+    syncPriceMode();
+    updatePriceHint();
+  });
 
   // ----------------------------------------------------------
   // FECHA, HORARIO Y PROFESIONAL
@@ -230,15 +297,149 @@ function openModal(client = null) {
     selectClient(client);
   }
 
+  showPanel((client ? $("serviceSearch") : $("clientSearch")) || modalPanel);
+}
+
+// Cancelar un turno que se estaba finalizando aborta todo el flujo,
+// incluida la ficha que quedó esperando.
+async function cancelModal() {
+  const aborting = returningFromRecord;
+
+  if (
+    (aborting || isFormDirty()) &&
+    !(await confirmAction({
+      title: aborting ? "Cancelar la finalización" : "Descartar cambios",
+      message: aborting
+        ? "El turno no se finaliza y se descartan los cambios y la ficha."
+        : "Hay datos sin guardar. Si salís ahora, se pierden.",
+      confirmLabel: "Descartar",
+      cancelLabel: aborting ? "Seguir" : "Seguir editando",
+      danger: true,
+    }))
+  ) {
+    return;
+  }
+
+  if (aborting) {
+    document.dispatchEvent(new CustomEvent("quickentry:abort"));
+  }
+
+  closeModal();
+}
+
+function showPanel(firstField, fromLeft = false) {
+  if (fromLeft) {
+    modalPanel.classList.add("is-from-left");
+    void modalPanel.offsetWidth;
+    modalPanel.classList.remove("is-from-left");
+  }
+
   modalOverlay.classList.add("is-open");
   modalPanel.classList.add("is-open");
   modalPanel.setAttribute("aria-hidden", "false");
 
-  requestAnimationFrame(() => {
-    const firstField =
-      (client ? $("serviceSearch") : $("clientSearch")) || modalPanel;
-    firstField.focus({ preventScroll: true });
-  });
+  requestAnimationFrame(() => firstField.focus({ preventScroll: true }));
+}
+
+function formSnapshot() {
+  return [
+    "clientId",
+    "clientName",
+    "appointmentDate",
+    "price",
+    "timeStart",
+    "timeEnd",
+    "stylist",
+    "notes",
+    "appointmentStatus",
+  ]
+    .map((id) => $(id).value)
+    .concat(
+      selectedServices
+        .map((service) => `${service.id}:${service.duration}`)
+        .join(","),
+    )
+    .join("\u0001");
+}
+
+// Abre el formulario con los datos de un turno existente. Con finish, pide
+// confirmar los datos antes de dejarlo Finalizado.
+function openEditModal(
+  appointment,
+  finish = false,
+  previousDate = null,
+  returning = false,
+) {
+  modalOpener = document.activeElement;
+
+  clearModal();
+
+  const hasRecord = Number(appointment.has_record) === 1;
+
+  editingAppointment = {
+    id: appointment.id,
+    status: appointment.status,
+    date: previousDate ?? appointment.date,
+  };
+
+  $("appointmentFormTitle").textContent = finish
+    ? "Finalizar turno"
+    : "Editar turno";
+  $("appointmentStatusLabel").textContent = "Estado";
+  modalSave.textContent = finish ? "Continuar" : "Guardar cambios";
+
+  if (appointment.client_id) {
+    selectClient({
+      id: appointment.client_id,
+      alias: appointment.client_name,
+      internal_code: appointment.client_internal_code,
+    });
+  } else {
+    useAlias(appointment.client_name || "");
+  }
+
+  selectedServices = appointment.services.map((service) => ({ ...service }));
+  renderServices();
+
+  $("appointmentDate").value = appointment.date;
+  $("price").value = appointment.price ?? "";
+  $("timeStart").value = String(appointment.time_start).slice(0, 5);
+  $("timeEnd").value = String(appointment.time_end).slice(0, 5);
+  $("stylist").value = appointment.stylist ?? "";
+  $("notes").value = appointment.notes ?? "";
+  $("appointmentStatus").value = finish ? "Finalizado" : appointment.status;
+
+  syncPriceMode();
+  updatePriceHint();
+
+  const duration = totalDuration();
+
+  endTimeIsAutomatic =
+    duration > 0 &&
+    toMinutes($("timeStart").value) + duration === toMinutes($("timeEnd").value);
+  lastCalculatedEndTime = endTimeIsAutomatic ? $("timeEnd").value : "";
+
+  if (finish) {
+    $("appointmentStatus").closest(".form-group").hidden = true;
+  }
+
+  if (hasRecord) {
+    $("clientSelected").disabled = true;
+    $("clientSelected").title =
+      "No se puede cambiar: la ficha de este turno ya está guardada.";
+    servicesLocked = true;
+    renderServices();
+  }
+
+  returningFromRecord = returning;
+
+  populateStylistOptions();
+  loadDayContext(appointment.date);
+  updateScheduleHint();
+
+  editSnapshot = formSnapshot();
+
+  showPanel($("price"), returning);
 }
 
 // ============================================================
@@ -281,15 +482,35 @@ function useAlias(text) {
   $("serviceSearch")?.focus();
 }
 
-// Vuelve a mostrar el buscador para elegir otro cliente.
-function clearClient() {
-  $("clientId").value = "";
-  $("clientName").value = "";
-  $("clientSelected").hidden = true;
-  $("clientSearch").hidden = false;
-  $("clientHelp").hidden = false;
-  clientAutocomplete?.reset();
-  $("clientSearch").focus();
+// Muestra el buscador para elegir otro valor sin borrar el actual.
+function changeSelected(field, search, help = null) {
+  field.hidden = true;
+  search.hidden = false;
+
+  if (help) {
+    help.hidden = false;
+  }
+
+  search.focus();
+}
+
+// Si se sale del buscador sin elegir nada, vuelve a mostrarse el valor actual.
+function keepSelected(field, search, help, hasValue, reset) {
+  search.addEventListener("blur", () => {
+    setTimeout(() => {
+      if (search.hidden || search.value.trim() !== "" || !hasValue()) {
+        return;
+      }
+
+      field.hidden = false;
+      search.hidden = true;
+      reset();
+
+      if (help) {
+        help.hidden = true;
+      }
+    }, 200);
+  });
 }
 
 // ============================================================
@@ -300,51 +521,147 @@ function serviceMeta(service) {
   return `$${service.price} · ${service.duration} min`;
 }
 
-// ============================================================
-// CAMBIO DE SERVICIO
-// ============================================================
+function roundMoney(value) {
+  return Math.round(value * 100) / 100;
+}
 
-// Muestra el servicio elegido y actualiza el precio.
-// Si la hora de fin todavía es automática,
-// también calcula su nuevo valor según la duración.
-function selectService(service) {
-  selectedService = service;
-  $("serviceId").value = String(service.id);
+function servicesTotal(key) {
+  return selectedServices.reduce(
+    (sum, service) => sum + (Number(service[key]) || 0),
+    0,
+  );
+}
 
-  $("serviceChipTitle").textContent = service.name;
-  $("serviceChipMeta").textContent = serviceMeta(service);
-  $("serviceSelected").hidden = false;
-  $("serviceSearch").hidden = true;
-  $("serviceSearch").value = "";
-  $("serviceSearch").removeAttribute("aria-invalid");
+function totalDuration() {
+  return servicesTotal("duration");
+}
 
-  const price = Number(service.price);
-  $("price").value = Number.isFinite(price) ? price : "";
+// Dibuja los servicios elegidos debajo del buscador. La duración es la de este
+// turno: cambiarla no modifica el servicio guardado.
+function renderServices() {
+  $("serviceList").innerHTML = selectedServices
+    .map(
+      (service, index) => `
+        <li class="service-row">
+          <span class="service-row__name">${escapeHtml(service.name)}</span>
+          <span class="service-row__meta">
+            <span>$${escapeHtml(service.price)}</span>
+            <label class="service-row__time">
+              <svg class="service-row__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+              <input type="number" min="1" max="1440" step="1" inputmode="numeric" class="cart-quantity"
+                value="${escapeHtml(service.duration)}" data-index="${index}"
+                aria-label="Duración de ${escapeHtml(service.name)} en minutos para este turno">
+              min
+            </label>
+          </span>
+          <button type="button" class="btn btn--ghost btn--sm cart-remove" data-index="${index}"
+            aria-label="Quitar ${escapeHtml(service.name)}"${servicesLocked ? " disabled" : ""}>
+            <svg class="service-row__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18" /></svg>
+          </button>
+        </li>`,
+    )
+    .join("");
 
-  const duration = Number(service.duration);
+  $("serviceSearch").closest(".search-field").hidden = servicesLocked;
+}
 
-  if (duration > 0 && endTimeIsAutomatic) {
+function handleServiceListClick(event) {
+  const button = event.target.closest(".cart-remove");
+
+  if (!button) {
+    return;
+  }
+
+  selectedServices.splice(Number(button.dataset.index), 1);
+  renderServices();
+  servicesChanged();
+  $("serviceSearch").focus();
+}
+
+function handleServiceDurationChange(event) {
+  const input = event.target.closest(".cart-quantity");
+
+  if (!input) {
+    return;
+  }
+
+  const service = selectedServices[Number(input.dataset.index)];
+  const minutes = Number(input.value);
+
+  if (Number.isInteger(minutes) && minutes >= 1 && minutes <= 1440) {
+    service.duration = minutes;
+    servicesChanged();
+  } else {
+    input.value = service.duration;
+  }
+}
+
+// Cada servicio puede estar una sola vez en el turno.
+function addService(service) {
+  const search = $("serviceSearch");
+
+  search.value = "";
+  search.removeAttribute("aria-invalid");
+
+  const existing = selectedServices.findIndex(
+    (item) => String(item.id) === String(service.id),
+  );
+
+  if (existing >= 0) {
+    feedback.show("warning", `«${service.name}» ya está en el turno.`);
+    return;
+  }
+
+  selectedServices.push(service);
+  renderServices();
+  servicesChanged();
+}
+
+// El precio es la suma de los servicios mientras no se edite a mano.
+// La hora de fin se recalcula con la duración total.
+function servicesChanged() {
+  if (priceIsAutomatic) {
+    $("price").value =
+      selectedServices.length > 0 ? roundMoney(servicesTotal("price")) : "";
+  }
+
+  const duration = totalDuration();
+
+  if (duration > 0) {
     calculateEndTime(duration);
   }
 
+  updatePriceHint();
   updateScheduleHint();
   updateScheduleWarning();
 }
 
-// Vuelve a mostrar el buscador para elegir otro servicio.
-function clearService() {
-  resetService();
-  $("price").value = "";
-  updateScheduleHint();
-  $("serviceSearch").focus();
+function syncPriceMode() {
+  const value = $("price").value;
+
+  priceIsAutomatic =
+    value === "" || Number(value) === roundMoney(servicesTotal("price"));
 }
 
-function resetService() {
-  selectedService = null;
-  $("serviceId").value = "";
-  $("serviceSelected").hidden = true;
-  $("serviceSearch").hidden = false;
+function updatePriceHint() {
+  const hint = $("priceHint");
+
+  hint.textContent = priceIsAutomatic
+    ? "Es la suma de los servicios. Podés cambiarlo."
+    : `La suma de los servicios es $${roundMoney(servicesTotal("price"))}. Cambiaste el precio a mano.`;
+  hint.hidden =
+    selectedServices.length === 0 ||
+    (priceIsAutomatic && selectedServices.length < 2);
+}
+
+function resetServices() {
+  selectedServices = [];
+  servicesLocked = false;
+  priceIsAutomatic = true;
+  $("serviceSearch").value = "";
   serviceAutocomplete?.reset();
+  renderServices();
+  updatePriceHint();
 }
 
 // ============================================================
@@ -437,7 +754,7 @@ function suggestStartTime() {
     timeStart.value = toTimeString(lastEnd);
     startIsSuggested = true;
 
-    const duration = Number(selectedService?.duration);
+    const duration = totalDuration();
 
     if (duration > 0 && endTimeIsAutomatic) {
       calculateEndTime(duration);
@@ -461,7 +778,7 @@ function updateScheduleHint() {
     parts.push("Hora sugerida: a continuación del último turno del día.");
   }
 
-  const duration = Number(selectedService?.duration);
+  const duration = totalDuration();
 
   if (duration > 0) {
     parts.push(
@@ -486,31 +803,35 @@ function updateScheduleWarning() {
     return;
   }
 
-  const conflict = dayAppointments.find((appointment) => {
+  const overlaps = dayAppointments.filter((appointment) => {
     const otherStart = toMinutes(appointment.time_start);
     const otherEnd = toMinutes(appointment.time_end);
 
     return (
+      String(appointment.id) !== String(editingAppointment?.id) &&
       otherStart !== null &&
       otherEnd !== null &&
       !INACTIVE_STATUSES.includes(appointment.status) &&
-      normalizeName(appointment.stylist) === stylist &&
       otherStart < end &&
       otherEnd > start
     );
   });
 
-  if (!conflict) {
+  if (overlaps.length === 0) {
     box.hidden = true;
     return;
   }
 
+  const sameStylist = overlaps.find(
+    (appointment) => normalizeName(appointment.stylist) === stylist,
+  );
+  const conflict = sameStylist ?? overlaps[0];
   const who = conflict.client_name || "otro cliente";
+  const when = `${toTimeString(toMinutes(conflict.time_start))} a ${toTimeString(toMinutes(conflict.time_end))}`;
 
-  box.textContent =
-    `Se superpone con el turno de ${who} ` +
-    `(${toTimeString(toMinutes(conflict.time_start))} a ${toTimeString(toMinutes(conflict.time_end))}). ` +
-    "Podés guardarlo igual.";
+  box.textContent = sameStylist
+    ? `Se superpone con el turno de ${who} (${when}), del mismo profesional. Podés guardarlo igual.`
+    : `Ya hay otro turno en ese horario: el de ${who} (${when}). Podés guardarlo igual.`;
   box.hidden = false;
 }
 
@@ -524,7 +845,7 @@ function handleStartTimeChange() {
   startIsSuggested = false;
 
   if (endTimeIsAutomatic) {
-    const duration = Number(selectedService?.duration);
+    const duration = totalDuration();
 
     if (duration > 0) {
       calculateEndTime(duration);
@@ -601,6 +922,8 @@ function closeModal() {
 
   restoreFocus(modalOpener);
   modalOpener = null;
+
+  document.dispatchEvent(new CustomEvent("appointment:closed"));
 }
 
 // ============================================================
@@ -609,13 +932,17 @@ function closeModal() {
 
 // Indica si el usuario ya escribió o eligió algo en el formulario.
 function isFormDirty() {
+  if (editingAppointment) {
+    return formSnapshot() !== editSnapshot;
+  }
+
   const hasValue = (id) => String($(id)?.value ?? "").trim() !== "";
 
   return (
     hasValue("clientId") ||
     hasValue("clientName") ||
     hasValue("clientSearch") ||
-    hasValue("serviceId") ||
+    selectedServices.length > 0 ||
     hasValue("serviceSearch") ||
     hasValue("notes") ||
     (!startIsSuggested && hasValue("timeStart")) ||
@@ -643,7 +970,7 @@ function clearModal() {
     }
   });
 
-  resetService();
+  resetServices();
 
   const statusSelect = $("appointmentStatus");
   if (statusSelect) {
@@ -655,6 +982,16 @@ function clearModal() {
   $("clientHelp").hidden = false;
   clientAutocomplete?.reset();
 
+  editingAppointment = null;
+  editSnapshot = "";
+  $("appointmentFormTitle").textContent = "Nuevo turno";
+  $("appointmentStatusLabel").textContent = "Estado inicial";
+  modalSave.textContent = "Guardar turno";
+  returningFromRecord = false;
+  $("appointmentStatus").closest(".form-group").hidden = false;
+  $("clientSelected").disabled = false;
+  $("clientSelected").removeAttribute("title");
+
   $("scheduleHint").hidden = true;
   $("scheduleWarning").hidden = true;
 
@@ -665,6 +1002,69 @@ function clearModal() {
   startIsSuggested = false;
   dayAppointments = [];
   dayContextToken += 1;
+}
+
+// Tras editar: avisa y actualiza la agenda.
+async function afterEdit(editing, data) {
+  showResult(
+    "success",
+    "Turno actualizado",
+    "Los cambios ya están guardados." + missingAppointmentNotice(data),
+  );
+
+  try {
+    if (appState.activeDay) {
+      await loadAppointments(appState.activeDay);
+    }
+
+    syncCalendarDay(data.date);
+
+    if (editing.date !== data.date) {
+      syncCalendarDay(editing.date);
+    }
+  } catch (error) {
+    logError("Error al actualizar la agenda:", error);
+  }
+}
+
+// Finalizar: todavía no guarda nada. Pasa a la ficha, que guarda el turno junto
+// con ella o sin ella.
+function continueToRecord(editing, data) {
+  const meta = $("clientChipMeta").textContent;
+  const appointment = {
+    id: editing.id,
+    client_id: data.client_id,
+    client_name: $("clientChipTitle").textContent,
+    client_internal_code: meta.startsWith("Código ")
+      ? meta.slice("Código ".length)
+      : null,
+    service_id: data.service_ids[0],
+    service_name: selectedServices.map((service) => service.name).join(" + "),
+    service_duration: totalDuration(),
+    services: selectedServices,
+    status: editing.status,
+    has_record: 0,
+  };
+
+  saveLastStylist(data.stylist);
+
+  modalOverlay.classList.remove("is-open");
+  modalPanel.classList.add("is-to-left");
+  modalPanel.classList.remove("is-open");
+  modalPanel.setAttribute("aria-hidden", "true");
+  setTimeout(() => modalPanel.classList.remove("is-to-left"), 400);
+
+  document.dispatchEvent(
+    new CustomEvent("quickentry:open", {
+      detail: {
+        appointment,
+        finishing: {
+          data: { ...data, id: editing.id },
+          previousDate: editing.date,
+        },
+      },
+    }),
+  );
 }
 
 // ============================================================
@@ -683,9 +1083,9 @@ function validateAppointment(data, rawPrice) {
     });
   }
 
-  if (!data.service_id) {
+  if (data.service_ids.length === 0) {
     errors.push({
-      message: "Elegí un servicio.",
+      message: "Elegí al menos un servicio.",
       fields: ["serviceSearch"],
     });
   }
@@ -751,7 +1151,10 @@ async function submitModalData() {
     client_id: clientId,
     client_name: clientName,
 
-    service_id: Number($("serviceId").value),
+    service_ids: selectedServices.map((service) => Number(service.id)),
+    service_durations: Object.fromEntries(
+      selectedServices.map((service) => [service.id, Number(service.duration)]),
+    ),
 
     price: rawPrice,
 
@@ -775,13 +1178,30 @@ async function submitModalData() {
     return;
   }
 
+  const editing = editingAppointment;
+
+  if (
+    editing &&
+    data.status === "Finalizado" &&
+    editing.status !== "Finalizado"
+  ) {
+    continueToRecord(editing, data);
+    return;
+  }
+
   isSaving = true;
   setBusy(modalSave, true);
 
   try {
-    const response = await createAppointment(data);
+    const response = editing
+      ? await updateAppointment({ ...data, id: editing.id })
+      : await createAppointment(data);
 
-    if (response?.success) {
+    if (response?.success && editing) {
+      saveLastStylist(data.stylist);
+      closeModal();
+      afterEdit(editing, data);
+    } else if (response?.success) {
       const savedDate = data.date;
 
       saveLastStylist(data.stylist);
@@ -790,9 +1210,10 @@ async function submitModalData() {
       showResult(
         "success",
         "Turno guardado",
-        savedDate === appState.activeDay || !appState.activeDay
+        (savedDate === appState.activeDay || !appState.activeDay
           ? "Ya figura en la agenda."
-          : `Quedó agendado para el ${formatDate(savedDate)}.`,
+          : `Quedó agendado para el ${formatDate(savedDate)}.`) +
+          missingAppointmentNotice(data),
       );
 
       if (appState.activeDay) {

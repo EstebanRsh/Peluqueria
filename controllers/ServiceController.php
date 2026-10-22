@@ -82,6 +82,10 @@ class ServiceController extends BaseController
                     $this->error($error);
                 }
 
+                if ($this->model->nameExists($this->ownerId(), $data['name'])) {
+                    $this->error('Ya tenés un servicio llamado «' . $data['name'] . '». Elegí otro nombre.', 409);
+                }
+
                 $newId = $this->model->create($this->ownerId(), $data);
 
                 $this->json([
@@ -96,7 +100,9 @@ class ServiceController extends BaseController
                 $input = $this->readInput();
                 $id = $this->validId($input['id'] ?? 0, 'servicio');
 
-                if (!$this->model->getById($this->ownerId(), $id)) {
+                $current = $this->model->getById($this->ownerId(), $id);
+
+                if (!$current) {
                     $this->error('El servicio no existe.', 404);
                 }
 
@@ -105,6 +111,13 @@ class ServiceController extends BaseController
 
                 if ($error !== true) {
                     $this->error($error);
+                }
+
+                if (
+                    mb_strtolower($current['name']) !== mb_strtolower($data['name'])
+                    && $this->model->nameExists($this->ownerId(), $data['name'], $id)
+                ) {
+                    $this->error('Ya tenés un servicio llamado «' . $data['name'] . '». Elegí otro nombre.', 409);
                 }
 
                 // El cambio de precio base NO altera los turnos ya creados.

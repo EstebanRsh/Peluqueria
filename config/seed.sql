@@ -16,6 +16,8 @@ DELETE FROM products;
 
 DELETE FROM appointment_history;
 
+DELETE FROM appointment_services;
+
 DELETE FROM appointments;
 
 DELETE FROM clients;
@@ -33,6 +35,8 @@ ALTER TABLE service_history AUTO_INCREMENT = 1;
 ALTER TABLE products AUTO_INCREMENT = 1;
 
 ALTER TABLE appointment_history AUTO_INCREMENT = 1;
+
+ALTER TABLE appointment_services AUTO_INCREMENT = 1;
 
 ALTER TABLE appointments AUTO_INCREMENT = 1;
 
@@ -1223,6 +1227,11 @@ VALUES
     '11:00:00',
     '11:45:00'
 );
+
+INSERT INTO appointment_services (owner_id, appointment_id, service_id, position, price, duration)
+SELECT a.owner_id, a.id, a.service_id, 1, a.price, s.duration
+FROM appointments a
+INNER JOIN services s ON s.id = a.service_id;
 
 -- =========================================================
 

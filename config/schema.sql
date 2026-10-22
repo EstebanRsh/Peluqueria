@@ -111,6 +111,25 @@ CREATE TABLE IF NOT EXISTS appointments (
 );
 
 -- =========================================================
+-- 4.1 SERVICIOS DEL TURNO
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS appointment_services (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    owner_id INT NOT NULL,
+    appointment_id INT NOT NULL,
+    service_id INT NOT NULL,
+    position TINYINT UNSIGNED NOT NULL DEFAULT 1,
+    price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    duration INT NOT NULL,
+    UNIQUE KEY uq_appt_services (appointment_id, service_id),
+    INDEX idx_appt_services_owner (owner_id, appointment_id),
+    FOREIGN KEY (owner_id) REFERENCES users (id) ON DELETE CASCADE,
+    FOREIGN KEY (appointment_id) REFERENCES appointments (id) ON DELETE CASCADE,
+    FOREIGN KEY (service_id) REFERENCES services (id) ON DELETE RESTRICT
+);
+
+-- =========================================================
 -- 5. HISTORIAL DE ESTADOS DE TURNOS
 -- =========================================================
 

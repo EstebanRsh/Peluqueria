@@ -28,7 +28,12 @@ class ServiceHistoryModel
                 a.client_name,
                 a.service_id,
                 a.status,
-                s.name AS service_name
+                COALESCE((
+                    SELECT GROUP_CONCAT(sv.name ORDER BY aps.position SEPARATOR ' + ')
+                    FROM appointment_services aps
+                    INNER JOIN services sv ON sv.id = aps.service_id
+                    WHERE aps.appointment_id = a.id
+                ), s.name) AS service_name
             FROM appointments a
             INNER JOIN services s ON s.id = a.service_id
             WHERE a.id = ?

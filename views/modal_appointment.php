@@ -1,8 +1,8 @@
 <!-- =====================================================
      PANEL LATERAL — NUEVO TURNO
      Se abre por encima del panel del día (capa anidada).
-     Orden del formulario: cliente, servicio, fecha y precio,
-     horario, profesional y estado, notas.
+     Orden del formulario: cliente, servicios, fecha, horario, precio,
+     profesional y estado, notas.
 ====================================================== -->
 
 <div class="side-drawer-overlay side-drawer-overlay--nested" id="modalOverlay"></div>
@@ -27,78 +27,66 @@
         <div class="day-panel__body">
 
             <!-- Cliente: búsqueda o alias en un solo campo -->
-            <div class="form-group is-required">
-                <label for="clientSearch">Cliente</label>
-
-                <div class="selected-chip" id="clientSelected" role="group" aria-label="Cliente elegido" hidden>
-                    <div class="selected-chip__main">
-                        <span class="selected-chip__title" id="clientChipTitle"></span>
-                        <span class="selected-chip__meta" id="clientChipMeta"></span>
-                    </div>
-                    <button type="button" class="btn btn--ghost btn--sm" id="clientChange">Cambiar</button>
-                </div>
-
-                <div class="search-field">
-                    <input
-                        type="text"
-                        id="clientSearch"
-                        aria-required="true"
-                        placeholder="Buscar por nombre o código, o escribir un alias"
-                        aria-describedby="clientHelp">
-
-                    <ul class="autocomplete-list" id="appointmentClientSuggestions"></ul>
-                </div>
-
-                <input type="hidden" id="clientId">
-                <input type="hidden" id="clientName">
-
-                <p class="form-hint" id="clientHelp">
-                    Si escribís un nombre y no elegís a nadie, se guarda como alias.
-                </p>
-            </div>
-
-            <!-- Servicio -->
-            <div class="form-group is-required">
-                <label for="serviceSearch">Servicio</label>
-
-                <div class="selected-chip" id="serviceSelected" role="group" aria-label="Servicio elegido" hidden>
-                    <div class="selected-chip__main">
-                        <span class="selected-chip__title" id="serviceChipTitle"></span>
-                        <span class="selected-chip__meta" id="serviceChipMeta"></span>
-                    </div>
-                    <button type="button" class="btn btn--ghost btn--sm" id="serviceChange">Cambiar</button>
-                </div>
-
-                <div class="search-field">
-                    <input
-                        type="text"
-                        id="serviceSearch"
-                        aria-required="true"
-                        placeholder="Buscar servicio por nombre">
-
-                    <ul class="autocomplete-list" id="serviceSuggestions"></ul>
-                </div>
-
-                <input type="hidden" id="serviceId">
-
-            </div>
-
-            <!-- Fecha y precio -->
             <div class="form-row">
-                <div class="form-group is-required">
+                <div class="form-group form-group--full is-required">
+                    <label for="clientSearch">Cliente</label>
+
+                    <button type="button" class="selected-field" id="clientSelected" hidden>
+                        <span class="sr-only">Cambiar cliente: </span>
+                        <span class="selected-field__main">
+                            <span class="selected-field__title" id="clientChipTitle"></span>
+                            <span class="selected-field__meta" id="clientChipMeta"></span>
+                        </span>
+                        <svg class="selected-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                        </svg>
+                    </button>
+
+                    <div class="search-field">
+                        <input
+                            type="text"
+                            id="clientSearch"
+                            aria-required="true"
+                            placeholder="Buscar por nombre o código, o escribir un alias"
+                            aria-describedby="clientHelp">
+
+                        <ul class="autocomplete-list" id="appointmentClientSuggestions"></ul>
+                    </div>
+
+                    <input type="hidden" id="clientId">
+                    <input type="hidden" id="clientName">
+
+                    <p class="form-hint" id="clientHelp">
+                        Si escribís un nombre y no elegís a nadie, se guarda como alias.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Servicios -->
+            <div class="form-row">
+                <div class="form-group form-group--full is-required">
+                    <label for="serviceSearch">Servicios</label>
+
+                    <div class="search-field">
+                        <input
+                            type="text"
+                            id="serviceSearch"
+                            aria-required="true"
+                            placeholder="Buscar servicio por nombre">
+
+                        <ul class="autocomplete-list" id="serviceSuggestions"></ul>
+                    </div>
+
+                    <ul class="service-list" id="serviceList"></ul>
+                </div>
+            </div>
+
+            <!-- Fecha -->
+            <div class="form-row">
+                <div class="form-group form-group--full is-required">
                     <label for="appointmentDate">Fecha</label>
                     <input type="date" id="appointmentDate" aria-required="true">
-                </div>
-
-                <div class="form-group">
-                    <label for="price">Precio ($)</label>
-                    <input
-                        type="number"
-                        id="price"
-                        placeholder="0.00"
-                        min="0"
-                        step="0.01"
-                        inputmode="decimal">
                 </div>
             </div>
 
@@ -118,6 +106,21 @@
             <p class="form-hint" id="scheduleHint" hidden></p>
             <div class="alert alert--warning" id="scheduleWarning" role="status" hidden></div>
 
+            <!-- Precio -->
+            <div class="form-row">
+                <div class="form-group form-group--full">
+                    <label for="price">Precio ($)</label>
+                    <input
+                        type="number"
+                        id="price"
+                        placeholder="0.00"
+                        min="0"
+                        step="0.01"
+                        inputmode="decimal">
+                    <p class="form-hint" id="priceHint" hidden></p>
+                </div>
+            </div>
+
             <!-- Profesional y estado -->
             <div class="form-row">
                 <div class="form-group">
@@ -131,7 +134,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="appointmentStatus">Estado inicial</label>
+                    <label for="appointmentStatus" id="appointmentStatusLabel">Estado inicial</label>
 
                     <select id="appointmentStatus" class="form-select">
                         <option value="Reservado" selected>Reservado</option>
@@ -143,13 +146,15 @@
             </div>
 
             <!-- Notas -->
-            <div class="form-group">
-                <label for="notes">Notas</label>
+            <div class="form-row">
+                <div class="form-group form-group--full">
+                    <label for="notes">Notas</label>
 
-                <textarea
-                    id="notes"
-                    rows="3"
-                    placeholder="Observaciones del turno"></textarea>
+                    <textarea
+                        id="notes"
+                        rows="3"
+                        placeholder="Observaciones del turno"></textarea>
+                </div>
             </div>
 
             <p class="form-hint">Los campos con * son obligatorios.</p>

@@ -113,6 +113,16 @@ class ServiceModel
     // ============================================================
 
     // Crea un servicio activo. Devuelve el ID generado o false si falló.
+    // Indica si el owner ya tiene un servicio con ese nombre (sin distinguir mayúsculas).
+    public function nameExists(int $ownerId, string $name, int $excludeId = 0): bool
+    {
+        $stmt = $this->conn->prepare("SELECT id FROM services WHERE owner_id = ? AND name = ? AND id <> ? LIMIT 1");
+        $stmt->bind_param('isi', $ownerId, $name, $excludeId);
+        $stmt->execute();
+
+        return $stmt->get_result()->num_rows > 0;
+    }
+
     public function create(int $ownerId, array $data): int|false
     {
         $stmt = $this->conn->prepare("
@@ -196,7 +206,7 @@ class ServiceModel
     {
         $stmt = $this->conn->prepare("
             SELECT
-                (SELECT COUNT(*) FROM appointments WHERE service_id = ? AND owner_id = ?)
+                (SELECT COUNT(*) FROM appointment_services WHERE service_id = ? AND owner_id = ?)
               + (SELECT COUNT(*) FROM service_history WHERE service_id = ? AND owner_id = ?) AS total
         ");
 

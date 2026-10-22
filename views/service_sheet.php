@@ -308,12 +308,19 @@
             </div>
         </div>
 
+
     </div>
 
     <!-- FOOTER -->
-    <div class="appointment-detail-footer">
+    <div class="appointment-detail-footer appointment-detail-footer--actions">
         <button type="button" class="btn btn--ghost" id="quickEntryCancel">
             Cancelar
+        </button>
+        <button type="button" class="btn btn--ghost" id="quickEntryBack" hidden>
+            Volver
+        </button>
+        <button type="button" class="btn btn--ghost" id="quickEntryFinishOnly" hidden>
+            Finalizar sin ficha
         </button>
         <button type="button" class="btn btn--primary" id="quickEntrySave">
             Guardar ficha

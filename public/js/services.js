@@ -37,6 +37,7 @@ let isSaving = false;
 let feedback = null;
 let dirty = null;
 let drawer = null;
+let quickCreate = false;
 
 // ============================================================
 // LISTADO
@@ -119,9 +120,11 @@ export async function loadServicesList({ append = false } = {}) {
 // PANEL DE ALTA / EDICIÓN
 // ============================================================
 
-function showServiceModal(service = null) {
+// Con quickName, el servicio se crea desde el formulario del turno.
+function showServiceModal(service = null, quickName = null) {
+  quickCreate = quickName !== null;
   $("managedServiceId").value = service?.id || "";
-  $("serviceName").value = service?.name || "";
+  $("serviceName").value = service?.name || quickName || "";
   $("serviceDescription").value = service?.description || "";
   $("serviceDuration").value = service?.duration || "";
   $("servicePrice").value = service ? (service.price ?? "") : "";
@@ -205,19 +208,33 @@ async function saveService() {
     }
 
     drawer.close();
-    showResult(
-      "success",
-      id ? "Servicio actualizado" : "Servicio creado",
-      id
-        ? "Los cambios ya están guardados."
-        : "Ya podés usarlo al agendar turnos.",
-    );
+
+    if (quickCreate) {
+      document.dispatchEvent(
+        new CustomEvent("service:saved", {
+          detail: { service: { id: result.id, ...form.data } },
+        }),
+      );
+    } else {
+      showResult(
+        "success",
+        id ? "Servicio actualizado" : "Servicio creado",
+        id
+          ? "Los cambios ya están guardados."
+          : "Ya podés usarlo al agendar turnos.",
+      );
+    }
 
     await refreshAfterChange(list, renderServicesList);
   } catch (error) {
     logError("Error al guardar servicio:", error);
+
+    const repeated = error instanceof ApiError && error.status === 409;
+
+    if (repeated) feedback.invalidate(["serviceName"]);
+
     feedback.show(
-      "error",
+      repeated ? "warning" : "error",
       getErrorMessage(error, "No se pudo guardar el servicio."),
     );
   } finally {
@@ -341,6 +358,9 @@ export function initServices() {
   });
 
   $("btnAddService")?.addEventListener("click", () => showServiceModal());
+  document.addEventListener("service:new", (event) =>
+    showServiceModal(null, event.detail.name),
+  );
 
   const reloadSoon = debounce(() => loadServicesList());
 
