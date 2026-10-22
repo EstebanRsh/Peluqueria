@@ -146,8 +146,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: var(--icon-btn-size, 2.25rem);
-  height: var(--icon-btn-size, 2.25rem);
+  min-width: var(--icon-btn-size);
+  height: var(--icon-btn-size);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: transparent;
@@ -175,7 +175,6 @@
    ========================================================================== */
 
 .fab-actions {
-  --fab-item-width: 190px;
   position: fixed;
   right: 1.5rem;
   bottom: 3rem;
@@ -816,12 +815,6 @@ select.form-select:focus {
   border-radius: var(--radius-sm);
 }
 
-.alert--success {
-  background: var(--color-atencion-bg);
-  color: var(--color-atencion-text);
-  border-left-color: currentColor;
-}
-
 .alert--warning {
   background: var(--color-espera-bg);
   color: var(--color-espera-text);
@@ -831,12 +824,6 @@ select.form-select:focus {
 .alert--error {
   background: var(--color-cancelado-bg);
   color: var(--color-cancelado-text);
-  border-left-color: currentColor;
-}
-
-.alert--info {
-  background: var(--color-reservado-bg);
-  color: var(--color-reservado-text);
   border-left-color: currentColor;
 }
 

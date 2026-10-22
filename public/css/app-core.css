@@ -258,18 +258,6 @@
   border-color: var(--color-finalizado-line);
 }
 
-.cell__status-badge--cancelado {
-  background-color: var(--color-cancelado-solid);
-  color: var(--color-solid-text);
-  border-color: var(--color-cancelado-line);
-}
-
-.cell__status-badge--ausente {
-  background-color: var(--color-ausente-solid);
-  color: var(--color-solid-text);
-  border-color: var(--color-ausente-line);
-}
-
 /* ==========================================================================
    CALENDARIO: RESUMEN Y LEYENDA DEL MES
    ========================================================================== */
@@ -459,7 +447,6 @@
   }
 }
 
-
 /* ==========================================================================
    PÁGINA DE ACCESO (LOGIN)
    ========================================================================== */
@@ -548,25 +535,6 @@
   animation: login-shimmer 6s ease-in-out infinite;
 }
 
-.login-hero__tagline {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  font-family: var(--font-serif);
-  font-size: 0.78rem;
-  font-weight: 500;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: var(--color-gold);
-}
-
-.login-hero__tagline::before {
-  content: "";
-  width: 2.75rem;
-  height: 1px;
-  background: var(--color-gold-line-strong);
-}
-
 /* --- Historia de la app ------------------------------------------------- */
 
 .login-story {
@@ -615,14 +583,6 @@
   font-family: "Alex Brush", cursive;
   font-size: 4rem;
   line-height: 0.75;
-  color: var(--color-gold);
-}
-
-.login-story__sign {
-  margin-top: 1.5rem;
-  font-family: "Alex Brush", cursive;
-  font-size: 1.9rem;
-  line-height: 1;
   color: var(--color-gold);
 }
 
@@ -834,15 +794,6 @@
 
   .login-hero__brand .brand-script {
     font-size: clamp(3rem, 16vw, 4.2rem);
-  }
-
-  .login-hero__tagline {
-    font-size: 0.68rem;
-    letter-spacing: 0.24em;
-  }
-
-  .login-hero__tagline::before {
-    display: none;
   }
 
   .login-page .admin-view {
