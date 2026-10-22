@@ -25,6 +25,23 @@ class AppointmentModel
         'cancelado'  => 'Cancelado',
     ];
 
+    private const SELECT_APPOINTMENTS = "
+        SELECT
+            appointments.*,
+            services.name AS service_name,
+            services.duration AS service_duration,
+            COALESCE(clients.alias, appointments.client_name) AS client_name,
+            clients.internal_code AS client_internal_code,
+            EXISTS (
+                SELECT 1 FROM service_history
+                WHERE service_history.appointment_id = appointments.id
+                  AND service_history.technical_details IS NOT NULL
+            ) AS has_record
+        FROM appointments
+        INNER JOIN services ON appointments.service_id = services.id
+        LEFT JOIN clients ON clients.id = appointments.client_id
+    ";
+
     public function __construct()
     {
         $this->conn = getConnection();
@@ -36,21 +53,7 @@ class AppointmentModel
 
     public function getByDate(int $ownerId, string $date, string $search = '', string $status = 'todos'): array
     {
-        $query = "
-            SELECT
-                appointments.*,
-                services.name AS service_name,
-                services.duration AS service_duration,
-                COALESCE(clients.alias, appointments.client_name) AS client_name,
-                clients.internal_code AS client_internal_code,
-                EXISTS (
-                    SELECT 1 FROM service_history
-                    WHERE service_history.appointment_id = appointments.id
-                      AND service_history.technical_details IS NOT NULL
-                ) AS has_record
-            FROM appointments
-            INNER JOIN services ON appointments.service_id = services.id
-            LEFT JOIN clients ON clients.id = appointments.client_id
+        $query = self::SELECT_APPOINTMENTS . "
             WHERE appointments.owner_id = ?
               AND appointments.date = ?
         ";
@@ -78,6 +81,35 @@ class AppointmentModel
         $stmt->execute();
 
         return $this->attachServices($ownerId, $stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+    }
+
+    public function getByClient(int $ownerId, int $clientId, int $page, int $perPage): array
+    {
+        $stmt = $this->conn->prepare("
+            SELECT COUNT(*) AS total
+            FROM appointments
+            WHERE owner_id = ? AND client_id = ?
+        ");
+        $stmt->bind_param('ii', $ownerId, $clientId);
+        $stmt->execute();
+        $total = (int)$stmt->get_result()->fetch_assoc()['total'];
+
+        $stmt = $this->conn->prepare(self::SELECT_APPOINTMENTS . "
+            WHERE appointments.owner_id = ?
+              AND appointments.client_id = ?
+            ORDER BY appointments.date DESC, appointments.time_start DESC
+            LIMIT ? OFFSET ?
+        ");
+        $offset = ($page - 1) * $perPage;
+        $stmt->bind_param('iiii', $ownerId, $clientId, $perPage, $offset);
+        $stmt->execute();
+
+        return [
+            'data'     => $this->attachServices($ownerId, $stmt->get_result()->fetch_all(MYSQLI_ASSOC)),
+            'total'    => $total,
+            'page'     => $page,
+            'per_page' => $perPage,
+        ];
     }
 
     private function attachServices(int $ownerId, array $appointments): array

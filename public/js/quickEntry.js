@@ -5,7 +5,7 @@
 
 import {
   ApiError,
-  fetchClientTimeline,
+  fetchClientLastRecord,
   getErrorMessage,
   saveServiceHistory,
   searchProducts,
@@ -650,33 +650,16 @@ export function initQuickEntry() {
     setBusy(repeatButton, true);
 
     try {
-      const response = await fetchClientTimeline(selectedClient.id);
+      const response = await fetchClientLastRecord(selectedClient.id);
 
-      if (!response?.success || !Array.isArray(response.data)) {
+      if (!response?.success) {
         throw new ApiError(
-          response?.error || "El historial llegó con un formato inesperado.",
+          response?.error || "La ficha anterior llegó con un formato inesperado.",
           { kind: "invalid-response" },
         );
       }
 
-      const last = response.data
-        .filter((record) => {
-          const details = record.technical_details;
-
-          return (
-            details &&
-            typeof details === "object" &&
-            Object.keys(DETAIL_FIELDS).some(
-              (category) =>
-                details[category] &&
-                typeof details[category] === "object" &&
-                categoryHasData(details[category]),
-            )
-          );
-        })
-        .sort((a, b) =>
-          String(b.performed_at).localeCompare(String(a.performed_at)),
-        )[0];
+      const last = response.data;
 
       if (!last) {
         showResult(

@@ -434,6 +434,18 @@ export function fetchClientTimeline(clientId) {
   return getJson("client_timeline", { client_id: clientId });
 }
 
+export function fetchClientAppointments(clientId, page = 1) {
+  return getJson("client_appointments", {
+    client_id: clientId,
+    page,
+    per_page: LIST_PAGE_SIZE,
+  });
+}
+
+export function fetchClientLastRecord(clientId) {
+  return getJson("client_last_record", { client_id: clientId });
+}
+
 export function searchClients(query, signal = null) {
   return getJson("client_search", { q: query }, signal);
 }

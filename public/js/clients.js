@@ -5,8 +5,8 @@
 
 import {
   ApiError,
-  fetchAppointments,
   fetchAllClients,
+  fetchClientAppointments,
   fetchClientTimeline,
   createClient,
   updateClient,
@@ -55,6 +55,8 @@ const list = createListLoader(fetchAllClients, $("clientListSearch"));
 let isSaving = false;
 let profileRequestId = 0;
 let profileAppointments = [];
+let profileAppointmentsPage = 1;
+let profileAppointmentsTotal = 0;
 let profileClient = null;
 let profileOpener = null;
 let feedback = null;
@@ -517,10 +519,13 @@ function reloadProfileData(client) {
 }
 
 async function loadClientProfileData(client, requestId) {
-  const historyContainer = $("clientProfileHistory");
-  const appointmentsContainer = $("clientProfileAppointments");
+  await Promise.all([
+    loadProfileTimeline(client, requestId),
+    loadProfileAppointments(client, requestId),
+  ]);
+}
 
-  let records;
+async function loadProfileTimeline(client, requestId) {
   try {
     const response = await fetchClientTimeline(client.id);
     if (!response?.success || !Array.isArray(response.data)) {
@@ -530,64 +535,83 @@ async function loadClientProfileData(client, requestId) {
       );
     }
     if (requestId !== profileRequestId) return;
-    records = response.data;
-    timelineState.records = records;
+    timelineState.records = response.data;
     renderTimeline();
   } catch (error) {
     if (requestId !== profileRequestId) return;
     logError("Error al cargar historial técnico:", error);
     renderProfileError(
-      historyContainer,
+      $("clientProfileHistory"),
       error,
       "No se pudo cargar el historial técnico.",
     );
-    renderProfileError(
-      appointmentsContainer,
-      error,
-      "No se pudieron cargar los turnos asociados.",
-    );
-    return;
+  }
+}
+
+async function fetchProfileAppointmentsPage(client, page) {
+  const response = await fetchClientAppointments(client.id, page);
+
+  if (!Array.isArray(response?.data)) {
+    throw new ApiError("Los turnos llegaron con un formato inesperado.", {
+      kind: "invalid-response",
+    });
   }
 
-  const appointmentIds = new Set(
-    records
-      .map((record) => Number(record.appointment_id))
-      .filter((id) => Number.isSafeInteger(id) && id > 0),
-  );
-  const dates = [
-    ...new Set(
-      records
-        .filter((record) => appointmentIds.has(Number(record.appointment_id)))
-        .map((record) => String(record.performed_at || "").slice(0, 10))
-        .filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)),
-    ),
-  ];
+  return response;
+}
+
+function updateProfileAppointmentsMore() {
+  const more = $("clientProfileAppointmentsMore");
+  if (more) more.hidden = profileAppointments.length >= profileAppointmentsTotal;
+}
+
+async function loadProfileAppointments(client, requestId) {
+  profileAppointmentsPage = 1;
+  profileAppointmentsTotal = 0;
+  updateProfileAppointmentsMore();
 
   try {
-    const appointmentsByDate = await Promise.all(
-      dates.map((date) => fetchAppointments(date)),
-    );
+    const response = await fetchProfileAppointmentsPage(client, 1);
     if (requestId !== profileRequestId) return;
-
-    profileAppointments = appointmentsByDate
-      .flat()
-      .filter(
-        (appointment) =>
-          appointmentIds.has(Number(appointment.id)) &&
-          String(appointment.client_id) === String(client.id),
-      )
-      .sort((a, b) =>
-        `${b.date} ${b.time_start}`.localeCompare(`${a.date} ${a.time_start}`),
-      );
+    profileAppointments = response.data;
+    profileAppointmentsTotal = Number(response.total) || response.data.length;
     renderClientAppointments();
+    updateProfileAppointmentsMore();
   } catch (error) {
     if (requestId !== profileRequestId) return;
     logError("Error al cargar turnos del cliente:", error);
     renderProfileError(
-      appointmentsContainer,
+      $("clientProfileAppointments"),
       error,
-      "No se pudieron cargar los turnos asociados.",
+      "No se pudieron cargar los turnos del cliente.",
     );
+  }
+}
+
+async function loadMoreProfileAppointments(button) {
+  if (!profileClient) return;
+
+  const requestId = profileRequestId;
+  setBusy(button, true);
+
+  try {
+    const response = await fetchProfileAppointmentsPage(
+      profileClient,
+      profileAppointmentsPage + 1,
+    );
+    if (requestId !== profileRequestId) return;
+    profileAppointmentsPage += 1;
+    profileAppointments = [...profileAppointments, ...response.data];
+    profileAppointmentsTotal =
+      Number(response.total) || profileAppointments.length;
+    renderClientAppointments();
+  } catch (error) {
+    if (requestId !== profileRequestId) return;
+    logError("Error al cargar más turnos del cliente:", error);
+    showError(getErrorMessage(error, "No se pudieron cargar más turnos."));
+  } finally {
+    setBusy(button, false);
+    updateProfileAppointmentsMore();
   }
 }
 
@@ -892,6 +916,10 @@ export function initClients() {
 
     reloadProfileData(profileClient);
   });
+
+  $("clientProfileAppointmentsMore")?.addEventListener("click", (event) =>
+    loadMoreProfileAppointments(event.currentTarget),
+  );
 
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;

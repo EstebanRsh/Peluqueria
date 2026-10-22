@@ -69,6 +69,17 @@ class ServiceHistoryController extends BaseController
             $this->json(['success' => true, 'data' => $timeline]);
         }
 
+        if ($action === 'client_last_record') {
+            $clientId = filter_var($_GET['client_id'] ?? null, FILTER_VALIDATE_INT);
+
+            if (!$clientId || $clientId <= 0) {
+                $this->error('ID de cliente inválido.', 400);
+            }
+
+            $record = $this->model->getLastWithDetails($this->ownerId(), $clientId);
+            $this->json(['success' => true, 'data' => $record]);
+        }
+
         if ($action === 'service_history_detail') {
             $historyId = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
 

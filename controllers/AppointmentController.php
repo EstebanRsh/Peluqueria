@@ -55,6 +55,12 @@ class AppointmentController extends BaseController
                 ));
                 break;
 
+            case 'client_appointments':
+                $clientId = $this->validId($_GET['client_id'] ?? 0, 'cliente');
+                [$page, $perPage] = $this->pagination();
+                $this->json($this->model->getByClient($this->ownerId(), $clientId, $page, $perPage));
+                break;
+
             case 'create':
                 $data = $this->buildAppointmentData($this->readInput());
                 $error = $this->validateAppointmentData($data);

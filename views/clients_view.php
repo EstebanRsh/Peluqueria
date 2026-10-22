@@ -153,10 +153,13 @@
         </div>
 
         <div class="profile-drawer__section">
-            <h4 class="history-title">Turnos con ficha</h4>
+            <h4 class="history-title">Turnos</h4>
             <div class="history-items" id="clientProfileAppointments">
                 <p class="history-empty">Sin turnos.</p>
             </div>
+            <p class="panel-empty__action">
+                <button type="button" class="btn btn--ghost btn--sm" id="clientProfileAppointmentsMore" hidden>Cargar más</button>
+            </p>
         </div>
 
     </div>
