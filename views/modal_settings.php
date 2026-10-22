@@ -134,6 +134,24 @@
             <button type="button" class="btn btn--ghost" id="importData">Importar datos</button>
         </section>
 
+        <section class="settings-section" aria-labelledby="settingsLegalTitle">
+            <h4 class="history-title" id="settingsLegalTitle">Legal</h4>
+
+            <p class="form-hint">
+                <a class="text-link" href="terminos.php" data-legal="terminos">Términos y condiciones</a>
+                ·
+                <a class="text-link" href="privacidad.php" data-legal="privacidad">Política de privacidad</a>
+            </p>
+        </section>
+
+        <section class="settings-section" aria-labelledby="settingsDeleteTitle">
+            <h4 class="history-title" id="settingsDeleteTitle">Eliminar cuenta</h4>
+
+            <p class="form-hint">Se borran para siempre tu cuenta y todos tus datos. No se puede deshacer.</p>
+
+            <button type="button" class="btn btn--danger" id="openDeleteAccount">Eliminar cuenta</button>
+        </section>
+
     </div>
 
 

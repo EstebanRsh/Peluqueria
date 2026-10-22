@@ -24,4 +24,15 @@ return [
         'local_hosts'          => ['localhost', '127.0.0.1', '::1'],
         'trust_proxy_headers'  => false,
     ],
+    'legal' => [
+        'responsible'   => '',
+        'tax_id'        => '',
+        'address'       => '',
+        'support_email' => '',
+        'privacy_email' => '',
+        'hosting'       => '',
+        'jurisdiction'  => '',
+        'backup_days'   => '',
+        'updated'       => '',
+    ],
 ];

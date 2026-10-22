@@ -17,6 +17,7 @@ class AuthController extends BaseController
         'logout',
         'change_password',
         'account_import',
+        'account_delete',
     ];
 
     // Límites para las credenciales recibidas.
@@ -203,6 +204,46 @@ class AuthController extends BaseController
                 }
 
                 $this->json(['success' => true, 'imported' => $totals]);
+                break;
+
+            // Elimina la cuenta y todos sus datos. Exige la contraseña.
+            case 'account_delete':
+                $user = Auth::currentUser();
+
+                if ($user === null) {
+                    $this->error('No autenticado.', 401);
+                }
+
+                $input = $this->readInput();
+                $password = is_string($input['password'] ?? null) ? $input['password'] : '';
+                $confirmation = $this->str($input['confirmation'] ?? null);
+                $deleteKey = 'delete|' . $user['id'];
+
+                if ($password === '') {
+                    $this->error('Ingresá tu contraseña para eliminar la cuenta.');
+                }
+
+                if (!hash_equals(AccountModel::DELETE_CONFIRMATION, $confirmation)) {
+                    $this->error('Escribí exactamente «' . AccountModel::DELETE_CONFIRMATION . '» para confirmar.');
+                }
+
+                if ($this->attempts->tooMany('login', $deleteKey, ...self::LOGIN_BY_ACCOUNT)) {
+                    $this->error('Demasiados intentos fallidos. Esperá unos minutos e intentá de nuevo.', 429);
+                }
+
+                if (
+                    strlen($password) > self::MAX_LOGIN_PASSWORD_BYTES
+                    || !$this->model->verifyUserPassword($user['id'], $password)
+                ) {
+                    $this->attempts->record('login', $deleteKey);
+                    $this->error('La contraseña no es correcta.', 403);
+                }
+
+                (new AccountModel())->deleteOwner($user['id']);
+                $this->attempts->clear('login', $deleteKey);
+                Auth::logout();
+
+                $this->json(['success' => true]);
                 break;
 
             // Inicia sesión.

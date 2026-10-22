@@ -40,10 +40,12 @@ final class Auth
         'account'         => ['owner', 'admin'],
         'account_export'  => ['owner', 'admin'],
         'account_import'  => ['owner', 'admin'],
+        'account_delete'  => ['owner'],
 
         // Turnos
         'list'          => ['owner'],
         'create'        => ['owner'],
+        'update'        => ['owner'],
         'delete'        => ['owner'],
         'update_status' => ['owner'],
         'history'       => ['owner'],

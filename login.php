@@ -26,10 +26,9 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
             }
         }
     </style>
-    <!-- Mismas fuentes y hojas de estilo que el resto de la aplicación -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cinzel:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preload" href="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/public/fonts/inter-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/public/fonts/cinzel-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/public/fonts/alex-brush-latin-400.woff2" as="font" type="font/woff2" crossorigin>
 
     <link rel="stylesheet" href="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/public/css/base.css">
     <link rel="stylesheet" href="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/public/css/sidebar.css">
@@ -194,7 +193,7 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
 
                                 <label class="check-field" for="registerTerms">
                                     <input id="registerTerms" name="accept_terms" type="checkbox" required>
-                                    <span>Acepto los <a href="terminos.php" target="_blank" rel="noopener">Términos</a> y la <a href="privacidad.php" target="_blank" rel="noopener">Política de privacidad</a>.</span>
+                                    <span>Acepto los <a class="text-link" href="terminos.php" data-legal="terminos">Términos</a> y la <a class="text-link" href="privacidad.php" data-legal="privacidad">Política de privacidad</a>.</span>
                                 </label>
 
                                 <button type="submit" class="btn btn--primary">Registrarme</button>
@@ -208,6 +207,16 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
             </main>
         </div>
     </div>
+
+    <dialog class="status-dialog status-dialog--wide" id="legalDialog" aria-labelledby="legalDialogTitle">
+        <div class="status-dialog__body">
+            <div class="status-dialog__header">
+                <h3 class="status-dialog__name" id="legalDialogTitle"></h3>
+                <button type="button" class="day-panel__close" aria-label="Cerrar">×</button>
+            </div>
+            <div class="legal-doc legal-dialog__content" id="legalDialogContent"></div>
+        </div>
+    </dialog>
 
     <dialog class="result-screen" id="resultScreen" aria-labelledby="resultTitle" aria-describedby="resultMessage" tabindex="-1">
         <svg class="result-screen__icon result-screen__icon--success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">

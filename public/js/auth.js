@@ -9,7 +9,7 @@ import {
   registerUser,
 } from "./api.js";
 import { clearInvalidOnInput, setBusy } from "./feedback.js";
-import { initPasswordToggles } from "./dom.js";
+import { goToLogin, initPasswordToggles } from "./dom.js";
 import { showResult } from "./confirm.js";
 
 async function clearBrowserStorage() {
@@ -201,6 +201,6 @@ export function initLogout() {
       "Cerraste sesión correctamente. ¡Hasta la próxima!",
       { hold: true },
     );
-    window.location.replace(new URL("login.php", window.location.href));
+    goToLogin();
   });
 }

@@ -1,6 +1,7 @@
 import {
   ApiError,
   changePassword,
+  deleteAccount,
   fetchAccount,
   fetchAccountExport,
   getErrorMessage,
@@ -8,7 +9,7 @@ import {
   logError,
 } from "./api.js";
 import { confirmAction, showResult } from "./confirm.js";
-import { $, initPasswordToggles } from "./dom.js";
+import { $, goToLogin, initPasswordToggles } from "./dom.js";
 import {
   clearInvalidOnInput,
   createDirtyTracker,
@@ -30,6 +31,9 @@ const PASSWORD_FIELDS = [
 let drawer = null;
 let feedback = null;
 let dirty = null;
+let deleteDrawer = null;
+let deleteFeedback = null;
+let deleteDirty = null;
 let isSaving = false;
 
 async function loadAccount() {
@@ -48,13 +52,17 @@ async function loadAccount() {
   }
 }
 
-function resetPasswordForm() {
-  $("passwordForm").reset();
-  $("settingsPanel")
+function resetForm(form, panel, panelFeedback, panelDirty) {
+  form.reset();
+  panel
     .querySelectorAll("[data-toggle-password][aria-pressed='true']")
     .forEach((button) => button.click());
-  feedback.clearInvalid();
-  dirty.reset();
+  panelFeedback.clearInvalid();
+  panelDirty.reset();
+}
+
+function resetPasswordForm() {
+  resetForm($("passwordForm"), $("settingsPanel"), feedback, dirty);
 }
 
 function openSettings() {
@@ -200,6 +208,55 @@ async function importData(file) {
   }
 }
 
+async function removeAccount() {
+  if (isSaving) return;
+
+  deleteFeedback.clearInvalid();
+
+  const empty = ["deletePassword", "deleteConfirmation"].filter(
+    (id) => !$(id).value.trim(),
+  );
+
+  if (empty.length > 0) {
+    deleteFeedback.invalidate(empty);
+    deleteFeedback.focusInvalid();
+    return;
+  }
+
+  const button = $("deleteAccountButton");
+  isSaving = true;
+  setBusy(button, true);
+
+  try {
+    const result = await deleteAccount(
+      $("deletePassword").value,
+      $("deleteConfirmation").value,
+    );
+
+    if (!result.success) {
+      throw new ApiError(result.error || "No se pudo eliminar la cuenta.", {
+        kind: "request",
+      });
+    }
+
+    await showResult(
+      "success",
+      "Cuenta eliminada",
+      "Borramos tu cuenta y todos tus datos. ¡Gracias por haber usado HairApp!",
+      { hold: true },
+    );
+    goToLogin();
+  } catch (error) {
+    logError("Error al eliminar la cuenta:", error);
+    deleteFeedback.show(
+      "error",
+      getErrorMessage(error, "No se pudo eliminar la cuenta."),
+    );
+    isSaving = false;
+    setBusy(button, false);
+  }
+}
+
 export function initSettings() {
   const panel = $("settingsPanel");
 
@@ -216,6 +273,20 @@ export function initSettings() {
 
   initPasswordToggles(panel);
   clearInvalidOnInput(panel);
+
+  const deletePanel = $("deletePanel");
+
+  deleteFeedback = createFeedback(deletePanel);
+  deleteDirty = createDirtyTracker(deletePanel);
+  deleteDrawer = createDrawer({
+    overlay: $("deleteModalOverlay"),
+    panel: deletePanel,
+    feedback: deleteFeedback,
+    dirty: deleteDirty,
+  });
+
+  initPasswordToggles(deletePanel);
+  clearInvalidOnInput(deletePanel);
 
   $("navSettings").addEventListener("click", (event) => {
     event.preventDefault();
@@ -237,13 +308,32 @@ export function initSettings() {
     if (file) importData(file);
   });
 
+  $("openDeleteAccount").addEventListener("click", () => {
+    resetForm($("deleteAccountForm"), deletePanel, deleteFeedback, deleteDirty);
+    deleteDrawer.open($("deletePassword"));
+  });
+  $("deleteModalClose").addEventListener("click", () => deleteDrawer.close());
+  $("deleteModalCancel").addEventListener("click", () => deleteDrawer.close());
+  $("deleteModalOverlay").addEventListener("click", () =>
+    deleteDrawer.requestClose(),
+  );
+
+  $("deleteAccountForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    removeAccount();
+  });
+
   $("passwordForm").addEventListener("submit", (event) => {
     event.preventDefault();
     savePassword();
   });
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && drawer.isOpen()) {
+    if (event.key !== "Escape") return;
+
+    if (deleteDrawer.isOpen()) {
+      deleteDrawer.requestClose();
+    } else if (drawer.isOpen()) {
       drawer.requestClose();
     }
   });
