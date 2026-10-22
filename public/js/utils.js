@@ -73,3 +73,20 @@ export function todayIso() {
 export function formatTime(value) {
   return String(value ?? "").substring(0, 5);
 }
+
+// Datos opcionales del turno que quedaron vacíos y cómo completarlos después.
+export function missingAppointmentNotice(data) {
+  const missing = [];
+
+  if (!(data.price > 0)) {
+    missing.push("el precio");
+  }
+
+  if (!data.stylist) {
+    missing.push("el profesional");
+  }
+
+  return missing.length === 0
+    ? ""
+    : ` Quedó sin cargar ${missing.join(" y ")}: lo completás con «Editar turno» desde el detalle.`;
+}

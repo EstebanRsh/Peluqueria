@@ -35,10 +35,9 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
         html:not(.is-styled) body { visibility: hidden; animation: boot-show 0s 5s forwards; }
         @keyframes boot-show { to { visibility: visible; } }
     </style>
-    <!-- Fuentes: Alex Brush y Cinzel para la marca, Inter para el texto -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cinzel:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preload" href="<?= $baseAttr ?>/public/fonts/inter-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="<?= $baseAttr ?>/public/fonts/cinzel-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="<?= $baseAttr ?>/public/fonts/alex-brush-latin-400.woff2" as="font" type="font/woff2" crossorigin>
 
     <link rel="stylesheet" href="<?= $asset('css/base.css') ?>">
     <link rel="stylesheet" href="<?= $asset('css/sidebar.css') ?>">
@@ -171,7 +170,6 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
             </div>
             <div id="viewServices" class="is-hidden">
                 <?php require __DIR__ . '/services_view.php'; ?>
-                <?php require __DIR__ . '/modal_service.php'; ?>
             </div>
             <div id="viewClients" class="is-hidden">
                 <?php require __DIR__ . '/clients_view.php'; ?>
@@ -181,7 +179,9 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
                 <?php require __DIR__ . '/products_view.php'; ?>
                 <?php require __DIR__ . '/modal_product.php'; ?>
             </div>
+            <?php require __DIR__ . '/modal_service.php'; ?>
             <?php require __DIR__ . '/modal_settings.php'; ?>
+            <?php require __DIR__ . '/modal_delete_account.php'; ?>
         </main>
     </div>
 
@@ -192,6 +192,16 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
             <svg class="fab-actions__toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
         </button>
     </div>
+
+    <dialog class="status-dialog status-dialog--wide" id="legalDialog" aria-labelledby="legalDialogTitle">
+        <div class="status-dialog__body">
+            <div class="status-dialog__header">
+                <h3 class="status-dialog__name" id="legalDialogTitle"></h3>
+                <button type="button" class="day-panel__close" aria-label="Cerrar">×</button>
+            </div>
+            <div class="legal-doc legal-dialog__content" id="legalDialogContent"></div>
+        </div>
+    </dialog>
 
     <dialog class="result-screen" id="resultScreen" aria-labelledby="resultTitle" aria-describedby="resultMessage" tabindex="-1">
         <svg class="result-screen__icon result-screen__icon--success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">

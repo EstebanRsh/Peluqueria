@@ -345,6 +345,23 @@ export function importAccountData(data) {
   return postJson("account_import", { data });
 }
 
+export async function fetchLegalPage(page) {
+  const response = await request(`${BASE_URL}/${page}.php`);
+
+  if (!response.ok) {
+    throw new ApiError(messageForStatus(response.status), {
+      kind: response.status >= 500 ? "server" : "request",
+      status: response.status,
+    });
+  }
+
+  return response.text();
+}
+
+export function deleteAccount(password, confirmation) {
+  return postJson("account_delete", { password, confirmation });
+}
+
 export function changePassword(data) {
   return postJson("change_password", data);
 }
@@ -379,6 +396,10 @@ export function fetchAppointments(date, search = "", status = "todos") {
 // Envía un nuevo turno al servidor en formato JSON.
 export function createAppointment(data) {
   return postJson("create", data);
+}
+
+export function updateAppointment(data) {
+  return postJson("update", data);
 }
 
 // Envía al servidor el ID del turno y su nuevo estado.

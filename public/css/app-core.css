@@ -476,7 +476,8 @@
    Solo usa variables de base.css.
    ========================================================================== */
 
-.login-page {
+.login-page,
+.legal-page {
   position: relative;
   align-items: center;
   justify-content: center;
@@ -641,12 +642,49 @@
 
 /* --- Columna derecha: tarjeta de acceso --------------------------------- */
 
-.login-page .admin-view {
+.login-page .admin-view,
+.legal-page .admin-view {
   width: 100%;
   height: auto;
   border-top: 1px solid var(--color-border);
   box-shadow: var(--shadow-lg), var(--shadow-gold-glow);
   animation: login-rise 0.9s var(--ease-spring) 0.15s both;
+}
+
+/* --- Páginas legales (términos y privacidad) ----------------------------- */
+
+.legal-page {
+  align-items: flex-start;
+}
+
+.legal-shell {
+  position: relative;
+  z-index: var(--z-surface);
+  width: 100%;
+  max-width: 820px;
+}
+
+.legal-doc {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  color: var(--color-text);
+  line-height: 1.7;
+}
+
+.legal-doc h2 {
+  margin-top: 0.75rem;
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.legal-doc ul {
+  display: grid;
+  gap: 0.4rem;
+  padding-left: 1.25rem;
+  list-style: disc;
 }
 
 .login-fieldset {
@@ -712,6 +750,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .login-page::before,
+  .legal-page .admin-view,
   .login-hero,
   .login-hero__brand .brand-script,
   .login-story,

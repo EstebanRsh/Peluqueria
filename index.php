@@ -45,7 +45,8 @@ if (in_array($action, [
     'change_password',
     'account',
     'account_export',
-    'account_import'
+    'account_import',
+    'account_delete'
 ], true)) {
     $controller = new AuthController();
     $controller->handleRequest();
@@ -56,6 +57,7 @@ if (in_array($action, [
 if (in_array($action, [
     'list',
     'create',
+    'update',
     'delete',
     'update_status',
     'history'

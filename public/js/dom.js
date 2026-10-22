@@ -106,6 +106,10 @@ export function setActiveFilter(buttons, activeButton) {
   });
 }
 
+export function goToLogin() {
+  window.location.replace(new URL("login.php", window.location.href));
+}
+
 // Conecta los botones de ojo (.password-field) para mostrar u ocultar la contraseña.
 export function initPasswordToggles(root = document) {
   root.querySelectorAll("[data-toggle-password]").forEach((button) => {

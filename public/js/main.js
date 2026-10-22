@@ -8,6 +8,7 @@ import { showError } from "./confirm.js";
 import { initServices, loadServicesList } from "./services.js";
 import { initClients, loadClientsList } from "./clients.js";
 import { initProducts, loadProductsList } from "./products.js";
+import { initLegal } from "./legal.js";
 import { initSettings } from "./settings.js";
 import { initQuickEntry } from "./quickEntry.js";
 import { initLogout } from "./auth.js";
@@ -173,6 +174,7 @@ initServices();
 initClients();
 initProducts();
 initSettings();
+initLegal();
 initQuickEntry();
 initLogout();
 

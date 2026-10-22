@@ -4,6 +4,34 @@
    declarar colores literales (hex, rgb, rgba, hsl).
    ========================================================================== */
 
+/* ==========================================================================
+   TIPOGRAFÍAS
+   ========================================================================== */
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../fonts/inter-latin-wght.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Cinzel";
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url("../fonts/cinzel-latin-wght.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Alex Brush";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/alex-brush-latin-400.woff2") format("woff2");
+}
+
 :root {
   /* --- Acento dorado: todos los tonos dorados derivan de --gold-rgb ------ */
   --gold-rgb: 197, 160, 89;
