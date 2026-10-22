@@ -1,8 +1,6 @@
 <!-- =====================================================
      PANEL LATERAL — NUEVO TURNO
-     Se abre por encima del panel del día (capa anidada).
-     Orden del formulario: cliente, servicios, fecha, horario, precio,
-     profesional y estado, notas.
+     Formulario de alta, edición y finalización de un turno.
 ====================================================== -->
 
 <div class="side-drawer-overlay side-drawer-overlay--nested" id="modalOverlay"></div>
@@ -26,7 +24,7 @@
 
         <div class="day-panel__body">
 
-            <!-- Cliente: búsqueda o alias en un solo campo -->
+            <!-- Cliente -->
             <div class="form-row">
                 <div class="form-group form-group--full is-required">
                     <label for="clientSearch">Cliente</label>
@@ -124,7 +122,7 @@
             <!-- Profesional y estado -->
             <div class="form-row">
                 <div class="form-group">
-                    <label for="stylist">Peluquero/a</label>
+                    <label for="stylist">Profesional</label>
                     <input
                         type="text"
                         id="stylist"

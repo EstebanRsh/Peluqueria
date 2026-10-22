@@ -1,5 +1,7 @@
 // ============================================================
-// PANEL LATERAL Y VISUALIZACIÓN DE TURNOS
+// PANEL DEL DÍA
+// Turnos del día en el panel lateral, detalle del turno, cambio de estado
+// y marcas del calendario.
 // ============================================================
 
 import {
@@ -13,11 +15,11 @@ import {
 } from "./api.js";
 
 import { confirmAction, showError, showResult } from "./confirm.js";
-import { STATUS_FILTERS } from "./constants.js";
-import { escapeHtml, restoreFocus } from "./dom.js";
+import { FINISHED_STATUS, STATUS_FILTERS } from "./constants.js";
+import { escapeHtml, restoreFocus, setActiveFilter } from "./dom.js";
 import { formatDate, formatTime, slugify } from "./utils.js";
 import { setBusy, setSearching } from "./feedback.js";
-import { debounce } from "./list.js";
+import { debounce, loadErrorHtml } from "./list.js";
 import { appState } from "./state.js";
 
 // ============================================================
@@ -53,10 +55,6 @@ const CELL_BADGE_LABELS = {
 let appointmentSearchQuery = "";
 let appointmentFilterStatus = "todos";
 let loadToken = 0;
-
-// ============================================================
-// UTILIDADES
-// ============================================================
 
 // ============================================================
 // APERTURA DEL PANEL
@@ -144,7 +142,6 @@ document.addEventListener("keydown", (event) => {
 // CALENDARIO: MARCAS DE RESERVADOS
 // ============================================================
 
-// Conecta una marca de reservados con el panel diario y su tooltip.
 export function bindCalendarBadge(badge) {
   badge.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -197,8 +194,6 @@ export function bindCalendarBadge(badge) {
   });
 }
 
-// Dibuja las marcas de la celda de un día (finalizados a la izquierda de reservados)
-// y actualiza su texto accesible.
 function renderCellBadges(cell, counts) {
   cell.querySelector(".cell__events")?.remove();
 
@@ -248,7 +243,6 @@ function renderCellBadges(cell, counts) {
   cell.setAttribute("aria-label", parts.join(", "));
 }
 
-// Recalcula el resumen del mes a partir de las marcas visibles.
 function updateCalendarSummary() {
   const sumBadges = (status) => [
     ...document.querySelectorAll(
@@ -272,8 +266,6 @@ function updateCalendarSummary() {
   setSummary("dias", reservados.length);
 }
 
-// Vuelve a consultar los turnos del día y actualiza el calendario
-// (contador de la celda y resumen) sin recargar la página.
 export async function syncCalendarDay(date) {
   if (!date) {
     return;
@@ -308,8 +300,6 @@ export async function syncCalendarDay(date) {
 
 // ============================================================
 // ESTRUCTURA DEL PANEL (BÚSQUEDA, FILTROS Y LISTA)
-// Se dibuja una sola vez por apertura; las búsquedas y filtros
-// solo actualizan la lista, sin recrear el campo de texto.
 // ============================================================
 
 function renderPanelShell() {
@@ -351,26 +341,20 @@ function renderPanelShell() {
   `;
 }
 
-function syncFilterButtons() {
-  panelBody.querySelectorAll(".btn-filter[data-status]").forEach((button) => {
-    const isActive = button.dataset.status === appointmentFilterStatus;
-
-    button.classList.toggle("is-active", isActive);
-    button.setAttribute("aria-pressed", String(isActive));
-  });
-}
-
 panelBody?.addEventListener("click", (event) => {
   const filterButton = event.target.closest(".btn-filter[data-status]");
 
   if (filterButton) {
     appointmentFilterStatus = filterButton.dataset.status;
-    syncFilterButtons();
+    setActiveFilter(
+      panelBody.querySelectorAll(".btn-filter[data-status]"),
+      filterButton,
+    );
     loadAppointments(appState.activeDay);
     return;
   }
 
-  if (event.target.closest("[data-action='retry-load']")) {
+  if (event.target.closest("[data-action='retry']")) {
     loadAppointments(appState.activeDay);
     return;
   }
@@ -460,20 +444,10 @@ export async function loadAppointments(date, { showLoading = true } = {}) {
 
     logError("Error al cargar turnos:", error);
 
-    container.innerHTML = `
-      <p class="panel-error" role="alert">
-        ${escapeHtml(getErrorMessage(error, "No se pudieron cargar los turnos."))}
-      </p>
-      <p class="panel-error">
-        <button
-          type="button"
-          class="btn btn--ghost btn--sm"
-          data-action="retry-load"
-        >
-          Reintentar
-        </button>
-      </p>
-    `;
+    container.innerHTML = loadErrorHtml(
+      error,
+      "No se pudieron cargar los turnos.",
+    );
   } finally {
     if (token === loadToken) {
       container.removeAttribute("aria-busy");
@@ -557,7 +531,6 @@ function renderAppointmentsList(container, appointments) {
 // DETALLE DE TURNO
 // ============================================================
 
-// Con varios servicios, cada uno aparece con su precio.
 function serviceDetailHtml(appointment) {
   const services = appointment.services ?? [];
 
@@ -637,7 +610,7 @@ function openAppointmentDetailModal(appointmentId) {
           </div>
 
           <div class="detail-card">
-            <span class="detail-label">Peluquero/a</span>
+            <span class="detail-label">Profesional</span>
             <span class="detail-value">
               ${escapeHtml(appointment.stylist || "Sin asignar")}
             </span>
@@ -731,7 +704,7 @@ function openAppointmentDetailModal(appointmentId) {
         </button>
 
         ${
-          appointment.status === "Finalizado" &&
+          appointment.status === FINISHED_STATUS &&
           Number(appointment.has_record) !== 1
             ? `<button
           type="button"
@@ -853,7 +826,6 @@ async function setAppointmentStatus(id, status) {
   return previous;
 }
 
-// Cierra el detalle y abre el formulario del turno (edición o finalización).
 function openAppointmentForm(id, finish) {
   const appointment = appointmentMap.get(String(id));
 
@@ -945,7 +917,7 @@ async function changeStatusFromDialog(id, status) {
     return;
   }
 
-  if (status === "Finalizado") {
+  if (status === FINISHED_STATUS) {
     openAppointmentForm(id, true);
     return;
   }

@@ -1,8 +1,17 @@
-// Constantes compartidas: estados de turno y unidades de producto.
+// ============================================================
+// CONSTANTES
+// Estados de turno, estados de registros y unidades de producto, definidos una sola vez.
+// ============================================================
 
 export const DEFAULT_APPOINTMENT_STATUS = "Reservado";
 
-// Estados que no ocupan el horario del profesional.
+export const FINISHED_STATUS = "Finalizado";
+
+export const RECORD_STATUS = {
+  active: { slug: "activo", label: "Activo" },
+  inactive: { slug: "inactivo", label: "Inactivo" },
+};
+
 export const INACTIVE_STATUSES = ["Cancelado", "Ausente"];
 
 export const STATUS_FILTERS = [
@@ -19,4 +28,4 @@ export const UNIT_NAMES = {
   unidad: "Unidad",
 };
 
-export const UNIT_SHORTS = { ml: "ml", g: "g", unidad: "unid." };
+export const UNIT_SHORTS = { ml: "ml", g: "g", unidad: "unidad" };

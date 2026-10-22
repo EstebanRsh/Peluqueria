@@ -1,5 +1,6 @@
 // ============================================================
 // FICHA DE SERVICIO
+// Ficha técnica de un turno o suelta: color, tratamiento, corte y productos usados.
 // ============================================================
 
 import {
@@ -13,14 +14,13 @@ import {
 } from "./api.js";
 import { createAutocomplete, createClientAutocomplete } from "./autocomplete.js";
 import { UNIT_SHORTS } from "./constants.js";
-import { $, escapeHtml } from "./dom.js";
+import { $, escapeHtml, setActiveFilter } from "./dom.js";
 import { clearInvalidOnInput, createFeedback, setBusy } from "./feedback.js";
 import { confirmAction, showError, showResult } from "./confirm.js";
 import { appState } from "./state.js";
 import { loadAppointments, syncCalendarDay } from "./ui.js";
 import { missingAppointmentNotice } from "./utils.js";
 
-// Campos numéricos de la ficha (enteros mayores a 0).
 const NUMBER_FIELDS = [
   "colorQuantityValue",
   "colorOxidantValue",
@@ -30,7 +30,6 @@ const NUMBER_FIELDS = [
   "treatmentPassesValue",
 ];
 
-// Dónde se guarda cada dato de una ficha anterior dentro del formulario.
 const DETAIL_FIELDS = {
   color: {
     type: "colorType",
@@ -61,7 +60,6 @@ const DETAIL_FIELDS = {
   },
 };
 
-// Una categoría tiene datos si algún valor no es nulo ni una lista vacía.
 function categoryHasData(category) {
   return Object.values(category).some((value) =>
     Array.isArray(value) ? value.length > 0 : value !== null,
@@ -136,7 +134,6 @@ export function initQuickEntry() {
     opener = null;
   };
 
-  // Un clic fuera del panel o Escape no deben borrar lo ya cargado.
   const requestClose = () => {
     if (isDirty()) {
       feedback.show(
@@ -245,7 +242,6 @@ export function initQuickEntry() {
     showClientChip(text, "Alias de referencia · sin cliente registrado", false);
   };
 
-  // Ficha de un turno: el cliente y el servicio son los del turno.
   const linkAppointment = (appointment, finishing) => {
     linkedAppointment = appointment;
     pendingFinish = finishing;
@@ -403,12 +399,12 @@ export function initQuickEntry() {
     input.closest(".input-with-unit")?.insertAdjacentElement("afterend", group);
 
     input.addEventListener("input", () => {
-      group.querySelectorAll(".preset-chip").forEach((chip) => {
-        const selected = input.value === chip.dataset.value;
+      const chips = [...group.querySelectorAll(".preset-chip")];
 
-        chip.classList.toggle("is-active", selected);
-        chip.setAttribute("aria-pressed", String(selected));
-      });
+      setActiveFilter(
+        chips,
+        chips.find((chip) => chip.dataset.value === input.value) ?? null,
+      );
     });
   });
 
@@ -608,7 +604,6 @@ export function initQuickEntry() {
       hasData(buildJSON()),
     );
 
-  // Un punto en la pestaña indica que esa categoría ya tiene datos.
   function updateTabIndicators() {
     const details = {
       general: buildGeneral(),
@@ -631,7 +626,6 @@ export function initQuickEntry() {
   panel.addEventListener("input", updateTabIndicators);
   panel.addEventListener("change", updateTabIndicators);
 
-  // Campos numéricos con un valor que no es un entero mayor a 0.
   const invalidNumberFields = () =>
     NUMBER_FIELDS.filter((id) => {
       const raw = $(id)?.value ?? "";
@@ -879,7 +873,6 @@ export function initQuickEntry() {
     }
   };
 
-  // Guarda el turno como Finalizado.
   const commitFinish = async (finishing) => {
     const result = await updateAppointment(finishing.data);
 
@@ -971,7 +964,6 @@ export function initQuickEntry() {
     );
   });
 
-  // Qué se guardó en la ficha y qué quedó sin cargar.
   const recordSummary = (data) => {
     const saved = [];
     const empty = [];

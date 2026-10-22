@@ -1,4 +1,9 @@
-// Listados con búsqueda y filtro en el servidor, paginados con "Cargar más".
+// ============================================================
+// LISTADOS
+// Listados con búsqueda y filtro en el servidor, paginados con «Cargar más»,
+// y acciones de cada fila.
+// ============================================================
+
 import {
   ApiError,
   getErrorMessage,
@@ -6,6 +11,7 @@ import {
   LIST_PAGE_SIZE,
   logError,
 } from "./api.js";
+import { RECORD_STATUS } from "./constants.js";
 import { escapeHtml } from "./dom.js";
 import { setBusy, setSearching } from "./feedback.js";
 import { showError, showResult } from "./confirm.js";
@@ -21,7 +27,6 @@ export function debounce(callback) {
   };
 }
 
-// load() devuelve false si la respuesta quedó obsoleta (otro pedido la reemplazó).
 export function createListLoader(fetchPage, searchInput = null) {
   const state = { items: [], total: 0, page: 1, search: "", filter: "todos" };
   let controller = null;
@@ -114,8 +119,6 @@ const ROW_ICONS = {
 const CHEVRON_ICON =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="9 6 15 12 9 18"/></svg>';
 
-// Botones Editar / Activar o Desactivar / Eliminar de una fila de la tabla.
-// Con { profile: true } suma "Ver perfil", que solo se ve en la ventanita del celular.
 export function rowActionsHtml(id, name, active, { profile = false } = {}) {
   const toggle = active ? "deactivate" : "activate";
   const toggleLabel = active ? "Desactivar" : "Activar";
@@ -132,7 +135,12 @@ export function rowActionsHtml(id, name, active, { profile = false } = {}) {
         </div>`;
 }
 
-// Botón de cada fila que abre su ventanita en el celular (oculto en escritorio).
+export function statusBadgeHtml(active) {
+  const status = active ? RECORD_STATUS.active : RECORD_STATUS.inactive;
+
+  return `<span class="status-badge status-badge--${status.slug}">${status.label}</span>`;
+}
+
 export function rowToggleHtml(name, id) {
   const safeName = escapeHtml(name);
 
@@ -141,8 +149,6 @@ export function rowToggleHtml(name, id) {
 
 export const isCompactView = () => matchMedia("(max-width: 768px)").matches;
 
-// En el celular, tocar una fila abre una ventanita con sus datos y acciones.
-// Los botones de la ventanita ejecutan el botón original de la fila.
 export function bindRowDialog(body, dialog, getNotes) {
   if (!body || !dialog) return;
 
@@ -219,7 +225,6 @@ export function bindRowDialog(body, dialog, getNotes) {
   });
 }
 
-// Vuelve a pedir la lista; si falla, avisa sin dar por perdido el cambio.
 export async function refreshAfterChange(list, render) {
   try {
     if (await list.load()) render();
@@ -233,7 +238,6 @@ export async function refreshAfterChange(list, render) {
   }
 }
 
-// Ejecuta una acción de la fila (activar, desactivar, eliminar) y refresca.
 export async function runTableAction(button, task, messages, refresh) {
   setBusy(button, true);
 

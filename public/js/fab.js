@@ -1,11 +1,16 @@
+// ============================================================
+// BOTÓN FLOTANTE
+// Acciones rápidas según la vista activa.
+// ============================================================
+
 import { todayIso } from "./utils.js";
 
 // ============================================================
-// FAB CONTEXTUAL (un único componente, acciones según la vista)
+// ÍCONOS Y ACCIONES
 // ============================================================
 
 const svg = (inner) =>
-  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${inner}</svg>`;
 
 const ICONS = {
   appointment: svg(
@@ -25,10 +30,6 @@ const ICONS = {
   ),
 };
 
-// Cada acción: { label, icon, accent?, view?, trigger?, run? }
-//  - view:    vista a activar antes de ejecutar (si no es la actual)
-//  - trigger: id del botón existente que abre el modal
-//  - run:     función personalizada
 const actions = {
   newAppointment: (ctx) => ({
     label: "Nuevo turno",
@@ -67,7 +68,6 @@ const actions = {
   }),
 };
 
-// Acciones del FAB por vista. Agregar una acción = una línea acá.
 const FAB_BY_VIEW = {
   appointments: ["newAppointment", "newHistory", "newProduct", "newClient"],
   clients: ["newClient"],

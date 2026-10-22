@@ -1,3 +1,8 @@
+// ============================================================
+// PRODUCTOS
+// Listado, alta y edición de los productos del inventario.
+// ============================================================
+
 import {
   ApiError,
   fetchAllProducts,
@@ -9,7 +14,7 @@ import {
   getErrorMessage,
   logError,
 } from "./api.js";
-import { UNIT_NAMES } from "./constants.js";
+import { UNIT_NAMES, UNIT_SHORTS } from "./constants.js";
 import { $, escapeHtml, isActive, setActiveFilter } from "./dom.js";
 import {
   clearInvalidOnInput,
@@ -29,6 +34,7 @@ import {
   rowActionsHtml,
   rowToggleHtml,
   runTableAction,
+  statusBadgeHtml,
 } from "./list.js";
 import { confirmAction, showError, showResult } from "./confirm.js";
 
@@ -39,7 +45,6 @@ let feedback = null;
 let dirty = null;
 let drawer = null;
 
-// Texto de las etiquetas del formulario según la unidad elegida.
 const UNIT_FIELD_TEXT = {
   ml: { stock: "Stock disponible (ml)", cost: "Costo por ml ($)" },
   g: { stock: "Stock disponible (g)", cost: "Costo por g ($)" },
@@ -65,12 +70,16 @@ function updateUnitLabels() {
   $("productCostLabel").textContent = text.cost;
 }
 
+function unitShort(product) {
+  return UNIT_SHORTS[product.measurement_unit] ?? product.measurement_unit;
+}
+
 function formatStock(product) {
-  return `${Number(product.stock)} ${product.measurement_unit}`;
+  return `${Number(product.stock)} ${unitShort(product)}`;
 }
 
 function formatCost(product) {
-  return `$${Number(product.unit_cost).toFixed(2)} / ${product.measurement_unit}`;
+  return `$${Number(product.unit_cost).toFixed(2)} / ${unitShort(product)}`;
 }
 
 // ============================================================
@@ -111,7 +120,7 @@ function renderProductsList() {
         <td data-label="Marca">${escapeHtml(product.brand || "—")}</td>
         <td data-label="Stock">${escapeHtml(formatStock(product))}</td>
         <td data-label="Costo">${escapeHtml(formatCost(product))}</td>
-        <td data-label="Estado"><span class="status-badge status-badge--${active ? "activo" : "inactivo"}">${active ? "Activo" : "Inactivo"}</span></td>
+        <td data-label="Estado">${statusBadgeHtml(active)}</td>
         <td data-label="Acciones">${rowActionsHtml(product.id, product.name, active)}</td>
       </tr>`;
     })

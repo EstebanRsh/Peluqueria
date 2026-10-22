@@ -1,3 +1,8 @@
+// ============================================================
+// CLIENTES
+// Listado, alta, edición y perfil de clientes con su historial técnico y sus turnos.
+// ============================================================
+
 import {
   ApiError,
   fetchAppointments,
@@ -11,6 +16,7 @@ import {
   getErrorMessage,
   logError,
 } from "./api.js";
+import { RECORD_STATUS, UNIT_SHORTS } from "./constants.js";
 import { formatTime, slugify } from "./utils.js";
 import {
   $,
@@ -40,6 +46,7 @@ import {
   rowActionsHtml,
   rowToggleHtml,
   runTableAction,
+  statusBadgeHtml,
 } from "./list.js";
 import { confirmAction, showError, showResult } from "./confirm.js";
 
@@ -99,7 +106,7 @@ function renderClientsList() {
       <tr data-client-id="${id}" class="client-row">
         <td data-label="Alias" class="cell-primary"><button type="button" class="table-link" data-action="profile" data-id="${id}" aria-label="Ver perfil de ${alias}">${alias}</button>${rowToggleHtml(client.alias, client.id)}</td>
         <td data-label="Código" class="cell-primary">${escapeHtml(client.internal_code || "—")}</td>
-        <td data-label="Estado"><span class="status-badge status-badge--${active ? "activo" : "inactivo"}">${active ? "Activo" : "Inactivo"}</span></td>
+        <td data-label="Estado">${statusBadgeHtml(active)}</td>
         <td data-label="Notas">${notes}</td>
         <td data-label="Acciones">${rowActionsHtml(client.id, client.alias, active, { profile: true })}</td>
       </tr>`;
@@ -228,7 +235,6 @@ const TIMELINE_CATEGORIES = {
   cut: "Corte",
 };
 
-// Nombres legibles de los datos técnicos guardados en cada ficha.
 const FIELD_LABELS = {
   general: {
     cart_items: "Productos usados",
@@ -353,7 +359,7 @@ function formatTechnicalValue(key, value) {
     return value
       .map((item) => {
         const name = item.name || `Producto ${item.product_id}`;
-        const unit = item.unit ? ` ${item.unit}` : "";
+        const unit = item.unit ? ` ${UNIT_SHORTS[item.unit] ?? item.unit}` : "";
         return `${name} × ${item.quantity}${unit}`;
       })
       .join(", ");
@@ -485,7 +491,7 @@ function renderClientAppointments() {
           </div>
           <div class="profile-appointment__meta">
             <time>${escapeHtml(formatProfileDate(appointment.date, false))} · ${escapeHtml(formatTime(appointment.time_start))}${appointment.time_end ? `–${escapeHtml(formatTime(appointment.time_end))}` : ""}</time>
-            <span>${escapeHtml(appointment.stylist || "Profesional sin asignar")}</span>
+            <span>${escapeHtml(appointment.stylist || "Sin asignar")}</span>
           </div>
         </article>`,
     )
@@ -498,6 +504,16 @@ function renderProfileError(container, error, fallback) {
   container.innerHTML = `
     <p class="history-error" role="alert">${escapeHtml(getErrorMessage(error, fallback))}</p>
     <button type="button" class="btn btn--ghost btn--sm" data-action="retry-profile">Reintentar</button>`;
+}
+
+function reloadProfileData(client) {
+  $("clientProfileHistory").innerHTML =
+    '<p class="history-placeholder" role="status">Cargando historial técnico…</p>';
+  $("clientProfileAppointments").innerHTML =
+    '<p class="history-placeholder" role="status">Cargando turnos…</p>';
+
+  profileRequestId += 1;
+  void loadClientProfileData(client, profileRequestId);
 }
 
 async function loadClientProfileData(client, requestId) {
@@ -640,8 +656,9 @@ function openClientProfile(client) {
   $("clientProfileCode").textContent = client.internal_code || "Sin código";
 
   const status = $("clientProfileStatus");
-  status.textContent = active ? "Activo" : "Inactivo";
-  status.className = `status-badge status-badge--${active ? "activo" : "inactivo"}`;
+  const record = active ? RECORD_STATUS.active : RECORD_STATUS.inactive;
+  status.textContent = record.label;
+  status.className = `status-badge status-badge--${record.slug}`;
 
   $("clientProfileNotes").textContent =
     client.notes || "Sin notas permanentes.";
@@ -683,18 +700,11 @@ function openClientProfile(client) {
     historyButtons.find((button) => button.dataset.historyFilter === "todos"),
   );
 
-  $("clientProfileHistory").innerHTML =
-    '<p class="history-placeholder" role="status">Cargando historial técnico…</p>';
-  $("clientProfileAppointments").innerHTML =
-    '<p class="history-placeholder" role="status">Cargando turnos…</p>';
-
-  profileRequestId += 1;
-  void loadClientProfileData(client, profileRequestId);
+  reloadProfileData(client);
 
   requestAnimationFrame(() => panel.focus({ preventScroll: true }));
 }
 
-// "Editar perfil": cierra el perfil y abre el formulario del cliente.
 function editProfileClient() {
   const client = profileClient;
   if (!client) return;
@@ -703,7 +713,6 @@ function editProfileClient() {
   showClientModal(client);
 }
 
-// "Nuevo turno": va a la agenda y abre el formulario con el cliente elegido.
 function scheduleForProfileClient() {
   const client = profileClient;
   if (!client) return;
@@ -881,13 +890,7 @@ export function initClients() {
     if (!event.target.closest("[data-action='retry-profile']")) return;
     if (!profileClient) return;
 
-    $("clientProfileHistory").innerHTML =
-      '<p class="history-placeholder" role="status">Cargando historial técnico…</p>';
-    $("clientProfileAppointments").innerHTML =
-      '<p class="history-placeholder" role="status">Cargando turnos…</p>';
-
-    profileRequestId += 1;
-    void loadClientProfileData(profileClient, profileRequestId);
+    reloadProfileData(profileClient);
   });
 
   document.addEventListener("keydown", (event) => {

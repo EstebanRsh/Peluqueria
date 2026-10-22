@@ -1,3 +1,8 @@
+// ============================================================
+// SERVICIOS
+// Listado, alta y edición de servicios.
+// ============================================================
+
 import {
   ApiError,
   fetchAllServices,
@@ -28,6 +33,7 @@ import {
   rowActionsHtml,
   rowToggleHtml,
   runTableAction,
+  statusBadgeHtml,
 } from "./list.js";
 import { confirmAction, showError, showResult } from "./confirm.js";
 
@@ -81,7 +87,7 @@ function renderServicesList() {
         <td data-label="Nombre" class="cell-primary">${name}${rowToggleHtml(service.name, service.id)}</td>
         <td data-label="Duración">${escapeHtml(service.duration)} min</td>
         <td data-label="Precio">$${escapeHtml(service.price)}</td>
-        <td data-label="Estado"><span class="status-badge status-badge--${active ? "activo" : "inactivo"}">${active ? "Activo" : "Inactivo"}</span></td>
+        <td data-label="Estado">${statusBadgeHtml(active)}</td>
         <td data-label="Acciones">${rowActionsHtml(service.id, service.name, active)}</td>
       </tr>`;
     })
@@ -120,7 +126,6 @@ export async function loadServicesList({ append = false } = {}) {
 // PANEL DE ALTA / EDICIÓN
 // ============================================================
 
-// Con quickName, el servicio se crea desde el formulario del turno.
 function showServiceModal(service = null, quickName = null) {
   quickCreate = quickName !== null;
   $("managedServiceId").value = service?.id || "";

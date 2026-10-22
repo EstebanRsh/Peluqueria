@@ -1,5 +1,7 @@
 // ============================================================
-// MODAL DE CREACIÓN DE TURNOS
+// FORMULARIO DE TURNO
+// Alta, edición y finalización de turnos: cliente, servicios, horario,
+// precio y profesional.
 // ============================================================
 
 import {
@@ -10,7 +12,11 @@ import {
   searchServices,
   logError,
 } from "./api.js";
-import { DEFAULT_APPOINTMENT_STATUS, INACTIVE_STATUSES } from "./constants.js";
+import {
+  DEFAULT_APPOINTMENT_STATUS,
+  FINISHED_STATUS,
+  INACTIVE_STATUSES,
+} from "./constants.js";
 import { $, escapeHtml, restoreFocus } from "./dom.js";
 import {
   formatDate,
@@ -39,8 +45,6 @@ const modalCancel = $("modalCancel");
 const modalSave = $("modalSave");
 const feedback = createFeedback(modalPanel);
 
-const LAST_STYLIST_KEY = "hairapp:lastStylist";
-
 // ============================================================
 // ESTADO DEL MODAL
 // ============================================================
@@ -58,6 +62,8 @@ let lastCalculatedEndTime = "";
 let startIsSuggested = false;
 
 let initialStylist = "";
+
+let lastStylist = "";
 
 let dayAppointments = [];
 let dayContextToken = 0;
@@ -78,7 +84,6 @@ let clientAutocomplete = null;
 // UTILIDADES
 // ============================================================
 
-// "HH:MM" o "HH:MM:SS" -> minutos desde medianoche (null si no es válido)
 function toMinutes(time) {
   const [hours, minutes] = String(time ?? "")
     .split(":")
@@ -99,30 +104,16 @@ function normalizeName(value) {
     .toLowerCase();
 }
 
-function readLastStylist() {
-  try {
-    return localStorage.getItem(LAST_STYLIST_KEY) || "";
-  } catch {
-    return "";
-  }
-}
-
 function saveLastStylist(name) {
-  if (!name) {
-    return;
+  if (name) {
+    lastStylist = name;
   }
-
-  try {
-    localStorage.setItem(LAST_STYLIST_KEY, name);
-  } catch {}
 }
 
 // ============================================================
 // INICIALIZACIÓN DEL MODAL
 // ============================================================
 
-// Configura los eventos necesarios para abrir,
-// cerrar y guardar el formulario de turnos.
 export function initModal() {
   const addButton = $("btnAddAppointment");
 
@@ -208,8 +199,8 @@ export function initModal() {
   $("appointmentStatus")?.addEventListener("change", () => {
     if (editingAppointment) {
       modalSave.textContent =
-        $("appointmentStatus").value === "Finalizado" &&
-        editingAppointment.status !== "Finalizado"
+        $("appointmentStatus").value === FINISHED_STATUS &&
+        editingAppointment.status !== FINISHED_STATUS
           ? "Continuar"
           : "Guardar cambios";
     }
@@ -287,7 +278,7 @@ function openModal(client = null) {
   const date = appState.activeDay || todayIso();
   $("appointmentDate").value = date;
 
-  initialStylist = readLastStylist();
+  initialStylist = lastStylist;
   $("stylist").value = initialStylist;
   populateStylistOptions();
 
@@ -300,8 +291,6 @@ function openModal(client = null) {
   showPanel((client ? $("serviceSearch") : $("clientSearch")) || modalPanel);
 }
 
-// Cancelar un turno que se estaba finalizando aborta todo el flujo,
-// incluida la ficha que quedó esperando.
 async function cancelModal() {
   const aborting = returningFromRecord;
 
@@ -362,8 +351,6 @@ function formSnapshot() {
     .join("\u0001");
 }
 
-// Abre el formulario con los datos de un turno existente. Con finish, pide
-// confirmar los datos antes de dejarlo Finalizado.
 function openEditModal(
   appointment,
   finish = false,
@@ -407,7 +394,7 @@ function openEditModal(
   $("timeEnd").value = String(appointment.time_end).slice(0, 5);
   $("stylist").value = appointment.stylist ?? "";
   $("notes").value = appointment.notes ?? "";
-  $("appointmentStatus").value = finish ? "Finalizado" : appointment.status;
+  $("appointmentStatus").value = finish ? FINISHED_STATUS : appointment.status;
 
   syncPriceMode();
   updatePriceHint();
@@ -455,7 +442,6 @@ function showClientChip(title, meta) {
   $("clientHelp").hidden = true;
 }
 
-// Cliente registrado elegido de la búsqueda.
 function selectClient(client) {
   $("clientId").value = String(client.id);
   $("clientName").value = "";
@@ -471,7 +457,6 @@ function selectClient(client) {
   $("serviceSearch")?.focus();
 }
 
-// Texto escrito usado como alias de referencia (sin cliente registrado).
 function useAlias(text) {
   $("clientId").value = "";
   $("clientName").value = text;
@@ -482,7 +467,6 @@ function useAlias(text) {
   $("serviceSearch")?.focus();
 }
 
-// Muestra el buscador para elegir otro valor sin borrar el actual.
 function changeSelected(field, search, help = null) {
   field.hidden = true;
   search.hidden = false;
@@ -494,7 +478,6 @@ function changeSelected(field, search, help = null) {
   search.focus();
 }
 
-// Si se sale del buscador sin elegir nada, vuelve a mostrarse el valor actual.
 function keepSelected(field, search, help, hasValue, reset) {
   search.addEventListener("blur", () => {
     setTimeout(() => {
@@ -536,8 +519,6 @@ function totalDuration() {
   return servicesTotal("duration");
 }
 
-// Dibuja los servicios elegidos debajo del buscador. La duración es la de este
-// turno: cambiarla no modifica el servicio guardado.
 function renderServices() {
   $("serviceList").innerHTML = selectedServices
     .map(
@@ -596,7 +577,6 @@ function handleServiceDurationChange(event) {
   }
 }
 
-// Cada servicio puede estar una sola vez en el turno.
 function addService(service) {
   const search = $("serviceSearch");
 
@@ -617,8 +597,6 @@ function addService(service) {
   servicesChanged();
 }
 
-// El precio es la suma de los servicios mientras no se edite a mano.
-// La hora de fin se recalcula con la duración total.
 function servicesChanged() {
   if (priceIsAutomatic) {
     $("price").value =
@@ -668,7 +646,6 @@ function resetServices() {
 // FECHA
 // ============================================================
 
-// Al cambiar la fecha se vuelven a consultar los turnos de ese día.
 function handleDateChange() {
   const date = $("appointmentDate").value;
 
@@ -679,7 +656,6 @@ function handleDateChange() {
   loadDayContext(date);
 }
 
-// Carga los turnos del día elegido para sugerir horario y detectar solapamientos.
 async function loadDayContext(date) {
   const token = ++dayContextToken;
 
@@ -706,7 +682,6 @@ async function loadDayContext(date) {
   updateScheduleWarning();
 }
 
-// Profesionales sugeridos: el último usado y los que ya tienen turnos ese día.
 function populateStylistOptions() {
   const datalist = $("stylistOptions");
 
@@ -724,7 +699,7 @@ function populateStylistOptions() {
     }
   };
 
-  add(readLastStylist());
+  add(lastStylist);
   dayAppointments.forEach((appointment) => add(appointment.stylist));
 
   datalist.replaceChildren(
@@ -736,7 +711,6 @@ function populateStylistOptions() {
   );
 }
 
-// Sugiere como hora de inicio el final del último turno activo del día.
 function suggestStartTime() {
   const timeStart = $("timeStart");
 
@@ -769,7 +743,6 @@ function suggestStartTime() {
 // AYUDAS DEL HORARIO
 // ============================================================
 
-// Texto de ayuda bajo los horarios (duración del servicio y hora sugerida).
 function updateScheduleHint() {
   const hint = $("scheduleHint");
   const parts = [];
@@ -791,7 +764,6 @@ function updateScheduleHint() {
   hint.hidden = parts.length === 0;
 }
 
-// Avisa (sin bloquear) si el horario se superpone con otro turno del mismo profesional.
 function updateScheduleWarning() {
   const box = $("scheduleWarning");
   const start = toMinutes($("timeStart").value);
@@ -839,8 +811,6 @@ function updateScheduleWarning() {
 // CAMBIO DE HORA DE INICIO
 // ============================================================
 
-// Si la hora de fin continúa siendo automática,
-// recalcula la hora de fin según el servicio seleccionado.
 function handleStartTimeChange() {
   startIsSuggested = false;
 
@@ -860,8 +830,6 @@ function handleStartTimeChange() {
 // MODIFICACIÓN MANUAL DE HORA DE FIN
 // ============================================================
 
-// Cuando la peluquera modifica la hora de fin,
-// dejamos de recalcularla automáticamente.
 function handleEndTimeManualChange() {
   const timeEnd = $("timeEnd");
 
@@ -881,7 +849,6 @@ function handleEndTimeManualChange() {
 // CÁLCULO DE HORA DE FIN
 // ============================================================
 
-// Suma la duración del servicio a la hora de inicio.
 function calculateEndTime(durationMinutes) {
   const timeStart = $("timeStart");
   const timeEnd = $("timeEnd");
@@ -913,7 +880,6 @@ function calculateEndTime(durationMinutes) {
 // CIERRE DEL MODAL
 // ============================================================
 
-// Cierra el modal y limpia todos sus campos.
 function closeModal() {
   modalOverlay.classList.remove("is-open");
   modalPanel.classList.remove("is-open");
@@ -930,7 +896,6 @@ function closeModal() {
 // LIMPIAR FORMULARIO
 // ============================================================
 
-// Indica si el usuario ya escribió o eligió algo en el formulario.
 function isFormDirty() {
   if (editingAppointment) {
     return formSnapshot() !== editSnapshot;
@@ -950,7 +915,6 @@ function isFormDirty() {
   );
 }
 
-// Restablece todos los campos y el estado interno del modal.
 function clearModal() {
   [
     "clientId",
@@ -1004,7 +968,6 @@ function clearModal() {
   dayContextToken += 1;
 }
 
-// Tras editar: avisa y actualiza la agenda.
 async function afterEdit(editing, data) {
   showResult(
     "success",
@@ -1027,8 +990,6 @@ async function afterEdit(editing, data) {
   }
 }
 
-// Finalizar: todavía no guarda nada. Pasa a la ficha, que guarda el turno junto
-// con ella o sin ella.
 function continueToRecord(editing, data) {
   const meta = $("clientChipMeta").textContent;
   const appointment = {
@@ -1071,8 +1032,6 @@ function continueToRecord(editing, data) {
 // VALIDACIÓN DE EXPERIENCIA DE USUARIO
 // ============================================================
 
-// Estas validaciones solamente evitan enviar formularios
-// evidentemente incompletos. El backend realiza las definitivas.
 function validateAppointment(data, rawPrice) {
   const errors = [];
 
@@ -1130,8 +1089,6 @@ function validateAppointment(data, rawPrice) {
 // GUARDAR TURNO
 // ============================================================
 
-// Recopila los datos del formulario y los envía
-// al backend mediante JSON.
 async function submitModalData() {
   if (isSaving) {
     return;
@@ -1182,8 +1139,8 @@ async function submitModalData() {
 
   if (
     editing &&
-    data.status === "Finalizado" &&
-    editing.status !== "Finalizado"
+    data.status === FINISHED_STATUS &&
+    editing.status !== FINISHED_STATUS
   ) {
     continueToRecord(editing, data);
     return;
