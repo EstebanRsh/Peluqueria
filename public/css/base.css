@@ -76,7 +76,9 @@
 
   /* Radios */
   --radius: 0px;
-  --radius-sm: 4px;
+  --radius-ctrl: 8px;
+  --radius-pill: 999px;
+  --radius-round: 50%;
 
   /* Tipografías */
   --font:
