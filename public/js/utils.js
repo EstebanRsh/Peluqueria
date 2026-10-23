@@ -64,6 +64,16 @@ export function formatTime(value) {
   return String(value ?? "").substring(0, 5);
 }
 
+export function toMinutes(time) {
+  const [hours, minutes] = String(time ?? "")
+    .split(":")
+    .map(Number);
+
+  return Number.isFinite(hours) && Number.isFinite(minutes)
+    ? hours * 60 + minutes
+    : null;
+}
+
 export function missingAppointmentNotice(data) {
   const missing = [];
 

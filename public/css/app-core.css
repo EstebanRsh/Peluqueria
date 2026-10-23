@@ -368,6 +368,29 @@
   color: var(--color-text-muted);
 }
 
+.appointment-card[data-moment] {
+  border-left-color: var(--color-gold);
+  background-color: var(--color-gold-wash);
+}
+
+.appointment-card[data-moment="now"] {
+  background-color: var(--color-gold-tint);
+}
+
+.appointment-card[data-moment] .appointment-card__row {
+  flex-wrap: wrap;
+  row-gap: var(--space-1);
+}
+
+.appointment-card__moment {
+  flex: 1 0 100%;
+  color: var(--color-gold-text);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 /* ==========================================================================
    CALENDARIO COMPACTO EN DESKTOP CON POCO ALTO
    ========================================================================== */

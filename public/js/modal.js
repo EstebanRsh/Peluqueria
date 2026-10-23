@@ -23,6 +23,7 @@ import {
   missingAppointmentNotice,
   pad,
   todayIso,
+  toMinutes,
 } from "./utils.js";
 import { appState } from "./state.js";
 import { loadAppointments, syncCalendarDay } from "./ui.js";
@@ -83,16 +84,6 @@ let clientAutocomplete = null;
 // ============================================================
 // UTILIDADES
 // ============================================================
-
-function toMinutes(time) {
-  const [hours, minutes] = String(time ?? "")
-    .split(":")
-    .map(Number);
-
-  return Number.isFinite(hours) && Number.isFinite(minutes)
-    ? hours * 60 + minutes
-    : null;
-}
 
 function toTimeString(totalMinutes) {
   return `${pad(Math.floor(totalMinutes / 60))}:${pad(totalMinutes % 60)}`;

@@ -15,9 +15,19 @@ import {
 } from "./api.js";
 
 import { confirmAction, showError, showResult } from "./confirm.js";
-import { FINISHED_STATUS, STATUS_FILTERS } from "./constants.js";
+import {
+  DEFAULT_APPOINTMENT_STATUS,
+  FINISHED_STATUS,
+  STATUS_FILTERS,
+} from "./constants.js";
 import { escapeHtml, restoreFocus, setActiveFilter } from "./dom.js";
-import { formatDate, formatTime, slugify } from "./utils.js";
+import {
+  formatDate,
+  formatTime,
+  slugify,
+  todayIso,
+  toMinutes,
+} from "./utils.js";
 import { setBusy, setSearching } from "./feedback.js";
 import { debounce, loadErrorHtml } from "./list.js";
 import { appState } from "./state.js";
@@ -89,6 +99,7 @@ export function openPanelForDate(cell, date, statusFilter) {
   panelOverlay?.classList.add("is-open");
 
   loadAppointments(date);
+  startMomentTimer();
 
   requestAnimationFrame(() => panel.focus({ preventScroll: true }));
 }
@@ -107,6 +118,7 @@ export function closePanel() {
   });
 
   appState.activeDay = null;
+  stopMomentTimer();
 
   restoreFocus(panelOpener);
   panelOpener = null;
@@ -493,7 +505,10 @@ function renderAppointmentsList(container, appointments) {
             role="button"
             tabindex="0"
             aria-label="Ver detalle del turno de ${escapeHtml(displayClientName)} a las ${escapeHtml(time)}"
+            aria-describedby="moment-${escapeHtml(appointment.id)}"
           >
+            <span class="appointment-card__moment" id="moment-${escapeHtml(appointment.id)}" hidden></span>
+
             <span class="appointment-card__time">
               ${escapeHtml(time)}
             </span>
@@ -522,6 +537,76 @@ function renderAppointmentsList(container, appointments) {
       `;
     })
     .join("");
+
+  applyMoments();
+}
+
+// ============================================================
+// TURNO EN CURSO Y SIGUIENTE
+// ============================================================
+
+const MOMENT_REFRESH_MS = 30000;
+const MOMENT_LABELS = { now: "Ahora", next: "Siguiente" };
+let momentTimer = null;
+
+function applyMoments() {
+  const cards = [...panelBody.querySelectorAll(".appointment-card")];
+  const now = new Date();
+  const minutes = now.getHours() * 60 + now.getMinutes();
+  const pending =
+    appState.activeDay === todayIso()
+      ? cards
+          .map((card) => ({
+            card,
+            appointment: appointmentMap.get(card.dataset.id),
+          }))
+          .filter(
+            ({ appointment }) =>
+              appointment?.status === DEFAULT_APPOINTMENT_STATUS,
+          )
+      : [];
+
+  const current = pending.filter(({ appointment }) => {
+    const start = toMinutes(appointment.time_start);
+    const end = toMinutes(appointment.time_end);
+
+    return start !== null && end !== null && start <= minutes && minutes < end;
+  });
+
+  const upcoming = current.length
+    ? []
+    : pending
+        .filter(({ appointment }) => toMinutes(appointment.time_start) > minutes)
+        .slice(0, 1);
+
+  const moments = new Map([
+    ...current.map(({ card }) => [card, "now"]),
+    ...upcoming.map(({ card }) => [card, "next"]),
+  ]);
+
+  cards.forEach((card) => {
+    const moment = moments.get(card);
+    const tag = card.querySelector(".appointment-card__moment");
+
+    if (moment) {
+      card.dataset.moment = moment;
+    } else {
+      delete card.dataset.moment;
+    }
+
+    tag.textContent = moment ? MOMENT_LABELS[moment] : "";
+    tag.hidden = !moment;
+  });
+}
+
+function startMomentTimer() {
+  stopMomentTimer();
+  momentTimer = setInterval(applyMoments, MOMENT_REFRESH_MS);
+}
+
+function stopMomentTimer() {
+  clearInterval(momentTimer);
+  momentTimer = null;
 }
 
 // ============================================================
