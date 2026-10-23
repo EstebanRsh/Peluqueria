@@ -8,14 +8,14 @@
 <aside class="side-drawer side-drawer--nested" id="serviceFormPanel"
     role="dialog" aria-modal="true" aria-labelledby="serviceModalTitle" aria-hidden="true" tabindex="-1">
 
-    <div class="day-panel__header">
-        <h3 class="day-panel__date" id="serviceModalTitle">
+    <div class="surface__header">
+        <h3 class="surface__title" id="serviceModalTitle">
             Nuevo servicio
         </h3>
 
         <button
             type="button"
-            class="day-panel__close"
+            class="surface__close"
             id="serviceModalClose"
             aria-label="Cerrar">
             ×
@@ -25,7 +25,7 @@
 
     <form class="drawer-form" id="serviceForm" novalidate autocomplete="off">
 
-        <div class="day-panel__body">
+        <div class="surface__body">
 
             <input type="hidden" id="managedServiceId">
 
@@ -86,7 +86,7 @@
         </div>
 
 
-        <div class="appointment-detail-footer">
+        <div class="surface__footer">
 
             <button
                 type="button"

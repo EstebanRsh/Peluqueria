@@ -9,10 +9,10 @@
          ENCABEZADO
     ====================================================== -->
 
-    <div class="day-panel__header">
-        <h2 class="day-panel__date" tabindex="-1">Panel de clientes</h2>
+    <div class="surface__header">
+        <h2 class="surface__title" tabindex="-1">Panel de clientes</h2>
 
-        <div class="day-panel__actions">
+        <div class="surface__actions">
             <button
                 type="button"
                 class="btn btn--primary btn--sm"
@@ -28,7 +28,7 @@
          CUERPO
     ====================================================== -->
 
-    <div class="day-panel__body">
+    <div class="surface__body">
 
         <div class="panel-controls">
             <div class="search-field">
@@ -89,20 +89,20 @@
 
 <aside class="side-drawer side-drawer--wide" id="clientProfilePanel"
     role="dialog" aria-modal="true" aria-labelledby="clientProfileName" aria-hidden="true" tabindex="-1">
-    <div class="day-panel__header">
+    <div class="surface__header">
         <div class="profile-drawer__identity">
             <span class="profile-drawer__avatar" id="clientProfileAvatar" aria-hidden="true">CR</span>
             <div class="profile-drawer__identity-text">
-                <h3 class="day-panel__date" id="clientProfileName">Cliente</h3>
+                <h3 class="surface__title" id="clientProfileName">Cliente</h3>
                 <span class="profile-drawer__code" id="clientProfileCode">CLI-0000</span>
             </div>
         </div>
-        <button type="button" class="day-panel__close" id="clientProfileClose" aria-label="Cerrar perfil">
+        <button type="button" class="surface__close" id="clientProfileClose" aria-label="Cerrar perfil">
             ×
         </button>
     </div>
 
-    <div class="day-panel__body">
+    <div class="surface__body">
 
         <div class="detail-grid">
             <div class="detail-card">
@@ -164,7 +164,7 @@
 
     </div>
 
-    <div class="appointment-detail-footer">
+    <div class="surface__footer">
         <button type="button" class="btn btn--ghost btn--sm" id="clientProfileEdit">
             Editar perfil
         </button>
@@ -175,17 +175,17 @@
 </aside>
 
 <!-- Ventanita de la fila -->
-<dialog class="status-dialog" id="clientRowDialog" aria-labelledby="clientRowDialogName">
-    <div class="status-dialog__body">
-        <div class="status-dialog__header">
-            <h3 class="status-dialog__name" id="clientRowDialogName"></h3>
-            <button type="button" class="day-panel__close" aria-label="Cerrar">×</button>
-        </div>
+<dialog class="surface-dialog" id="clientRowDialog" aria-labelledby="clientRowDialogName">
+    <div class="surface__header">
+        <h3 class="surface__title" id="clientRowDialogName"></h3>
+        <button type="button" class="surface__close" aria-label="Cerrar">×</button>
+    </div>
+    <div class="surface__body">
         <dl class="row-dialog__data"></dl>
         <div class="row-dialog__notes" hidden>
             <h4 class="row-dialog__notes-title">Notas</h4>
             <p></p>
         </div>
-        <div class="row-dialog__actions"></div>
     </div>
+    <div class="surface__footer surface__footer--row row-dialog__actions"></div>
 </dialog>

@@ -66,12 +66,12 @@ $mail = static fn(string $key): string => '<a class="text-link" href="mailto:' .
 <body class="legal-page">
     <div class="legal-shell">
         <main class="admin-view">
-            <header class="day-panel__header">
-                <h1 class="day-panel__date">Términos y condiciones</h1>
+            <header class="surface__header">
+                <h1 class="surface__title">Términos y condiciones</h1>
                 <a class="btn btn--ghost btn--sm" href="login.php">Volver</a>
             </header>
 
-            <div class="day-panel__body legal-doc">
+            <div class="surface__body legal-doc">
                 <h2>1. Qué es HairApp</h2>
                 <p>HairApp es una aplicación web para peluquerías y barberías: agenda de turnos, clientes, servicios, productos con su stock y fichas de cada atención. Estas condiciones rigen su uso. Al crear tu cuenta y tildar la casilla, las aceptás.</p>
                 <p><?php if ($has('responsible')): ?>El servicio es prestado por <?= $val('responsible') ?><?php if ($has('tax_id')): ?> (CUIT <?= $val('tax_id') ?>)<?php endif ?><?php if ($has('address')): ?>, con domicilio en <?= $val('address') ?><?php endif ?>.<?php else: ?>El servicio es prestado por el titular de HairApp.<?php endif ?><?php if ($has('updated')): ?> Última actualización: <?= $val('updated') ?>.<?php endif ?></p>

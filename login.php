@@ -95,15 +95,15 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
         <!-- Columna derecha -->
         <div class="login-col login-col--side">
             <main class="admin-view">
-                <header class="day-panel__header">
-                    <div class="day-panel__title">
-                        <span class="day-panel__kicker login-greeting" id="loginGreeting">Bienvenido</span>
+                <header class="surface__header">
+                    <div class="surface__heading">
+                        <span class="surface__kicker login-greeting" id="loginGreeting">Bienvenido</span>
                     </div>
                 </header>
 
                 <section id="loginSection">
                     <form id="loginForm">
-                        <fieldset class="appointment-detail-body login-fieldset" disabled>
+                        <fieldset class="login-fieldset" disabled>
                             <h3 class="history-title">Iniciar sesión</h3>
 
                             <div class="form-group">
@@ -134,7 +134,7 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
                         </fieldset>
                     </form>
                     <?php if ($registrationEnabled): ?>
-                        <p class="appointment-detail-footer">
+                        <p class="surface__footer">
                             <a id="showRegistration" href="#registro" class="nav-btn nav-btn--today">Crear una cuenta</a>
                         </p>
                     <?php endif; ?>
@@ -143,7 +143,7 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
                 <?php if ($registrationEnabled): ?>
                     <section id="registerSection" hidden>
                         <form id="registerForm">
-                            <fieldset class="appointment-detail-body login-fieldset" disabled>
+                            <fieldset class="login-fieldset" disabled>
                                 <h3 class="history-title">Crear cuenta</h3>
 
                                 <div class="form-group">
@@ -203,7 +203,7 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
                                 <button type="submit" class="btn btn--primary">Registrarme</button>
                             </fieldset>
                         </form>
-                        <p class="appointment-detail-footer">
+                        <p class="surface__footer">
                             <a id="showLogin" href="#login" class="nav-btn nav-btn--today">Volver al inicio de sesión</a>
                         </p>
                     </section>
@@ -212,14 +212,12 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
         </div>
     </div>
 
-    <dialog class="status-dialog status-dialog--wide" id="legalDialog" aria-labelledby="legalDialogTitle">
-        <div class="status-dialog__body">
-            <div class="status-dialog__header">
-                <h3 class="status-dialog__name" id="legalDialogTitle"></h3>
-                <button type="button" class="day-panel__close" aria-label="Cerrar">×</button>
-            </div>
-            <div class="legal-doc legal-dialog__content" id="legalDialogContent"></div>
+    <dialog class="surface-dialog surface-dialog--wide" id="legalDialog" aria-labelledby="legalDialogTitle">
+        <div class="surface__header">
+            <h3 class="surface__title" id="legalDialogTitle"></h3>
+            <button type="button" class="surface__close" aria-label="Cerrar">×</button>
         </div>
+        <div class="surface__body legal-doc" id="legalDialogContent"></div>
     </dialog>
 
     <dialog class="message-screen" id="messageScreen" aria-labelledby="messageTitle" aria-describedby="messageText" tabindex="-1">

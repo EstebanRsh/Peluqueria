@@ -9,10 +9,10 @@
          ENCABEZADO
     ====================================================== -->
 
-    <div class="day-panel__header">
-        <h2 class="day-panel__date" tabindex="-1">Panel de productos</h2>
+    <div class="surface__header">
+        <h2 class="surface__title" tabindex="-1">Panel de productos</h2>
 
-        <div class="day-panel__actions">
+        <div class="surface__actions">
             <button
                 type="button"
                 class="btn btn--primary btn--sm"
@@ -28,7 +28,7 @@
          CUERPO
     ====================================================== -->
 
-    <div class="day-panel__body">
+    <div class="surface__body">
 
         <div class="panel-controls">
             <div class="search-field">
@@ -83,17 +83,17 @@
 </div>
 
 <!-- Ventanita de la fila -->
-<dialog class="status-dialog" id="productRowDialog" aria-labelledby="productRowDialogName">
-    <div class="status-dialog__body">
-        <div class="status-dialog__header">
-            <h3 class="status-dialog__name" id="productRowDialogName"></h3>
-            <button type="button" class="day-panel__close" aria-label="Cerrar">×</button>
-        </div>
+<dialog class="surface-dialog" id="productRowDialog" aria-labelledby="productRowDialogName">
+    <div class="surface__header">
+        <h3 class="surface__title" id="productRowDialogName"></h3>
+        <button type="button" class="surface__close" aria-label="Cerrar">×</button>
+    </div>
+    <div class="surface__body">
         <dl class="row-dialog__data"></dl>
         <div class="row-dialog__notes" hidden>
             <h4 class="row-dialog__notes-title">Notas</h4>
             <p></p>
         </div>
-        <div class="row-dialog__actions"></div>
     </div>
+    <div class="surface__footer surface__footer--row row-dialog__actions"></div>
 </dialog>

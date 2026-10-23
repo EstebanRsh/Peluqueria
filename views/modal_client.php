@@ -8,14 +8,14 @@
 <aside class="side-drawer" id="clientFormPanel"
     role="dialog" aria-modal="true" aria-labelledby="clientModalTitle" aria-hidden="true" tabindex="-1">
 
-    <div class="day-panel__header">
-        <h3 class="day-panel__date" id="clientModalTitle">
+    <div class="surface__header">
+        <h3 class="surface__title" id="clientModalTitle">
             Nuevo cliente
         </h3>
 
         <button
             type="button"
-            class="day-panel__close"
+            class="surface__close"
             id="clientModalClose"
             aria-label="Cerrar">
             ×
@@ -25,7 +25,7 @@
 
     <form class="drawer-form" id="clientForm" novalidate autocomplete="off">
 
-        <div class="day-panel__body">
+        <div class="surface__body">
 
             <input type="hidden" id="managedClientId">
 
@@ -94,7 +94,7 @@
         </div>
 
 
-        <div class="appointment-detail-footer">
+        <div class="surface__footer">
 
             <button
                 type="button"

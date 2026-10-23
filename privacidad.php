@@ -66,12 +66,12 @@ $mail = static fn(string $key): string => '<a class="text-link" href="mailto:' .
 <body class="legal-page">
     <div class="legal-shell">
         <main class="admin-view">
-            <header class="day-panel__header">
-                <h1 class="day-panel__date">Política de privacidad</h1>
+            <header class="surface__header">
+                <h1 class="surface__title">Política de privacidad</h1>
                 <a class="btn btn--ghost btn--sm" href="login.php">Volver</a>
             </header>
 
-            <div class="day-panel__body legal-doc">
+            <div class="surface__body legal-doc">
                 <h2>1. Quién es el responsable</h2>
                 <p><?php if ($has('responsible')): ?>El servicio es prestado por <?= $val('responsible') ?><?php if ($has('tax_id')): ?> (CUIT <?= $val('tax_id') ?>)<?php endif ?><?php if ($has('address')): ?>, con domicilio en <?= $val('address') ?><?php endif ?>.<?php else: ?>El servicio es prestado por el titular de HairApp.<?php endif ?><?php if ($has('updated')): ?> Última actualización: <?= $val('updated') ?>.<?php endif ?></p>
                 <?php if ($has('privacy_email')): ?>

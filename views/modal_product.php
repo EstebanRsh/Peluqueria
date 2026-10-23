@@ -8,14 +8,14 @@
 <aside class="side-drawer" id="productFormPanel"
     role="dialog" aria-modal="true" aria-labelledby="productModalTitle" aria-hidden="true" tabindex="-1">
 
-    <div class="day-panel__header">
-        <h3 class="day-panel__date" id="productModalTitle">
+    <div class="surface__header">
+        <h3 class="surface__title" id="productModalTitle">
             Nuevo producto
         </h3>
 
         <button
             type="button"
-            class="day-panel__close"
+            class="surface__close"
             id="productModalClose"
             aria-label="Cerrar">
             ×
@@ -25,7 +25,7 @@
 
     <form class="drawer-form" id="productForm" novalidate autocomplete="off">
 
-        <div class="day-panel__body">
+        <div class="surface__body">
 
             <input type="hidden" id="managedProductId">
 
@@ -97,7 +97,7 @@
         </div>
 
 
-        <div class="appointment-detail-footer">
+        <div class="surface__footer">
 
             <button
                 type="button"

@@ -167,35 +167,34 @@ foreach ($events as $dayEvents) {
 
 <aside class="side-drawer side-drawer--wide" id="dayPanel"
     role="dialog" aria-modal="true" aria-labelledby="panelDate" aria-hidden="true" tabindex="-1">
-    <div class="day-panel__header">
-        <span class="day-panel__date" id="panelDate"></span>
-        <div class="day-panel__actions">
+    <div class="surface__header">
+        <span class="surface__title" id="panelDate"></span>
+        <div class="surface__actions">
             <button type="button" class="btn btn--primary btn--sm" id="btnAddAppointment">+ Turno</button>
-            <button type="button" class="day-panel__close" id="panelClose" aria-label="Cerrar">×</button>
+            <button type="button" class="surface__close" id="panelClose" aria-label="Cerrar">×</button>
         </div>
     </div>
-    <div class="day-panel__body" id="panelBody"></div>
+    <div class="surface__body" id="panelBody"></div>
 </aside>
 
 <!-- =====================================================
      VENTANITA DE ESTADO DEL TURNO
 ====================================================== -->
 
-<dialog class="status-dialog" id="statusDialog" aria-labelledby="statusDialogName">
-    <div class="status-dialog__body">
-        <div class="status-dialog__header">
-            <div>
-                <h3 class="status-dialog__name" id="statusDialogName"></h3>
-                <p class="status-dialog__meta" id="statusDialogMeta"></p>
-            </div>
-            <button type="button" class="day-panel__close" id="statusDialogClose" aria-label="Cerrar">×</button>
+<dialog class="surface-dialog" id="statusDialog" aria-labelledby="statusDialogName">
+    <div class="surface__header">
+        <div class="surface__heading">
+            <h3 class="surface__title" id="statusDialogName"></h3>
+            <p class="surface__meta" id="statusDialogMeta"></p>
         </div>
-
-        <div class="status-dialog__options" role="group" aria-label="Estado del turno">
-            <button type="button" class="status-dialog__option status-dialog__option--reservado" data-set-status="Reservado" aria-pressed="false">Reservado<svg class="status-dialog__check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12" /></svg></button>
-            <button type="button" class="status-dialog__option status-dialog__option--finalizado" data-set-status="Finalizado" aria-pressed="false">Finalizado<svg class="status-dialog__check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12" /></svg></button>
-            <button type="button" class="status-dialog__option status-dialog__option--ausente" data-set-status="Ausente" aria-pressed="false">Ausente<svg class="status-dialog__check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12" /></svg></button>
-            <button type="button" class="status-dialog__option status-dialog__option--cancelado" data-set-status="Cancelado" aria-pressed="false">Cancelado<svg class="status-dialog__check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12" /></svg></button>
+        <button type="button" class="surface__close" id="statusDialogClose" aria-label="Cerrar">×</button>
+    </div>
+    <div class="surface__body">
+        <div class="status-options" role="group" aria-label="Estado del turno">
+            <button type="button" class="status-option status-option--reservado" data-set-status="Reservado" aria-pressed="false">Reservado<svg class="status-option__check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12" /></svg></button>
+            <button type="button" class="status-option status-option--finalizado" data-set-status="Finalizado" aria-pressed="false">Finalizado<svg class="status-option__check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12" /></svg></button>
+            <button type="button" class="status-option status-option--ausente" data-set-status="Ausente" aria-pressed="false">Ausente<svg class="status-option__check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12" /></svg></button>
+            <button type="button" class="status-option status-option--cancelado" data-set-status="Cancelado" aria-pressed="false">Cancelado<svg class="status-option__check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12" /></svg></button>
         </div>
     </div>
 </dialog>

@@ -55,7 +55,7 @@ export function initLegal() {
   });
 
   dialog.addEventListener("click", (event) => {
-    if (event.target === dialog || event.target.closest(".day-panel__close")) {
+    if (event.target === dialog || event.target.closest(".surface__close")) {
       dialog.close();
     }
   });

@@ -298,58 +298,7 @@
   border-style: solid;
 }
 
-/* ==========================================================================
-   PANEL DIARIO
-   ========================================================================== */
-
-.day-panel__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-5) var(--space-6);
-  border-bottom: 2px solid var(--color-gold);
-  background: linear-gradient(
-    180deg,
-    var(--color-gold-wash) 0%,
-    transparent 100%
-  );
-}
-
-.day-panel__date {
-  font-family: var(--font-serif);
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--color-text);
-}
-
-.day-panel__title {
-  display: flex;
-  flex-direction: column;
-}
-
-.day-panel__kicker {
-  color: var(--color-gold-text);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.day-panel__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.day-panel__body {
-  padding: var(--space-4) var(--space-5);
-  overflow-y: auto;
-  max-height: calc(100vh - 200px);
-  max-height: calc(100dvh - 200px);
-}
-
-.admin-view > .day-panel__body {
+.admin-view > .surface__body {
   flex: 1;
   min-height: 0;
   max-height: none;
@@ -636,6 +585,10 @@
 .login-fieldset {
   min-width: 0;
   border: 0;
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  overflow-y: auto;
 }
 
 .login-fieldset .btn {
@@ -825,6 +778,10 @@
     --cell-min-h: 0px;
   }
 
+  .login-fieldset {
+    padding: var(--space-5);
+  }
+
   .admin-view,
   .calendar-wrapper {
     height: 100%;
@@ -903,7 +860,7 @@
     padding: var(--space-2) 5rem var(--space-2) var(--space-4);
   }
 
-  .day-panel__header {
+  .surface__header {
     padding: var(--space-4);
   }
 

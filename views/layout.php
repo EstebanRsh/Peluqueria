@@ -195,14 +195,12 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
         </button>
     </div>
 
-    <dialog class="status-dialog status-dialog--wide" id="legalDialog" aria-labelledby="legalDialogTitle">
-        <div class="status-dialog__body">
-            <div class="status-dialog__header">
-                <h3 class="status-dialog__name" id="legalDialogTitle"></h3>
-                <button type="button" class="day-panel__close" aria-label="Cerrar">×</button>
-            </div>
-            <div class="legal-doc legal-dialog__content" id="legalDialogContent"></div>
+    <dialog class="surface-dialog surface-dialog--wide" id="legalDialog" aria-labelledby="legalDialogTitle">
+        <div class="surface__header">
+            <h3 class="surface__title" id="legalDialogTitle"></h3>
+            <button type="button" class="surface__close" aria-label="Cerrar">×</button>
         </div>
+        <div class="surface__body legal-doc" id="legalDialogContent"></div>
     </dialog>
 
     <dialog class="message-screen" id="messageScreen" aria-labelledby="messageTitle" aria-describedby="messageText" tabindex="-1">

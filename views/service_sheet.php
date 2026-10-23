@@ -7,14 +7,14 @@
 <aside class="side-drawer side-drawer--wide" id="quickEntryPanel"
     role="dialog" aria-modal="true" aria-labelledby="quickEntryTitle" aria-hidden="true" tabindex="-1">
 
-    <div class="day-panel__header">
-        <h3 class="day-panel__date" id="quickEntryTitle">Ficha de servicio</h3>
-        <div class="day-panel__actions">
-            <button type="button" class="day-panel__close" id="quickEntryClose" aria-label="Cerrar">×</button>
+    <div class="surface__header">
+        <h3 class="surface__title" id="quickEntryTitle">Ficha de servicio</h3>
+        <div class="surface__actions">
+            <button type="button" class="surface__close" id="quickEntryClose" aria-label="Cerrar">×</button>
         </div>
     </div>
 
-    <div class="day-panel__body">
+    <div class="surface__body">
 
         <!-- CLIENTE -->
         <div class="form-group">
@@ -312,7 +312,7 @@
     </div>
 
     <!-- FOOTER -->
-    <div class="appointment-detail-footer appointment-detail-footer--actions">
+    <div class="surface__footer surface__footer--actions">
         <button type="button" class="btn btn--ghost" id="quickEntryCancel">
             Cancelar
         </button>

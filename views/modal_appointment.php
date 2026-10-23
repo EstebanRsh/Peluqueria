@@ -8,12 +8,12 @@
 <aside class="side-drawer side-drawer--nested" id="appointmentFormPanel"
     role="dialog" aria-modal="true" aria-labelledby="appointmentFormTitle" aria-hidden="true" tabindex="-1">
 
-    <div class="day-panel__header">
-        <h3 class="day-panel__date" id="appointmentFormTitle">Nuevo turno</h3>
+    <div class="surface__header">
+        <h3 class="surface__title" id="appointmentFormTitle">Nuevo turno</h3>
 
         <button
             type="button"
-            class="day-panel__close"
+            class="surface__close"
             id="modalClose"
             aria-label="Cerrar">
             ×
@@ -22,7 +22,7 @@
 
     <form class="drawer-form" id="appointmentForm" novalidate autocomplete="off">
 
-        <div class="day-panel__body">
+        <div class="surface__body">
 
             <!-- Cliente -->
             <div class="form-row">
@@ -163,7 +163,7 @@
              BOTONES
         ====================================================== -->
 
-        <div class="appointment-detail-footer">
+        <div class="surface__footer">
             <button type="button" class="btn btn--ghost" id="modalCancel">
                 Cancelar
             </button>

@@ -166,7 +166,7 @@ export function bindRowDialog(body, dialog, getNotes) {
     if (!toggle) return;
 
     currentRow = row;
-    dialog.querySelector(".status-dialog__name").textContent =
+    dialog.querySelector(".surface__title").textContent =
       toggle.dataset.title;
 
     data.replaceChildren(
@@ -219,7 +219,7 @@ export function bindRowDialog(body, dialog, getNotes) {
       return;
     }
 
-    if (event.target === dialog || event.target.closest(".day-panel__close")) {
+    if (event.target === dialog || event.target.closest(".surface__close")) {
       dialog.close();
     }
   });

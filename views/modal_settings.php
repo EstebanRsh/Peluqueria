@@ -8,14 +8,14 @@
 <aside class="side-drawer" id="settingsPanel"
     role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle" aria-hidden="true" tabindex="-1">
 
-    <div class="day-panel__header">
-        <h3 class="day-panel__date" id="settingsModalTitle">
+    <div class="surface__header">
+        <h3 class="surface__title" id="settingsModalTitle">
             Ajustes
         </h3>
 
         <button
             type="button"
-            class="day-panel__close"
+            class="surface__close"
             id="settingsModalClose"
             aria-label="Cerrar">
             ×
@@ -23,7 +23,7 @@
     </div>
 
 
-    <div class="day-panel__body">
+    <div class="surface__body">
 
         <section class="settings-section" aria-labelledby="settingsAccountTitle">
             <h4 class="history-title" id="settingsAccountTitle">Tu cuenta</h4>
@@ -156,7 +156,7 @@
     </div>
 
 
-    <div class="appointment-detail-footer">
+    <div class="surface__footer">
 
         <button
             type="button"

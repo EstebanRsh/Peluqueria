@@ -572,20 +572,20 @@ function openAppointmentDetailModal(appointmentId) {
   detailPanel.setAttribute("tabindex", "-1");
 
   detailPanel.innerHTML = `
-      <div class="day-panel__header appointment-detail-header">
-        <div>
-          <span class="appointment-detail-meta">
+      <div class="surface__header">
+        <div class="surface__heading">
+          <span class="surface__meta">
             ${escapeHtml(formatTime(appointment.time_start))} hs
           </span>
 
-          <h3 class="day-panel__date">
+          <h3 class="surface__title">
             ${escapeHtml(displayClientName)}
           </h3>
         </div>
 
         <button
           type="button"
-          class="day-panel__close appointment-detail-close"
+          class="surface__close"
           data-action="close-detail"
           aria-label="Cerrar detalle"
         >
@@ -593,7 +593,7 @@ function openAppointmentDetailModal(appointmentId) {
         </button>
       </div>
 
-      <div class="day-panel__body appointment-detail-body">
+      <div class="surface__body">
         <section class="detail-grid">
           <div class="detail-card">
             <span class="detail-label">Fecha</span>
@@ -676,7 +676,7 @@ function openAppointmentDetailModal(appointmentId) {
         </section>
       </div>
 
-      <div class="appointment-detail-footer">
+      <div class="surface__footer">
         <button
           type="button"
           class="btn btn--ghost"
