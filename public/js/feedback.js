@@ -22,7 +22,15 @@ export function createFeedback(panel) {
 
     invalidate(ids) {
       ids.forEach((id) => {
-        document.getElementById(id)?.setAttribute("aria-invalid", "true");
+        const field = document.getElementById(id);
+
+        field?.setAttribute("aria-invalid", "true");
+
+        const optional = field?.closest("details");
+
+        if (optional) {
+          optional.open = true;
+        }
       });
     },
 
@@ -47,6 +55,12 @@ export function createDrawer({ overlay, panel, feedback, dirty }) {
   return {
     open(firstField) {
       opener = document.activeElement;
+
+      panel.querySelectorAll("details.form-optional").forEach((optional) => {
+        optional.open = [
+          ...optional.querySelectorAll("input, textarea, select"),
+        ].some((field) => field.value.trim() !== "");
+      });
 
       overlay.classList.add("is-open");
       panel.classList.add("is-open");

@@ -825,7 +825,10 @@ export function initQuickEntry() {
     );
   };
 
-  btnSave?.addEventListener("click", saveRecord);
+  $("quickEntryForm")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    saveRecord();
+  });
 
   // ============================================================
   // RESETEO DE FORMULARIO

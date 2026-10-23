@@ -47,10 +47,10 @@ Un profesional que atiende solo no tiene tiempo para cargar datos entre un clien
 
 ### Clientes
 
-- Alta y edición con alias, código interno, notas y alergias.
+- Alta y edición con alias, código interno y notas.
 - Búsqueda por el comienzo del alias, resuelta en el servidor y de a 25 resultados.
 - Activar, desactivar o eliminar un cliente. Solo se puede eliminar si no tiene turnos ni fichas asociadas, para no perder información.
-- Perfil de cada cliente con sus alergias, su historial técnico (con búsqueda y filtros por color, tratamiento y corte) y sus turnos con ficha. Desde el perfil se puede editar al cliente o agendarle un turno.
+- Perfil de cada cliente con su historial técnico (con búsqueda y filtros por color, tratamiento y corte) y sus turnos con ficha. Desde el perfil se puede editar al cliente o agendarle un turno.
 
 ### Servicios
 

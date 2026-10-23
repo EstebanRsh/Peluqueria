@@ -180,9 +180,6 @@ class ClientController extends BaseController
             'hair_type'         => $keep('hair_type')
                 ? $existing['hair_type']
                 : ($this->str($input['hair_type'] ?? null) ?: null),
-            'allergies'         => $keep('allergies')
-                ? $existing['allergies']
-                : ($this->str($input['allergies'] ?? null) ?: null),
             'notes'             => $this->str($input['notes'] ?? null) ?: null,
         ];
     }
@@ -217,10 +214,6 @@ class ClientController extends BaseController
 
         if (mb_strlen($data['hair_type'] ?? '') > 100) {
             return 'El tipo de cabello no puede superar los 100 caracteres.';
-        }
-
-        if (mb_strlen($data['allergies'] ?? '') > 500) {
-            return 'Las alergias no pueden superar los 500 caracteres.';
         }
 
         return true;

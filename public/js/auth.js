@@ -57,7 +57,6 @@ export function initAuthPage() {
   };
 
   const submitCredentials = (form, send, texts) => {
-    form.noValidate = true;
     clearInvalidOnInput(form);
 
     form.addEventListener("submit", async (event) => {

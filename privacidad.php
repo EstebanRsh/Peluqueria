@@ -81,7 +81,7 @@ $mail = static fn(string $key): string => '<a class="text-link" href="mailto:' .
                 <h2>2. Qué datos guardamos</h2>
                 <ul>
                     <li><strong>De tu cuenta:</strong> usuario, email, tu contraseña (guardada cifrada, de forma que nadie puede leerla), la fecha de alta, la fecha en que aceptaste los términos y el último inicio de sesión.</li>
-                    <li><strong>Lo que cargás:</strong> clientes (alias, código interno, notas y alergias), servicios, productos y su stock, turnos y fichas de cada atención.</li>
+                    <li><strong>Lo que cargás:</strong> clientes (alias, código interno y notas), servicios, productos y su stock, turnos y fichas de cada atención.</li>
                     <li><strong>Datos técnicos:</strong> una cookie de sesión para mantenerte conectado. Para limitar intentos de acceso guardamos, por hasta 24 horas, un código irreversible derivado de tu conexión; no guardamos tu dirección IP ni tu usuario en esa tabla.</li>
                 </ul>
                 <p>No pedimos teléfono, documento, domicilio, ubicación ni datos de pago.</p>
@@ -96,7 +96,7 @@ $mail = static fn(string $key): string => '<a class="text-link" href="mailto:' .
                 </ul>
 
                 <h2>5. Datos sensibles</h2>
-                <p>Las alergias de tus clientes son datos de salud, considerados sensibles. Cargalas solo si hacen falta para el servicio y con el consentimiento de cada persona. El responsable de esos datos frente a tus clientes sos vos; nosotros los guardamos por tu cuenta.</p>
+                <p>No cargues datos de salud de tus clientes: no hace falta para usar HairApp. El responsable de los datos de tus clientes frente a ellos sos vos; nosotros los guardamos por tu cuenta.</p>
 
                 <h2>6. Cuánto tiempo los conservamos</h2>
                 <p>Mientras tu cuenta exista. Si la eliminás, se borran de inmediato de la base de datos. Las copias de seguridad, si existen, se eliminan <?php if ($has('backup_days')): ?>en un máximo de <?= $val('backup_days') ?> días<?php else: ?>en un plazo razonable<?php endif ?>.</p>

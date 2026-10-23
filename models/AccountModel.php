@@ -226,7 +226,6 @@ class AccountModel
                 'alias'             => $this->text($row, 'alias', 'el alias', 100, true),
                 'natural_base_tone' => $this->text($row, 'natural_base_tone', 'el tono natural', 30, false),
                 'hair_type'         => $this->text($row, 'hair_type', 'el tipo de cabello', 100, false),
-                'allergies'         => $this->longText($row, 'allergies', 'las alergias'),
                 'notes'             => $this->longText($row, 'notes', 'las notas'),
                 'active'            => $this->boolean($row, 'active'),
                 'created_at'        => $this->dateTime($row, 'created_at', 'la fecha de alta', false),
@@ -454,13 +453,13 @@ class AccountModel
     private function insertClients(int $ownerId, array $rows): array
     {
         $stmt = $this->conn->prepare("
-            INSERT INTO clients (owner_id, internal_code, alias, natural_base_tone, hair_type, allergies, notes, active, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, NOW()))
+            INSERT INTO clients (owner_id, internal_code, alias, natural_base_tone, hair_type, notes, active, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(?, NOW()))
         ");
         $ids = [];
 
         foreach ($rows as $oldId => $r) {
-            $stmt->bind_param('issssssis', $ownerId, $r['internal_code'], $r['alias'], $r['natural_base_tone'], $r['hair_type'], $r['allergies'], $r['notes'], $r['active'], $r['created_at']);
+            $stmt->bind_param('isssssis', $ownerId, $r['internal_code'], $r['alias'], $r['natural_base_tone'], $r['hair_type'], $r['notes'], $r['active'], $r['created_at']);
             $stmt->execute();
             $ids[$oldId] = $this->conn->insert_id;
         }

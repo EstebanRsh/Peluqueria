@@ -84,12 +84,12 @@ $mail = static fn(string $key): string => '<a class="text-link" href="mailto:' .
                 <p>Sos responsable de tu contraseña y de lo que se haga con tu cuenta. Por ahora no hay recuperación automática de la contraseña.<?php if ($has('support_email')): ?> Si la perdés, escribinos a <?= $mail('support_email') ?>.<?php endif ?></p>
 
                 <h2>4. Tus datos y los de tus clientes</h2>
-                <p>Los datos que cargás son tuyos. Respecto de los datos de tus clientes (alias, notas, alergias, fichas), el responsable frente a ellos sos vos: tenés que contar con su consentimiento, cargar solo lo necesario y atender sus pedidos de acceso, corrección o supresión.</p>
+                <p>Los datos que cargás son tuyos. Respecto de los datos de tus clientes (alias, notas, fichas), el responsable frente a ellos sos vos: tenés que contar con su consentimiento, cargar solo lo necesario y atender sus pedidos de acceso, corrección o supresión.</p>
                 <p>HairApp actúa solo como prestador del servicio de almacenamiento: trata esos datos únicamente por tu cuenta y según tus indicaciones, no los usa para otros fines ni los cede a terceros (artículo 25 de la Ley 25.326).</p>
-                <p>Para cuidar la privacidad, usá un alias o nombre de referencia y evitá cargar teléfonos, documentos o direcciones. Las alergias son datos de salud, considerados sensibles: anotá solo las que importen para el servicio.</p>
+                <p>Para cuidar la privacidad, usá un alias o nombre de referencia y evitá cargar teléfonos, documentos o direcciones. No cargues datos de salud de tus clientes.</p>
 
-                <h2>5. Alergias y tratamientos</h2>
-                <p>HairApp es una herramienta de registro. No verifica la información que cargás ni brinda asesoramiento sobre alergias, productos o tratamientos. Las decisiones sobre cada atención y sus consecuencias son del profesional que la realiza.</p>
+                <h2>5. Productos y tratamientos</h2>
+                <p>HairApp es una herramienta de registro. No verifica la información que cargás ni brinda asesoramiento sobre productos o tratamientos. Las decisiones sobre cada atención y sus consecuencias son del profesional que la realiza.</p>
 
                 <h2>6. Uso permitido</h2>
                 <p>No podés usar HairApp para fines ilegales, intentar acceder a datos de otras cuentas, ni dañar o sobrecargar el servicio.</p>

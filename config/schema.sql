@@ -69,7 +69,6 @@ CREATE TABLE IF NOT EXISTS clients (
     alias VARCHAR(100) NOT NULL,
     natural_base_tone VARCHAR(30) NULL,
     hair_type VARCHAR(100) NULL,
-    allergies TEXT NULL,
     notes TEXT,
     active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

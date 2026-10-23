@@ -77,11 +77,7 @@ const views = {
   products: viewProducts,
 };
 
-const fab = initFab({
-  appState,
-  navItems,
-  getCurrentView: () => appState.activeView,
-});
+const fab = initFab({ appState });
 fab.setView(appState.activeView);
 
 navItems.forEach((item) => {

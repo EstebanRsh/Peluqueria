@@ -118,15 +118,6 @@
         </div>
 
         <div class="profile-drawer__section">
-            <h4 class="history-title">Alergias</h4>
-            <div class="detail-grid">
-                <div class="detail-card detail-card-full">
-                    <span class="detail-value" id="clientProfileAllergies">Sin alergias registradas.</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="profile-drawer__section">
             <h4 class="history-title">Historial técnico</h4>
 
             <div class="history-controls">

@@ -13,7 +13,7 @@ class ClientModel
 
     private const COLUMNS = "
         id, internal_code, alias, natural_base_tone,
-        hair_type, allergies, notes, active, created_at, updated_at
+        hair_type, notes, active, created_at, updated_at
     ";
 
     public function __construct()
@@ -119,18 +119,17 @@ class ClientModel
         try {
             $stmt = $this->conn->prepare("
                 INSERT INTO clients
-                    (owner_id, alias, internal_code, natural_base_tone, hair_type, allergies, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (owner_id, alias, internal_code, natural_base_tone, hair_type, notes)
+                VALUES (?, ?, ?, ?, ?, ?)
             ");
 
             $stmt->bind_param(
-                'issssss',
+                'isssss',
                 $ownerId,
                 $d['alias'],
                 $d['internal_code'],
                 $d['natural_base_tone'],
                 $d['hair_type'],
-                $d['allergies'],
                 $d['notes']
             );
             $stmt->execute();
@@ -162,19 +161,17 @@ class ClientModel
                 internal_code = ?,
                 natural_base_tone = ?,
                 hair_type = ?,
-                allergies = ?,
                 notes = ?
             WHERE id = ?
               AND owner_id = ?
         ");
 
         $stmt->bind_param(
-            'ssssssii',
+            'sssssii',
             $d['alias'],
             $d['internal_code'],
             $d['natural_base_tone'],
             $d['hair_type'],
-            $d['allergies'],
             $d['notes'],
             $id,
             $ownerId

@@ -37,8 +37,7 @@
                     </svg>
                 </span>
                 Para cuidar la privacidad, usá un alias o nombre de referencia.
-                Evitá guardar teléfonos, documentos o direcciones. Anotá solo
-                las alergias que importen para el servicio.
+                Evitá guardar teléfonos, documentos o direcciones.
             </p>
 
             <div class="form-row">
@@ -54,40 +53,33 @@
                 </div>
             </div>
 
-            <div class="form-row">
-                <div class="form-group form-group--full">
-                    <label for="clientCode">Código interno</label>
+            <details class="form-optional">
+                <summary class="form-optional__summary">Más datos (opcional)</summary>
+                <div class="form-optional__fields">
+                    <div class="form-row">
+                        <div class="form-group form-group--full">
+                            <label for="clientCode">Código interno</label>
 
-                    <input
-                        type="text"
-                        id="clientCode"
-                        maxlength="40"
-                        placeholder="Se genera automáticamente si lo dejás vacío">
+                            <input
+                                type="text"
+                                id="clientCode"
+                                maxlength="40"
+                                placeholder="Se genera automáticamente si lo dejás vacío">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group form-group--full">
+                            <label for="clientNotes">Notas</label>
+
+                            <textarea
+                                id="clientNotes"
+                                rows="3"
+                                placeholder="Preferencias, observaciones generales…"></textarea>
+                        </div>
+                    </div>
                 </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group form-group--full">
-                    <label for="clientAllergies">Alergias</label>
-
-                    <textarea
-                        id="clientAllergies"
-                        rows="2"
-                        maxlength="500"
-                        placeholder="Ej: alergia al amoníaco o a la parafenilendiamina"></textarea>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group form-group--full">
-                    <label for="clientNotes">Notas</label>
-
-                    <textarea
-                        id="clientNotes"
-                        rows="3"
-                        placeholder="Preferencias, observaciones generales…"></textarea>
-                </div>
-            </div>
+            </details>
 
             <p class="form-hint">Los campos con * son obligatorios.</p>
 

@@ -102,7 +102,7 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
                 </header>
 
                 <section id="loginSection">
-                    <form id="loginForm">
+                    <form id="loginForm" novalidate>
                         <fieldset class="login-fieldset" disabled>
                             <h3 class="history-title">Iniciar sesión</h3>
 
@@ -142,7 +142,7 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
 
                 <?php if ($registrationEnabled): ?>
                     <section id="registerSection" hidden>
-                        <form id="registerForm">
+                        <form id="registerForm" novalidate>
                             <fieldset class="login-fieldset" disabled>
                                 <h3 class="history-title">Crear cuenta</h3>
 

@@ -49,33 +49,36 @@ const actions = {
     label: "Nuevo cliente",
     icon: "client",
     accent: true,
-    view: "clients",
     trigger: "btnAddClient",
   }),
   newProduct: () => ({
     label: "Nuevo producto",
     icon: "product",
     accent: true,
-    view: "products",
     trigger: "btnAddProduct",
   }),
   newService: () => ({
     label: "Nuevo servicio",
     icon: "service",
     accent: true,
-    view: "services",
     trigger: "btnAddService",
   }),
 };
 
 const FAB_BY_VIEW = {
-  appointments: ["newAppointment", "newHistory", "newProduct", "newClient"],
+  appointments: [
+    "newAppointment",
+    "newHistory",
+    "newProduct",
+    "newClient",
+    "newService",
+  ],
   clients: ["newClient"],
   services: ["newService"],
   products: ["newProduct"],
 };
 
-export function initFab({ appState, navItems, getCurrentView }) {
+export function initFab({ appState }) {
   const root = document.getElementById("fabActions");
   const toggle = document.getElementById("fabToggle");
   const menu = document.getElementById("fabMenu");
@@ -83,35 +86,48 @@ export function initFab({ appState, navItems, getCurrentView }) {
   if (!root || !toggle || !menu) return { setView() {} };
 
   const ctx = { appState };
+  let current = [];
+
+  const isDirect = () => current.length === 1;
 
   const setOpen = (isOpen) => {
     root.classList.toggle("is-open", isOpen);
-    toggle.setAttribute("aria-expanded", String(isOpen));
+
+    if (!isDirect()) {
+      toggle.setAttribute("aria-expanded", String(isOpen));
+    }
+
     backdrop?.classList.toggle("is-open", isOpen);
     menu.querySelectorAll(".fab-actions__item").forEach((item) => {
       item.tabIndex = isOpen ? 0 : -1;
     });
   };
 
-  const goToView = (view) => {
-    if (!view || view === getCurrentView()) return;
-    Array.from(navItems)
-      .find((item) => item.dataset.view === view)
-      ?.click();
-  };
-
   const execute = (action) => {
     setOpen(false);
-    goToView(action.view);
+    toggle.focus({ preventScroll: true });
     if (action.run) action.run();
     else if (action.trigger) document.getElementById(action.trigger)?.click();
   };
 
   const setView = (view) => {
-    const defs = (FAB_BY_VIEW[view] || []).map((key) => actions[key](ctx));
+    current = (FAB_BY_VIEW[view] || []).map((key) => actions[key](ctx));
+
+    const label = isDirect() ? current[0].label : "Abrir acciones rápidas";
+
+    toggle.setAttribute("aria-label", label);
+    toggle.title = label;
+
+    if (isDirect()) {
+      toggle.removeAttribute("aria-expanded");
+      toggle.removeAttribute("aria-controls");
+    } else {
+      toggle.setAttribute("aria-expanded", "false");
+      toggle.setAttribute("aria-controls", "fabMenu");
+    }
 
     menu.innerHTML = "";
-    defs.forEach((action) => {
+    (isDirect() ? [] : current).forEach((action) => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.tabIndex = -1;
@@ -123,13 +139,17 @@ export function initFab({ appState, navItems, getCurrentView }) {
       menu.appendChild(btn);
     });
 
-    root.hidden = defs.length === 0;
+    root.hidden = current.length === 0;
     setOpen(false);
   };
 
-  toggle.addEventListener("click", () =>
-    setOpen(!root.classList.contains("is-open")),
-  );
+  toggle.addEventListener("click", () => {
+    if (isDirect()) {
+      execute(current[0]);
+    } else {
+      setOpen(!root.classList.contains("is-open"));
+    }
+  });
   backdrop?.addEventListener("click", () => setOpen(false));
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && root.classList.contains("is-open")) {

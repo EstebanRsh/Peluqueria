@@ -259,7 +259,6 @@ INSERT INTO
         alias,
         natural_base_tone,
         hair_type,
-        allergies,
         notes,
         active
     )
@@ -270,7 +269,6 @@ VALUES (
         'Roberto G.',
         'Castaño oscuro (3)',
         'Grueso, liso',
-        NULL,
         'Cliente habitual, corte clásico cada 3 semanas.',
         TRUE
     ),
@@ -281,8 +279,7 @@ VALUES (
         'Carla T.',
         'Castaño medio (4)',
         'Fino, ondulado',
-        'Keratina (reacción alérgica previa)',
-        'Prefiere cortar solo puntas; evitar keratina por alergia.',
+        'Prefiere cortar solo puntas; evitar keratina.',
         TRUE
     ),
     (
@@ -292,7 +289,6 @@ VALUES (
         'Mariana P.',
         'Castaño claro (5)',
         'Medio, liso',
-        NULL,
         'Le gusta el esmaltado semipermanente en tonos rojos.',
         TRUE
     ),
@@ -303,7 +299,6 @@ VALUES (
         'Lucía F.',
         'Castaño oscuro (3)',
         'Grueso, ondulado, poroso',
-        'Sensibilidad leve a PPD: hacer test de parche antes de cada coloración',
         'Balayage, siempre trae foto de referencia.',
         TRUE
     ),
@@ -314,7 +309,6 @@ VALUES (
         'Camila R.',
         'Castaño medio (4)',
         'Grueso, muy largo y abundante',
-        NULL,
         'Cabello muy largo, requiere turno extendido.',
         TRUE
     ),
@@ -325,7 +319,6 @@ VALUES (
         'Diego A.',
         'Negro (1)',
         'Grueso, liso',
-        NULL,
         'Corte rápido, viene en su hora de almuerzo.',
         TRUE
     ),
@@ -336,7 +329,6 @@ VALUES (
         'Marta B.',
         'Castaño medio (4)',
         'Fino, liso',
-        'Sensibilidad al amoníaco',
         'Retoque de raíces mensual, sensible al amoníaco.',
         TRUE
     ),
@@ -347,7 +339,6 @@ VALUES (
         'Fernando C.',
         'Castaño oscuro (3)',
         'Medio, liso',
-        NULL,
         'Cliente puntual, siempre pide el mismo estilista.',
         TRUE
     ),
@@ -358,7 +349,6 @@ VALUES (
         'Romina K.',
         'Rubio oscuro (6)',
         'Poroso, con frizz',
-        NULL,
         'Tratamiento de keratina cada 4 meses.',
         TRUE
     ),
@@ -369,7 +359,6 @@ VALUES (
         'Gustavo M.',
         'Negro (1)',
         'Grueso, rizado',
-        NULL,
         'Prefiere máquina, corte bajo.',
         TRUE
     ),
@@ -380,7 +369,6 @@ VALUES (
         'Florencia D.',
         'Castaño claro (5)',
         'Fino, liso, sensibilizado post-decoloración',
-        NULL,
         'Primera decoloración, seguimiento de cuidado post-color.',
         TRUE
     ),
@@ -391,7 +379,6 @@ VALUES (
         'Silvia Q.',
         'Rubio medio (7)',
         'Medio, ondulado',
-        NULL,
         'Le gusta charlar, conviene agendar con tiempo extra.',
         TRUE
     ),
@@ -402,7 +389,6 @@ VALUES (
         'Laura W.',
         'Castaño claro (5)',
         'Medio, liso',
-        NULL,
         'Eligió color rosa pastel en su última manicura.',
         TRUE
     ),
@@ -413,7 +399,6 @@ VALUES (
         'Rocío E.',
         'Castaño oscuro (3)',
         'Medio, liso',
-        NULL,
         'Diseño de cejas cada 3 semanas.',
         TRUE
     ),
@@ -424,7 +409,6 @@ VALUES (
         'Diana C.',
         'Castaño medio (4)',
         'Medio, liso, seco',
-        NULL,
         'Cliente VIP, prefiere turnos por la tarde.',
         TRUE
     ),
@@ -435,7 +419,6 @@ VALUES (
         'Oscar V.',
         'Castaño oscuro (3)',
         'Grueso, liso',
-        NULL,
         'Pasa rápido antes de entrar a trabajar.',
         TRUE
     ),
@@ -446,7 +429,6 @@ VALUES (
         'Micaela R.',
         'Rubio claro (8)',
         'Fino, liso',
-        NULL,
         'Peinados para eventos y casamientos.',
         TRUE
     ),
@@ -457,7 +439,6 @@ VALUES (
         'Ana F.',
         'Castaño oscuro (3)',
         'Grueso, ondulado',
-        NULL,
         'Servicio largo, coordinar con tiempo.',
         TRUE
     ),
@@ -468,7 +449,6 @@ VALUES (
         'Tomás P.',
         'Castaño medio (4)',
         'Medio, ondulado',
-        NULL,
         'Cliente nuevo, llegó recomendado.',
         TRUE
     ),
@@ -479,7 +459,6 @@ VALUES (
         'Victoria M.',
         'Castaño claro (5)',
         'Fino, liso',
-        NULL,
         'Cliente nueva, primer corte femenino.',
         TRUE
     ),
@@ -490,7 +469,6 @@ VALUES (
         'Julieta D.',
         'Castaño medio (4)',
         'Medio, liso',
-        NULL,
         'Renueva su semipermanente cada 3 semanas.',
         TRUE
     ),
@@ -501,7 +479,6 @@ VALUES (
         'Emiliano G.',
         'Negro (1)',
         'Grueso, liso; barba densa',
-        NULL,
         'Barba prolija, viene cada 2 semanas.',
         TRUE
     ),
@@ -512,7 +489,6 @@ VALUES (
         'Federico A.',
         'Castaño oscuro (3)',
         'Medio, liso',
-        NULL,
         'A veces trae a su hijo también.',
         TRUE
     ),
@@ -523,7 +499,6 @@ VALUES (
         'Cristian L.',
         'Castaño oscuro (3)',
         'Grueso, liso',
-        NULL,
         'Cliente de la zona, viene caminando.',
         TRUE
     ),
@@ -534,7 +509,6 @@ VALUES (
         'Gabriel O.',
         'Negro (1)',
         'Grueso; barba gruesa',
-        NULL,
         'Prefiere toalla caliente antes del recorte de barba.',
         TRUE
     ),
@@ -545,7 +519,6 @@ VALUES (
         'Elena S.',
         'Rubio oscuro (6)',
         'Fino, ondulado',
-        NULL,
         'Cliente de prueba exclusiva de owner2.',
         TRUE
     );

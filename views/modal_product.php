@@ -44,18 +44,6 @@
 
             <div class="form-row">
                 <div class="form-group form-group--full">
-                    <label for="productBrand">Marca</label>
-
-                    <input
-                        type="text"
-                        id="productBrand"
-                        maxlength="100"
-                        placeholder="Opcional">
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group form-group--full">
                     <label for="productUnit">Unidad de medida</label>
 
                     <select id="productUnit" class="form-select">
@@ -91,6 +79,23 @@
                         placeholder="Costo de 1 ml, 1 g o 1 unidad">
                 </div>
             </div>
+
+            <details class="form-optional">
+                <summary class="form-optional__summary">Más datos (opcional)</summary>
+                <div class="form-optional__fields">
+                    <div class="form-row">
+                        <div class="form-group form-group--full">
+                            <label for="productBrand">Marca</label>
+
+                            <input
+                                type="text"
+                                id="productBrand"
+                                maxlength="100"
+                                placeholder="Opcional">
+                        </div>
+                    </div>
+                </div>
+            </details>
 
             <p class="form-hint">Los campos con * son obligatorios.</p>
 

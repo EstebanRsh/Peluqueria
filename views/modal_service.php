@@ -43,17 +43,6 @@
             </div>
 
             <div class="form-row">
-                <div class="form-group form-group--full">
-                    <label for="serviceDescription">Descripción</label>
-
-                    <textarea
-                        id="serviceDescription"
-                        rows="2"
-                        placeholder="Descripción opcional"></textarea>
-                </div>
-            </div>
-
-            <div class="form-row">
                 <div class="form-group is-required">
                     <label for="serviceDuration">Duración (min)</label>
 
@@ -80,6 +69,22 @@
                         placeholder="0.00">
                 </div>
             </div>
+
+            <details class="form-optional">
+                <summary class="form-optional__summary">Más datos (opcional)</summary>
+                <div class="form-optional__fields">
+                    <div class="form-row">
+                        <div class="form-group form-group--full">
+                            <label for="serviceDescription">Descripción</label>
+
+                            <textarea
+                                id="serviceDescription"
+                                rows="2"
+                                placeholder="Descripción opcional"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </details>
 
             <p class="form-hint">Los campos con * son obligatorios.</p>
 
