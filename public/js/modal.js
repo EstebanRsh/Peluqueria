@@ -535,10 +535,8 @@ function renderServices() {
               min
             </label>
           </span>
-          <button type="button" class="btn btn--ghost btn--sm cart-remove" data-index="${index}"
-            aria-label="Quitar ${escapeHtml(service.name)}"${servicesLocked ? " disabled" : ""}>
-            <svg class="service-row__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18" /></svg>
-          </button>
+          <button type="button" class="cart-remove" data-index="${index}"
+            aria-label="Quitar ${escapeHtml(service.name)}" title="Quitar"${servicesLocked ? " disabled" : ""}></button>
         </li>`,
     )
     .join("");

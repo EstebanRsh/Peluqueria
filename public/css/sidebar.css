@@ -351,6 +351,17 @@
     width: 28px;
     height: 28px;
     z-index: var(--z-burger);
+    position: relative;
+  }
+
+  .mobile-burger::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2.75rem;
+    height: 2.75rem;
+    transform: translate(-50%, -50%);
   }
 
   .mobile-burger span {

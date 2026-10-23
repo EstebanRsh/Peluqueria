@@ -94,5 +94,5 @@
             <p></p>
         </div>
     </div>
-    <div class="surface__footer surface__footer--row row-dialog__actions"></div>
+    <div class="surface__footer row-dialog__actions"></div>
 </dialog>

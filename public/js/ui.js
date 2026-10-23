@@ -508,17 +508,14 @@ function renderAppointmentsList(container, appointments) {
           </div>
 
           <div class="appointment-card__status">
-            <span class="status-badge status-badge--${sluggedStatus}">
-              ${escapeHtml(appointment.status)}
-            </span>
-
             <button
               type="button"
-              class="btn btn--ghost btn--sm"
+              class="status-badge status-badge--${sluggedStatus} status-badge--action"
               data-action="status"
-              aria-label="Cambiar el estado del turno de ${escapeHtml(displayClientName)}"
+              aria-label="Cambiar el estado del turno de ${escapeHtml(displayClientName)}: ${escapeHtml(appointment.status)}"
+              title="Cambiar estado"
             >
-              Cambiar estado
+              ${escapeHtml(appointment.status)}
             </button>
           </div>
         </div>

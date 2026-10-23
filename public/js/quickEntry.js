@@ -442,8 +442,8 @@ export function initQuickEntry() {
             <td data-label="Nombre">${escapeHtml(item.name)}</td>
             <td data-label="Marca">${escapeHtml(item.brand || "—")}</td>
             <td data-label="Acciones">
-              <button type="button" class="btn btn--ghost btn--sm cart-remove" data-index="${index}"
-                aria-label="Quitar ${escapeHtml(item.name)}">Quitar</button>
+              <button type="button" class="cart-remove" data-index="${index}"
+                aria-label="Quitar ${escapeHtml(item.name)}" title="Quitar"></button>
             </td>
           </tr>`,
       )
