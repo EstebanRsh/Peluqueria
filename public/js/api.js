@@ -375,10 +375,11 @@ export function updateAppointment(data) {
   return postJson("update", data);
 }
 
-export function updateAppointmentStatus(id, targetStatus) {
+export function updateAppointmentStatus(id, targetStatus, reason = "") {
   return postJson("update_status", {
     id: Number(id),
     status: targetStatus,
+    reason,
   });
 }
 

@@ -64,6 +64,10 @@ export function formatTime(value) {
   return String(value ?? "").substring(0, 5);
 }
 
+export function displayStatus(appointment) {
+  return appointment.display_status || appointment.status;
+}
+
 export function toMinutes(time) {
   const [hours, minutes] = String(time ?? "")
     .split(":")

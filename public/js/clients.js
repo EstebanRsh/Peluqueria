@@ -17,7 +17,7 @@ import {
   logError,
 } from "./api.js";
 import { RECORD_STATUS, UNIT_SHORTS } from "./constants.js";
-import { formatTime, slugify } from "./utils.js";
+import { displayStatus, formatTime, slugify } from "./utils.js";
 import {
   $,
   escapeHtml,
@@ -487,7 +487,7 @@ function renderClientAppointments() {
         <article class="profile-appointment">
           <div class="profile-appointment__header">
             <strong>${escapeHtml(appointment.service_name || "Servicio")}</strong>
-            <span class="status-badge status-badge--${slugify(appointment.status || "")}">${escapeHtml(appointment.status || "Sin estado")}</span>
+            <span class="status-badge status-badge--${slugify(displayStatus(appointment) || "")}">${escapeHtml(displayStatus(appointment) || "Sin estado")}</span>
           </div>
           <div class="profile-appointment__meta">
             <time>${escapeHtml(formatProfileDate(appointment.date, false))} · ${escapeHtml(formatTime(appointment.time_start))}${appointment.time_end ? `–${escapeHtml(formatTime(appointment.time_end))}` : ""}</time>

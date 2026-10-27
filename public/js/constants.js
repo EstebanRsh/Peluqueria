@@ -17,6 +17,7 @@ export const INACTIVE_STATUSES = ["Cancelado", "Ausente"];
 export const STATUS_FILTERS = [
   { value: "todos", label: "Todos" },
   { value: "reservado", label: "Reservados" },
+  { value: "pendiente-de-cierre", label: "Pendientes de cierre" },
   { value: "finalizado", label: "Finalizados" },
   { value: "ausente", label: "Ausentes" },
   { value: "cancelado", label: "Cancelados" },

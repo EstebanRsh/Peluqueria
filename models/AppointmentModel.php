@@ -18,16 +18,27 @@ class AppointmentModel
         'Ausente',
     ];
 
+    public const CLOSING_STATUS = 'Pendiente de cierre';
+
+    public const REASON_STATUSES = ['Cancelado', 'Ausente'];
+
     public const STATUS_SLUGS = [
-        'reservado'  => 'Reservado',
-        'finalizado' => 'Finalizado',
-        'ausente'    => 'Ausente',
-        'cancelado'  => 'Cancelado',
+        'reservado'           => 'Reservado',
+        'pendiente-de-cierre' => self::CLOSING_STATUS,
+        'finalizado'          => 'Finalizado',
+        'ausente'             => 'Ausente',
+        'cancelado'           => 'Cancelado',
     ];
 
     private const SELECT_APPOINTMENTS = "
         SELECT
             appointments.*,
+            CASE
+                WHEN appointments.status = 'Reservado'
+                 AND TIMESTAMP(appointments.date, appointments.time_end) <= ?
+                THEN '" . self::CLOSING_STATUS . "'
+                ELSE appointments.status
+            END AS display_status,
             services.name AS service_name,
             services.duration AS service_duration,
             COALESCE(clients.alias, appointments.client_name) AS client_name,
@@ -53,13 +64,14 @@ class AppointmentModel
 
     public function getByDate(int $ownerId, string $date, string $search = '', string $status = 'todos'): array
     {
+        $now = date('Y-m-d H:i:s');
         $query = self::SELECT_APPOINTMENTS . "
             WHERE appointments.owner_id = ?
               AND appointments.date = ?
         ";
 
-        $types = 'is';
-        $params = [$ownerId, $date];
+        $types = 'sis';
+        $params = [$now, $ownerId, $date];
 
         if ($search !== '') {
             $query .= " AND COALESCE(clients.alias, appointments.client_name) LIKE ?";
@@ -68,10 +80,20 @@ class AppointmentModel
             $params[] = addcslashes($search, '%_\\') . '%';
         }
 
-        if ($status !== 'todos') {
+        if ($status === self::CLOSING_STATUS) {
+            $query .= " AND appointments.status = 'Reservado' AND TIMESTAMP(appointments.date, appointments.time_end) <= ?";
+            $types .= 's';
+            $params[] = $now;
+        } elseif ($status !== 'todos') {
             $query .= " AND appointments.status = ?";
             $types .= 's';
             $params[] = $status;
+
+            if ($status === 'Reservado') {
+                $query .= " AND TIMESTAMP(appointments.date, appointments.time_end) > ?";
+                $types .= 's';
+                $params[] = $now;
+            }
         }
 
         $query .= " ORDER BY appointments.time_start ASC LIMIT 500";
@@ -101,7 +123,8 @@ class AppointmentModel
             LIMIT ? OFFSET ?
         ");
         $offset = ($page - 1) * $perPage;
-        $stmt->bind_param('iiii', $ownerId, $clientId, $perPage, $offset);
+        $now = date('Y-m-d H:i:s');
+        $stmt->bind_param('siiii', $now, $ownerId, $clientId, $perPage, $offset);
         $stmt->execute();
 
         return [
@@ -482,7 +505,7 @@ class AppointmentModel
     // ACTUALIZAR ESTADO
     // ============================================================
 
-    public function updateStatus(int $ownerId, int $id, string $newStatus): bool
+    public function updateStatus(int $ownerId, int $id, string $newStatus, ?string $reason = null): bool
     {
         $this->conn->begin_transaction();
 
@@ -510,10 +533,10 @@ class AppointmentModel
             $stmtUp->execute();
 
             $stmtHist = $this->conn->prepare("
-                INSERT INTO appointment_history (owner_id, appointment_id, status_from, status_to)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO appointment_history (owner_id, appointment_id, status_from, status_to, reason)
+                VALUES (?, ?, ?, ?, ?)
             ");
-            $stmtHist->bind_param('iiss', $ownerId, $id, $oldStatus, $newStatus);
+            $stmtHist->bind_param('iisss', $ownerId, $id, $oldStatus, $newStatus, $reason);
             $stmtHist->execute();
 
             $this->conn->commit();
@@ -534,7 +557,7 @@ class AppointmentModel
     public function getHistory(int $ownerId, int $appointmentId): array
     {
         $stmt = $this->conn->prepare("
-            SELECT id, appointment_id, status_from, status_to, changed_at
+            SELECT id, appointment_id, status_from, status_to, reason, changed_at
             FROM appointment_history
             WHERE appointment_id = ?
               AND owner_id = ?

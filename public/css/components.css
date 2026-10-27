@@ -487,6 +487,10 @@
   background-color: var(--color-ausente-solid);
   color: var(--color-solid-text);
 }
+.status-badge--pendiente-de-cierre {
+  background-color: var(--color-pendiente-de-cierre-solid);
+  color: var(--color-solid-text);
+}
 
 .status-badge--action {
   gap: var(--space-1);
@@ -498,6 +502,7 @@
 
 .status-badge--action::after {
   content: "";
+  flex-shrink: 0;
   width: 0.75rem;
   height: 0.75rem;
   background: currentColor;
@@ -1357,6 +1362,18 @@ select.form-select:focus {
   visibility: visible;
 }
 
+.status-reason {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.status-reason__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
 .row-dialog__data {
   display: grid;
   gap: var(--space-2);
@@ -1806,6 +1823,24 @@ select.form-select:focus {
   .status-option {
     padding: var(--space-5) var(--space-4);
     font-size: 1rem;
+  }
+
+  .surface-dialog--full .status-reason {
+    flex: 1;
+  }
+
+  .surface-dialog--full .status-reason textarea {
+    flex: 1;
+    min-height: 8rem;
+    resize: none;
+  }
+
+  .status-reason__actions .btn {
+    flex: 1;
+  }
+
+  .status-reason__actions .btn--primary {
+    flex: 2;
   }
 
   .surface__footer {

@@ -30,11 +30,11 @@ function settle(value = false) {
 
 function finishSuccess() {
   if (holdScreen) {
-    settle(true);
+    settle();
     return;
   }
 
-  accepted = true;
+  accepted = false;
   screen.close();
 }
 
@@ -42,7 +42,14 @@ function present(
   type,
   title,
   message,
-  { hold = false, acceptLabel = "Entendido", cancelLabel = "", focusCancel = false } = {},
+  {
+    hold = false,
+    acceptLabel = "Entendido",
+    cancelLabel = "",
+    focusCancel = false,
+    action = false,
+    duration = SUCCESS_MS,
+  } = {},
 ) {
   if (!screen) {
     return Promise.resolve(false);
@@ -64,7 +71,7 @@ function present(
   document.getElementById("messageTitle").textContent = title;
   document.getElementById("messageText").textContent = message;
   accept.textContent = acceptLabel;
-  accept.hidden = isSuccess;
+  accept.hidden = isSuccess && !action;
   cancel.textContent = cancelLabel;
   cancel.hidden = type !== "confirm";
 
@@ -77,8 +84,10 @@ function present(
       }
 
       if (isSuccess) {
-        timer = setTimeout(finishSuccess, SUCCESS_MS);
-      } else {
+        timer = setTimeout(finishSuccess, duration);
+      }
+
+      if (!isSuccess || action) {
         (focusCancel ? cancel : accept).focus();
       }
     });
@@ -86,12 +95,12 @@ function present(
 }
 
 screen?.addEventListener("click", (event) => {
-  if (screen.dataset.type === "success") {
+  const button = event.target.closest("button");
+
+  if (screen.dataset.type === "success" && button !== accept) {
     finishSuccess();
     return;
   }
-
-  const button = event.target.closest("button");
 
   if (button) {
     accepted = button === accept;
@@ -104,6 +113,7 @@ screen?.addEventListener("keydown", (event) => {
 
   if (
     screen.dataset.type === "success" &&
+    event.target !== accept &&
     (event.key === "Enter" || event.key === " ")
   ) {
     event.preventDefault();
@@ -131,8 +141,17 @@ screen?.addEventListener("close", () => {
 // FUNCIONES PÚBLICAS
 // ============================================================
 
-export function showResult(type, title, message = "", { hold = false } = {}) {
-  return present(type, title, message, { hold });
+export function showResult(
+  type,
+  title,
+  message = "",
+  { hold = false, actionLabel = "", duration = SUCCESS_MS } = {},
+) {
+  return present(type, title, message, {
+    hold,
+    duration,
+    ...(actionLabel ? { acceptLabel: actionLabel, action: true } : {}),
+  });
 }
 
 export function showError(message) {

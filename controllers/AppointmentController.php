@@ -110,15 +110,25 @@ class AppointmentController extends BaseController
                 $id = $this->validId($input['id'] ?? 0, 'turno');
                 $status = $this->str($input['status'] ?? null);
 
+                $reason = $this->str($input['reason'] ?? null) ?: null;
+
                 if (!in_array($status, AppointmentModel::STATUSES, true)) {
                     $this->error('El estado seleccionado no es válido.');
+                }
+
+                if ($reason !== null && mb_strlen($reason) > 255) {
+                    $this->error('El motivo no puede superar los 255 caracteres.');
+                }
+
+                if (!in_array($status, AppointmentModel::REASON_STATUSES, true)) {
+                    $reason = null;
                 }
 
                 if (!$this->model->getById($this->ownerId(), $id)) {
                     $this->error('El turno no existe.', 404);
                 }
 
-                $success = $this->model->updateStatus($this->ownerId(), $id, $status);
+                $success = $this->model->updateStatus($this->ownerId(), $id, $status, $reason);
 
                 $this->json([
                     'success' => $success,

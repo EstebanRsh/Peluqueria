@@ -220,6 +220,17 @@ foreach ($events as $dayEvents) {
                 </span>
                 <svg class="status-option__check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12" /></svg></button>
         </div>
+
+        <form class="status-reason" id="statusReasonForm" novalidate hidden>
+            <div class="form-group">
+                <label for="statusReason" id="statusReasonLabel">Motivo (opcional)</label>
+                <textarea id="statusReason" rows="3" maxlength="255" placeholder="Ej: avisó que no puede venir"></textarea>
+            </div>
+            <div class="status-reason__actions">
+                <button type="button" class="btn btn--ghost" id="statusReasonBack">Volver</button>
+                <button type="submit" class="btn btn--primary">Guardar</button>
+            </div>
+        </form>
     </div>
 </dialog>
 

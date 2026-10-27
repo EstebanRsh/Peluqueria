@@ -354,6 +354,7 @@ class AccountModel
                 'appointment_id' => $this->reference($row, 'appointment_id', 'el turno', $appointments, true),
                 'status_from'    => $this->text($row, 'status_from', 'el estado anterior', 50, false),
                 'status_to'      => $this->text($row, 'status_to', 'el estado nuevo', 50, true),
+                'reason'         => $this->text($row, 'reason', 'el motivo', 255, false),
                 'changed_at'     => $this->dateTime($row, 'changed_at', 'la fecha del cambio', false),
             ];
         }
@@ -523,14 +524,14 @@ class AccountModel
     private function insertAppointmentHistory(int $ownerId, array $rows, array $appointmentIds): void
     {
         $stmt = $this->conn->prepare("
-            INSERT INTO appointment_history (owner_id, appointment_id, status_from, status_to, changed_at)
-            VALUES (?, ?, ?, ?, COALESCE(?, NOW()))
+            INSERT INTO appointment_history (owner_id, appointment_id, status_from, status_to, reason, changed_at)
+            VALUES (?, ?, ?, ?, ?, COALESCE(?, NOW()))
         ");
 
         foreach ($rows as $r) {
             $appointmentId = $appointmentIds[$r['appointment_id']];
 
-            $stmt->bind_param('iisss', $ownerId, $appointmentId, $r['status_from'], $r['status_to'], $r['changed_at']);
+            $stmt->bind_param('iissss', $ownerId, $appointmentId, $r['status_from'], $r['status_to'], $r['reason'], $r['changed_at']);
             $stmt->execute();
         }
     }

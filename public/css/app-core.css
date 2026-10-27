@@ -915,4 +915,10 @@
   .appointment-card__status {
     padding: 0 var(--space-4) 0 0;
   }
+
+  .appointment-card__status .status-badge {
+    max-width: 7.5rem;
+    text-align: center;
+    line-height: 1.25;
+  }
 }

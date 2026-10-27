@@ -18,17 +18,19 @@ import { confirmAction, showError, showResult } from "./confirm.js";
 import {
   DEFAULT_APPOINTMENT_STATUS,
   FINISHED_STATUS,
+  INACTIVE_STATUSES,
   STATUS_FILTERS,
 } from "./constants.js";
 import { escapeHtml, restoreFocus, setActiveFilter } from "./dom.js";
 import {
+  displayStatus,
   formatDate,
   formatTime,
   slugify,
   todayIso,
   toMinutes,
 } from "./utils.js";
-import { setBusy, setSearching } from "./feedback.js";
+import { setSearching } from "./feedback.js";
 import { debounce, loadErrorHtml } from "./list.js";
 import { appState } from "./state.js";
 
@@ -486,7 +488,8 @@ function renderAppointmentsList(container, appointments) {
 
   container.innerHTML = appointments
     .map((appointment) => {
-      const sluggedStatus = slugify(appointment.status);
+      const shownStatus = displayStatus(appointment);
+      const sluggedStatus = slugify(shownStatus);
 
       const displayClientName =
         appointment.client_name || appointment.alias || "Sin cliente asociado";
@@ -527,10 +530,10 @@ function renderAppointmentsList(container, appointments) {
               type="button"
               class="status-badge status-badge--${sluggedStatus} status-badge--action"
               data-action="status"
-              aria-label="Cambiar el estado del turno de ${escapeHtml(displayClientName)}: ${escapeHtml(appointment.status)}"
+              aria-label="Cambiar el estado del turno de ${escapeHtml(displayClientName)}: ${escapeHtml(shownStatus)}"
               title="Cambiar estado"
             >
-              ${escapeHtml(appointment.status)}
+              ${escapeHtml(shownStatus)}
             </button>
           </div>
         </div>
@@ -549,10 +552,15 @@ const MOMENT_REFRESH_MS = 30000;
 const MOMENT_LABELS = { now: "Ahora", next: "Siguiente" };
 let momentTimer = null;
 
+function nowMinutes() {
+  const now = new Date();
+
+  return now.getHours() * 60 + now.getMinutes();
+}
+
 function applyMoments() {
   const cards = [...panelBody.querySelectorAll(".appointment-card")];
-  const now = new Date();
-  const minutes = now.getHours() * 60 + now.getMinutes();
+  const minutes = nowMinutes();
   const pending =
     appState.activeDay === todayIso()
       ? cards
@@ -562,7 +570,7 @@ function applyMoments() {
           }))
           .filter(
             ({ appointment }) =>
-              appointment?.status === DEFAULT_APPOINTMENT_STATUS,
+              appointment && displayStatus(appointment) === DEFAULT_APPOINTMENT_STATUS,
           )
       : [];
 
@@ -599,9 +607,26 @@ function applyMoments() {
   });
 }
 
+function refreshMoments() {
+  const minutes = nowMinutes();
+  const expired =
+    appState.activeDay === todayIso() &&
+    [...appointmentMap.values()].some(
+      (appointment) =>
+        displayStatus(appointment) === DEFAULT_APPOINTMENT_STATUS &&
+        toMinutes(appointment.time_end) <= minutes,
+    );
+
+  if (expired) {
+    loadAppointments(appState.activeDay, { showLoading: false });
+  } else {
+    applyMoments();
+  }
+}
+
 function startMomentTimer() {
   stopMomentTimer();
-  momentTimer = setInterval(applyMoments, MOMENT_REFRESH_MS);
+  momentTimer = setInterval(refreshMoments, MOMENT_REFRESH_MS);
 }
 
 function stopMomentTimer() {
@@ -719,8 +744,8 @@ function openAppointmentDetailModal(appointmentId) {
           <div class="detail-card">
             <span class="detail-label">Estado</span>
             <div class="appointment-card__status">
-              <span class="status-badge status-badge--${slugify(appointment.status)}" data-detail-status>
-                ${escapeHtml(appointment.status)}
+              <span class="status-badge status-badge--${slugify(displayStatus(appointment))}" data-detail-status>
+                ${escapeHtml(displayStatus(appointment))}
               </span>
               <button
                 type="button"
@@ -890,10 +915,10 @@ function attachDetailModalEvents(detailPanel, detailOverlay) {
   });
 }
 
-async function setAppointmentStatus(id, status) {
+async function setAppointmentStatus(id, status, reason = "") {
   const appointment = appointmentMap.get(String(id));
   const previous = appointment?.status;
-  const response = await updateAppointmentStatus(id, status);
+  const response = await updateAppointmentStatus(id, status, reason);
 
   if (!response.success) {
     throw new ApiError(response.error || "No se pudo actualizar el estado.", {
@@ -903,6 +928,7 @@ async function setAppointmentStatus(id, status) {
 
   if (appointment) {
     appointment.status = status;
+    appointment.display_status = status;
   }
 
   return previous;
@@ -983,16 +1009,17 @@ function openStatusDialog(id) {
     `${formatTime(appointment.time_start)} · ${appointment.service_name || "Servicio no disponible"}`;
 
   statusDialog.querySelectorAll("[data-set-status]").forEach((option) => {
-    const isCurrent = option.dataset.setStatus === appointment.status;
+    const isCurrent = option.dataset.setStatus === displayStatus(appointment);
 
     option.classList.toggle("is-active", isCurrent);
     option.setAttribute("aria-pressed", String(isCurrent));
   });
 
+  showStatusOptions();
   statusDialog.showModal();
 }
 
-async function changeStatusFromDialog(id, status) {
+async function changeStatusFromDialog(id, status, reason = "") {
   const appointment = appointmentMap.get(String(id));
 
   if (!appointment || appointment.status === status) {
@@ -1005,7 +1032,7 @@ async function changeStatusFromDialog(id, status) {
   }
 
   try {
-    const previous = await setAppointmentStatus(id, status);
+    const previous = await setAppointmentStatus(id, status, reason);
 
     syncDetailStatus(id, status);
     announceStatus(id, previous, status);
@@ -1016,22 +1043,86 @@ async function changeStatusFromDialog(id, status) {
   }
 }
 
+const statusOptions = statusDialog?.querySelector(".status-options");
+const reasonForm = document.getElementById("statusReasonForm");
+const reasonField = document.getElementById("statusReason");
+const REASON_LABELS = {
+  Cancelado: "Motivo de la cancelación (opcional)",
+  Ausente: "Motivo de la ausencia (opcional)",
+};
+let reasonStatus = null;
+
+function showStatusOptions() {
+  reasonStatus = null;
+  reasonForm.hidden = true;
+  statusOptions.hidden = false;
+}
+
+function showReasonStep(status) {
+  reasonStatus = status;
+  document.getElementById("statusReasonLabel").textContent =
+    REASON_LABELS[status];
+  reasonField.value = "";
+  statusOptions.hidden = true;
+  reasonForm.hidden = false;
+  reasonField.focus();
+}
+
+const hasUnsavedReason = () =>
+  !reasonForm.hidden && reasonField.value.trim() !== "";
+
 statusDialog?.addEventListener("click", (event) => {
   if (
-    event.target === statusDialog ||
+    (event.target === statusDialog && !hasUnsavedReason()) ||
     event.target.closest("#statusDialogClose")
   ) {
     statusDialog.close();
     return;
   }
 
+  if (event.target.closest("#statusReasonBack")) {
+    const status = reasonStatus;
+
+    showStatusOptions();
+    statusOptions.querySelector(`[data-set-status="${status}"]`)?.focus();
+    return;
+  }
+
   const option = event.target.closest("[data-set-status]");
 
-  if (option) {
-    statusDialog.close();
-    changeStatusFromDialog(statusDialogAppointmentId, option.dataset.setStatus);
+  if (!option) {
+    return;
+  }
+
+  const status = option.dataset.setStatus;
+  const appointment = appointmentMap.get(statusDialogAppointmentId);
+
+  if (INACTIVE_STATUSES.includes(status) && appointment?.status !== status) {
+    showReasonStep(status);
+    return;
+  }
+
+  statusDialog.close();
+  changeStatusFromDialog(statusDialogAppointmentId, status);
+});
+
+statusDialog?.addEventListener("cancel", (event) => {
+  if (hasUnsavedReason()) {
+    event.preventDefault();
   }
 });
+
+reasonForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  const status = reasonStatus;
+  const reason = reasonField.value.trim();
+
+  statusDialog.close();
+  changeStatusFromDialog(statusDialogAppointmentId, status, reason);
+});
+
+const UNDO_MS = 5000;
 
 async function deleteAppointment(button) {
   const id = button.dataset.id;
@@ -1040,7 +1131,7 @@ async function deleteAppointment(button) {
 
   const confirmed = await confirmAction({
     title: "Eliminar turno",
-    message: `Vas a eliminar el turno de «${name}». Esta acción no se puede deshacer.`,
+    message: `Vas a eliminar el turno de «${name}».`,
     confirmLabel: "Eliminar",
     danger: true,
   });
@@ -1049,7 +1140,31 @@ async function deleteAppointment(button) {
     return;
   }
 
-  setBusy(button, true);
+  closeAppointmentDetailModal({ restore: false });
+
+  const card = panelBody?.querySelector(
+    `.appointment-card[data-id="${CSS.escape(String(id))}"]`,
+  );
+
+  if (card) {
+    card.hidden = true;
+  }
+
+  const undone = await showResult(
+    "success",
+    "Turno eliminado",
+    "Si fue un error, tocá Deshacer.",
+    { actionLabel: "Deshacer", duration: UNDO_MS },
+  );
+
+  if (undone) {
+    if (card) {
+      card.hidden = false;
+    }
+
+    restoreFocus(card?.querySelector(".appointment-card__row") || panel);
+    return;
+  }
 
   try {
     const response = await removeAppointment(id);
@@ -1060,19 +1175,14 @@ async function deleteAppointment(button) {
       });
     }
 
-    closeAppointmentDetailModal({ restore: false });
     syncCalendarDay(appState.activeDay);
-    await loadAppointments(appState.activeDay, { showLoading: false });
-
-    const firstRow = panelBody?.querySelector(".appointment-card__row");
-    restoreFocus(firstRow || panel);
-    showResult("success", "Turno eliminado", "Ya no figura en la agenda.");
   } catch (error) {
     logError("Error al eliminar turno:", error);
     showError(getErrorMessage(error, "No se pudo eliminar el turno."));
-  } finally {
-    setBusy(button, false);
   }
+
+  await loadAppointments(appState.activeDay, { showLoading: false });
+  restoreFocus(panelBody?.querySelector(".appointment-card__row") || panel);
 }
 
 // ============================================================
@@ -1110,6 +1220,7 @@ async function loadTimelineHistory(id, container) {
             }
             →
             <span>${escapeHtml(historyItem.status_to)}</span>
+            ${historyItem.reason ? `<br>Motivo: ${escapeHtml(historyItem.reason)}` : ""}
           </div>
         `;
       })

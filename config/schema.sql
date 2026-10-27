@@ -138,6 +138,7 @@ CREATE TABLE IF NOT EXISTS appointment_history (
     appointment_id INT NOT NULL,
     status_from VARCHAR(50) NULL,
     status_to VARCHAR(50) NOT NULL,
+    reason VARCHAR(255) NULL,
     changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_id) REFERENCES users (id) ON DELETE CASCADE,
     FOREIGN KEY (appointment_id) REFERENCES appointments (id) ON DELETE CASCADE

@@ -189,6 +189,7 @@
   --color-finalizado-line: #a17d36;
   --color-cancelado-solid: var(--color-danger);
   --color-ausente-solid: #78736c;
+  --color-pendiente-de-cierre-solid: var(--color-espera-solid);
 }
 
 *,
