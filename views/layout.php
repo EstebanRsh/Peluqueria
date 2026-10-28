@@ -225,6 +225,7 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
             <p class="message-screen__text" id="messageText"></p>
         </div>
         <div class="message-screen__actions">
+            <button type="button" class="btn message-screen__button message-screen__button--cancel" id="messageExtra" hidden></button>
             <button type="button" class="btn message-screen__button message-screen__button--cancel" id="messageCancel" hidden>Cancelar</button>
             <button type="button" class="btn message-screen__button" id="messageAccept" hidden>Entendido</button>
         </div>

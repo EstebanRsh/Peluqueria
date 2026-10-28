@@ -34,8 +34,7 @@ import {
   createClientAutocomplete,
 } from "./autocomplete.js";
 import { clearInvalidOnInput, createFeedback, setBusy } from "./feedback.js";
-import { confirmAction, showResult } from "./confirm.js";
-import { debounce } from "./list.js";
+import { confirmAction, confirmChoice, showResult } from "./confirm.js";
 
 // ============================================================
 // ELEMENTOS DEL MODAL
@@ -70,8 +69,7 @@ let initialStylist = "";
 let lastStylist = "";
 
 let freeGaps = [];
-let freeGapsKey = "";
-let scheduleToken = 0;
+let freeSlotsToken = 0;
 
 let dayAppointments = [];
 let dayContextToken = 0;
@@ -247,20 +245,12 @@ export function initModal() {
   $("timeStart")?.addEventListener("input", () => {
     startIsSuggested = false;
     updateScheduleHint();
-    updateScheduleWarning();
     syncFreeSlotChips();
-    queueScheduleRefresh();
   });
 
   $("freeSlotsList")?.addEventListener("click", handleFreeSlotClick);
 
   $("timeEnd")?.addEventListener("change", handleEndTimeManualChange);
-  $("timeEnd")?.addEventListener("input", () => {
-    updateScheduleWarning();
-    queueScheduleRefresh();
-  });
-
-  $("stylist")?.addEventListener("input", updateScheduleWarning);
 
   // ----------------------------------------------------------
   // GUARDAR (botón o tecla Enter)
@@ -314,7 +304,11 @@ async function cancelModal() {
     return;
   }
 
-  if (aborting) {
+  discardModal();
+}
+
+function discardModal() {
+  if (returningFromRecord) {
     document.dispatchEvent(new CustomEvent("quickentry:abort"));
   }
 
@@ -615,9 +609,7 @@ function servicesChanged() {
   }
 
   updatePriceHint();
-  updateScheduleHint();
-  updateScheduleWarning();
-  refreshSchedule();
+  refreshFreeSlots();
 }
 
 function syncPriceMode() {
@@ -685,8 +677,7 @@ async function loadDayContext(date) {
   populateStylistOptions();
   suggestStartTime();
   updateScheduleHint();
-  updateScheduleWarning();
-  refreshSchedule();
+  refreshFreeSlots();
 }
 
 function populateStylistOptions() {
@@ -751,38 +742,15 @@ function suggestStartTime() {
 // ============================================================
 
 function updateScheduleHint() {
-  const hint = $("scheduleHint");
-  const parts = [];
-
-  if (startIsSuggested) {
-    parts.push("Hora sugerida: a continuación del último turno del día.");
-  }
-
-  const duration = totalDuration();
-
-  if (duration > 0) {
-    parts.push(
-      `Duración del servicio: ${duration} min.` +
-        (endTimeIsAutomatic ? " La hora de fin se calcula sola." : ""),
-    );
-  }
-
-  hint.textContent = parts.join(" ");
-  hint.hidden = parts.length === 0;
+  $("scheduleHint").hidden = !startIsSuggested;
 }
 
-function updateScheduleWarning() {
-  const box = $("scheduleWarning");
-  const start = toMinutes($("timeStart").value);
-  const end = toMinutes($("timeEnd").value);
-  const stylist = normalizeName($("stylist").value);
+function overlapText(appointments, data) {
+  const start = toMinutes(data.time_start);
+  const end = toMinutes(data.time_end);
+  const stylist = normalizeName(data.stylist);
 
-  if (start === null || end === null || end <= start) {
-    box.hidden = true;
-    return;
-  }
-
-  const overlaps = dayAppointments.filter((appointment) => {
+  const overlaps = appointments.filter((appointment) => {
     const otherStart = toMinutes(appointment.time_start);
     const otherEnd = toMinutes(appointment.time_end);
 
@@ -797,8 +765,7 @@ function updateScheduleWarning() {
   });
 
   if (overlaps.length === 0) {
-    box.hidden = true;
-    return;
+    return "";
   }
 
   const sameStylist = overlaps.find(
@@ -808,10 +775,9 @@ function updateScheduleWarning() {
   const who = conflict.client_name || "otro cliente";
   const when = `${toTimeString(toMinutes(conflict.time_start))} a ${toTimeString(toMinutes(conflict.time_end))}`;
 
-  box.textContent = sameStylist
-    ? `Se superpone con el turno de ${who} (${when}), del mismo profesional. Podés guardarlo igual.`
-    : `Ya hay otro turno en ese horario: el de ${who} (${when}). Podés guardarlo igual.`;
-  box.hidden = false;
+  return sameStylist
+    ? `Se superpone con el turno de ${who} (${when}), del mismo profesional.`
+    : `Ya hay otro turno en ese horario: el de ${who} (${when}).`;
 }
 
 // ============================================================
@@ -830,46 +796,17 @@ function handleStartTimeChange() {
   }
 
   updateScheduleHint();
-  updateScheduleWarning();
   syncFreeSlotChips();
-  queueScheduleRefresh();
 }
 
 // ============================================================
-// HORARIO DE ATENCIÓN Y LUGAR LIBRE DEL DÍA
+// LUGAR LIBRE DEL DÍA
 // ============================================================
-
-function outsideHoursText(schedule) {
-  if (schedule?.state === "closed") {
-    return "Ese día no atendés.";
-  }
-
-  if (schedule?.state !== "open" || schedule.within !== false) {
-    return "";
-  }
-
-  const ranges = (schedule.ranges ?? [])
-    .map((range) => `${range.start} a ${range.end}`)
-    .join(" y ");
-
-  return `El turno queda fuera de tu horario (${ranges}).`;
-}
-
-function renderHoursWarning(schedule) {
-  const box = $("hoursWarning");
-  const text = outsideHoursText(schedule);
-
-  box.textContent = text
-    ? `${text} ${schedule.state === "closed" ? "Podés guardarlo igual o elegir otro día." : "Podés guardarlo igual o cambiar la hora."}`
-    : "";
-  box.hidden = !text;
-}
 
 function hideFreeSlots() {
   $("freeSlots").hidden = true;
   $("freeSlotsList").replaceChildren();
   freeGaps = [];
-  freeGapsKey = "";
 }
 
 function renderFreeSlots(schedule, duration) {
@@ -879,49 +816,42 @@ function renderFreeSlots(schedule, duration) {
   }
 
   const text = $("freeSlotsText");
-  const gaps = duration > 0 ? schedule.gaps : [];
-  const key = `${duration}|${gaps.map((gap) => `${gap.start}-${gap.end}`).join(",")}`;
+  const template = $("freeSlotTemplate").content.firstElementChild;
+
+  freeGaps = duration > 0 ? schedule.gaps : [];
 
   if (duration <= 0) {
     text.textContent = "Elegí los servicios y te muestro dónde entra el turno.";
   } else {
-    text.textContent = gaps.length
+    text.textContent = freeGaps.length
       ? `Lugar libre para ${duration} min:`
       : `No queda lugar para ${duration} min ese día.`;
   }
 
-  if (key !== freeGapsKey) {
-    const template = $("freeSlotTemplate").content.firstElementChild;
+  $("freeSlotsList").replaceChildren(
+    ...freeGaps.map((gap) => {
+      const chip = template.cloneNode(true);
 
-    freeGaps = gaps;
-    freeGapsKey = key;
-    $("freeSlotsList").replaceChildren(
-      ...gaps.map((gap) => {
-        const chip = template.cloneNode(true);
+      chip.textContent = `${gap.start} a ${gap.end}`;
+      chip.dataset.start = gap.start;
+      chip.setAttribute(
+        "aria-label",
+        `Empezar a las ${gap.start}, libre hasta las ${gap.end}`,
+      );
 
-        chip.textContent = `${gap.start} a ${gap.end}`;
-        chip.dataset.start = gap.start;
-        chip.setAttribute(
-          "aria-label",
-          `Empezar a las ${gap.start}, libre hasta las ${gap.end}`,
-        );
-
-        return chip;
-      }),
-    );
-  }
-
+      return chip;
+    }),
+  );
   $("freeSlots").hidden = false;
   syncFreeSlotChips();
 }
 
-async function refreshSchedule() {
+async function refreshFreeSlots() {
   const date = $("appointmentDate").value;
   const duration = totalDuration();
-  const token = ++scheduleToken;
+  const token = ++freeSlotsToken;
 
   if (!date) {
-    renderHoursWarning(null);
     hideFreeSlots();
     return;
   }
@@ -930,76 +860,22 @@ async function refreshSchedule() {
     const response = await fetchDaySchedule({
       date,
       duration,
-      start: $("timeStart").value,
-      end: $("timeEnd").value,
       exclude: editingAppointment?.id ?? 0,
     });
 
-    if (token !== scheduleToken) {
+    if (token !== freeSlotsToken) {
       return;
     }
 
-    const schedule = response?.success ? response.data : null;
-
-    renderHoursWarning(schedule);
-    renderFreeSlots(schedule, duration);
+    renderFreeSlots(response?.success ? response.data : null, duration);
   } catch (error) {
-    if (token !== scheduleToken) {
+    if (token !== freeSlotsToken) {
       return;
     }
 
-    logError("Error al consultar el horario del día:", error);
-    renderHoursWarning(null);
+    logError("Error al buscar el lugar libre del día:", error);
     hideFreeSlots();
   }
-}
-
-const queueScheduleRefresh = debounce(refreshSchedule);
-
-async function confirmOutsideHours(editing, data) {
-  if (
-    editing &&
-    editing.date === data.date &&
-    editing.timeStart === data.time_start &&
-    editing.timeEnd === data.time_end
-  ) {
-    return true;
-  }
-
-  let schedule = null;
-
-  try {
-    const response = await fetchDaySchedule({
-      date: data.date,
-      start: data.time_start,
-      end: data.time_end,
-      exclude: editing?.id ?? 0,
-    });
-
-    schedule = response?.success ? response.data : null;
-  } catch (error) {
-    logError("Error al consultar el horario del día:", error);
-    return true;
-  }
-
-  const text = outsideHoursText(schedule);
-
-  if (!text) {
-    return true;
-  }
-
-  const confirmed = await confirmAction({
-    title: "Fuera de tu horario",
-    message: `${text} ¿Lo guardás igual?`,
-    confirmLabel: "Guardar igual",
-    cancelLabel: "Corregir",
-  });
-
-  if (!confirmed) {
-    $(schedule.state === "closed" ? "appointmentDate" : "timeStart").focus();
-  }
-
-  return confirmed;
 }
 
 function syncFreeSlotChips() {
@@ -1034,6 +910,85 @@ function handleFreeSlotClick(event) {
 }
 
 // ============================================================
+// REVISIÓN DEL HORARIO AL GUARDAR
+// ============================================================
+
+function outsideHoursText(schedule) {
+  if (schedule?.state === "closed") {
+    return "Ese día no atendés.";
+  }
+
+  if (schedule?.state !== "open" || schedule.within !== false) {
+    return "";
+  }
+
+  const ranges = (schedule.ranges ?? [])
+    .map((range) => `${range.start} a ${range.end}`)
+    .join(" y ");
+
+  return `El turno queda fuera de tu horario (${ranges}).`;
+}
+
+async function reviewSchedule(editing, data) {
+  if (
+    editing &&
+    editing.date === data.date &&
+    editing.timeStart === data.time_start &&
+    editing.timeEnd === data.time_end
+  ) {
+    return "confirm";
+  }
+
+  let schedule = null;
+  let appointments = [];
+
+  try {
+    const [scheduleResponse, dayList] = await Promise.all([
+      fetchDaySchedule({
+        date: data.date,
+        start: data.time_start,
+        end: data.time_end,
+        exclude: editing?.id ?? 0,
+      }),
+      fetchAppointments(data.date),
+    ]);
+
+    schedule = scheduleResponse?.success ? scheduleResponse.data : null;
+    appointments = Array.isArray(dayList) ? dayList : [];
+  } catch (error) {
+    logError("Error al revisar el horario del turno:", error);
+    return "confirm";
+  }
+
+  const hoursText = outsideHoursText(schedule);
+  const overlap = overlapText(appointments, data);
+
+  if (!hoursText && !overlap) {
+    return "confirm";
+  }
+
+  let title = "Turno superpuesto";
+
+  if (hoursText) {
+    title = overlap ? "Revisá el horario" : "Fuera de tu horario";
+  }
+
+  const choice = await confirmChoice({
+    title,
+    message: `${[hoursText, overlap].filter(Boolean).join(" ")} ¿Qué querés hacer?`,
+    confirmLabel: "Guardar igual",
+    cancelLabel: "Corregir",
+    extraLabel: editing ? "Descartar cambios" : "Descartar turno",
+  });
+
+  if (choice === "cancel") {
+    $(schedule?.state === "closed" ? "appointmentDate" : "timeStart").focus();
+  }
+
+  return choice;
+}
+
+// ============================================================
 // MODIFICACIÓN MANUAL DE HORA DE FIN
 // ============================================================
 
@@ -1047,10 +1002,6 @@ function handleEndTimeManualChange() {
   if (timeEnd.value !== lastCalculatedEndTime) {
     endTimeIsAutomatic = false;
   }
-
-  updateScheduleHint();
-  updateScheduleWarning();
-  queueScheduleRefresh();
 }
 
 // ============================================================
@@ -1165,10 +1116,8 @@ function clearModal() {
   $("clientSelected").removeAttribute("title");
 
   $("scheduleHint").hidden = true;
-  $("scheduleWarning").hidden = true;
-  renderHoursWarning(null);
   hideFreeSlots();
-  scheduleToken += 1;
+  freeSlotsToken += 1;
 
   feedback.clearInvalid();
 
@@ -1352,7 +1301,14 @@ async function submitModalData() {
   setBusy(modalSave, true);
 
   try {
-    if (!(await confirmOutsideHours(editing, data))) {
+    const choice = await reviewSchedule(editing, data);
+
+    if (choice === "extra") {
+      discardModal();
+      return;
+    }
+
+    if (choice !== "confirm") {
       return;
     }
 

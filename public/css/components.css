@@ -1007,12 +1007,6 @@ select.form-select:focus {
   border-radius: var(--radius-ctrl);
 }
 
-.alert--warning {
-  background: var(--color-espera-bg);
-  color: var(--color-espera-text);
-  border-left-color: currentColor;
-}
-
 .alert--error {
   background: var(--color-cancelado-bg);
   color: var(--color-cancelado-text);
@@ -1275,6 +1269,15 @@ select.form-select:focus {
 .message-screen__button:focus-visible {
   outline: 2px solid var(--color-on-dark);
   outline-offset: 3px;
+}
+
+@media (max-width: 768px) {
+  .message-screen__actions:has(#messageExtra:not([hidden])) {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    width: 100%;
+    max-width: 20rem;
+  }
 }
 
 @keyframes message-in {

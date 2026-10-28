@@ -10,22 +10,24 @@ const screen = document.getElementById("messageScreen");
 const body = document.getElementById("messageBody");
 const accept = document.getElementById("messageAccept");
 const cancel = document.getElementById("messageCancel");
+const extra = document.getElementById("messageExtra");
 
 let timer = null;
 let holdScreen = false;
-let accepted = false;
+let returnChoice = false;
+let choice = "cancel";
 let pending = null;
 
 // ============================================================
 // PANTALLA DE MENSAJE
 // ============================================================
 
-function settle(value = false) {
+function settle(value = "cancel") {
   clearTimeout(timer);
 
   const resolve = pending;
   pending = null;
-  resolve?.(value);
+  resolve?.(returnChoice ? value : value === "confirm");
 }
 
 function finishSuccess() {
@@ -34,7 +36,7 @@ function finishSuccess() {
     return;
   }
 
-  accepted = false;
+  choice = "cancel";
   screen.close();
 }
 
@@ -46,9 +48,11 @@ function present(
     hold = false,
     acceptLabel = "Entendido",
     cancelLabel = "",
+    extraLabel = "",
     focusCancel = false,
     action = false,
     duration = SUCCESS_MS,
+    choices = false,
   } = {},
 ) {
   if (!screen) {
@@ -64,7 +68,8 @@ function present(
   const isSuccess = type === "success";
 
   holdScreen = hold;
-  accepted = false;
+  returnChoice = choices;
+  choice = "cancel";
   screen.dataset.type = type;
   screen.className = `message-screen message-screen--${type}`;
   body.setAttribute("role", isSuccess ? "status" : "alert");
@@ -74,6 +79,8 @@ function present(
   accept.hidden = isSuccess && !action;
   cancel.textContent = cancelLabel;
   cancel.hidden = type !== "confirm";
+  extra.textContent = extraLabel;
+  extra.hidden = !extraLabel;
 
   return new Promise((resolve) => {
     pending = resolve;
@@ -103,7 +110,8 @@ screen?.addEventListener("click", (event) => {
   }
 
   if (button) {
-    accepted = button === accept;
+    choice =
+      button === accept ? "confirm" : button === extra ? "extra" : "cancel";
     screen.close();
   }
 });
@@ -127,14 +135,14 @@ screen?.addEventListener("cancel", (event) => {
   if (screen.dataset.type === "success") {
     finishSuccess();
   } else {
-    accepted = false;
+    choice = "cancel";
     screen.close();
   }
 });
 
 screen?.addEventListener("close", () => {
-  settle(accepted);
-  accepted = false;
+  settle(choice);
+  choice = "cancel";
 });
 
 // ============================================================
@@ -169,5 +177,21 @@ export function confirmAction({
     acceptLabel: confirmLabel,
     cancelLabel,
     focusCancel: danger,
+  });
+}
+
+export function confirmChoice({
+  title,
+  message = "",
+  confirmLabel,
+  cancelLabel,
+  extraLabel,
+}) {
+  return present("confirm", title, message, {
+    acceptLabel: confirmLabel,
+    cancelLabel,
+    extraLabel,
+    focusCancel: true,
+    choices: true,
   });
 }
