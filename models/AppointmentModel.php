@@ -135,6 +135,54 @@ class AppointmentModel
         ];
     }
 
+    public function getFreeGaps(int $ownerId, string $date, int $duration, int $excludeId, array $ranges, int $fromMinutes): array
+    {
+        $stmt = $this->conn->prepare("
+            SELECT time_start, time_end
+            FROM appointments
+            WHERE owner_id = ?
+              AND date = ?
+              AND id <> ?
+              AND status NOT IN ('Cancelado', 'Ausente')
+            ORDER BY time_start
+        ");
+        $stmt->bind_param('isi', $ownerId, $date, $excludeId);
+        $stmt->execute();
+
+        $toMinutes = static fn(string $time): int => (int)substr($time, 0, 2) * 60 + (int)substr($time, 3, 2);
+        $toTime = static fn(int $minutes): string => sprintf('%02d:%02d', intdiv($minutes, 60), $minutes % 60);
+        $busy = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $gaps = [];
+
+        foreach ($ranges as $range) {
+            $close = $toMinutes($range['end']);
+            $cursor = max($toMinutes($range['start']), $fromMinutes);
+
+            foreach ($busy as $row) {
+                $start = $toMinutes($row['time_start']);
+
+                if ($start >= $close) {
+                    break;
+                }
+
+                if ($start > $cursor) {
+                    $gaps[] = [$cursor, $start];
+                }
+
+                $cursor = max($cursor, $toMinutes($row['time_end']));
+            }
+
+            if ($cursor < $close) {
+                $gaps[] = [$cursor, $close];
+            }
+        }
+
+        return array_values(array_map(
+            fn(array $gap): array => ['start' => $toTime($gap[0]), 'end' => $toTime($gap[1])],
+            array_filter($gaps, fn(array $gap): bool => $gap[1] - $gap[0] >= $duration),
+        ));
+    }
+
     private function attachServices(int $ownerId, array $appointments): array
     {
         if (!$appointments) {

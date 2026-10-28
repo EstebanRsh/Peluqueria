@@ -102,7 +102,17 @@
             </div>
 
             <p class="form-hint" id="scheduleHint" hidden></p>
+            <div class="alert alert--warning" id="hoursWarning" role="status" hidden></div>
             <div class="alert alert--warning" id="scheduleWarning" role="status" hidden></div>
+
+            <!-- Lugar libre -->
+            <div id="freeSlots" hidden>
+                <p class="form-hint" id="freeSlotsText"></p>
+                <div class="preset-chips" id="freeSlotsList" role="group" aria-labelledby="freeSlotsText"></div>
+            </div>
+            <template id="freeSlotTemplate">
+                <button type="button" class="btn-filter preset-chip" aria-pressed="false"></button>
+            </template>
 
             <!-- Precio -->
             <div class="form-row">

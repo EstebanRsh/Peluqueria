@@ -44,6 +44,61 @@
             </dl>
         </section>
 
+        <section class="settings-section" aria-labelledby="settingsHoursTitle">
+            <h4 class="history-title" id="settingsHoursTitle">Horario de atención</h4>
+
+            <form class="settings-form hours-form" id="hoursForm" novalidate>
+                <fieldset class="form-group">
+                    <legend class="form-label">Tipo de horario</legend>
+                    <div class="preset-chips" id="hoursMode">
+                        <label class="btn-filter"><input type="radio" class="sr-only" name="hoursMode" value="continuous">Corrido</label>
+                        <label class="btn-filter"><input type="radio" class="sr-only" name="hoursMode" value="split">Mañana y tarde</label>
+                    </div>
+                </fieldset>
+
+                <div class="form-row">
+                    <div class="form-group is-required">
+                        <label for="hoursOpening">Apertura<span class="hours-split-only"> mañana</span></label>
+                        <input type="time" id="hoursOpening" aria-required="true">
+                    </div>
+
+                    <div class="form-group is-required">
+                        <label for="hoursClosing">Cierre<span class="hours-split-only"> mañana</span></label>
+                        <input type="time" id="hoursClosing" aria-required="true">
+                    </div>
+                </div>
+
+                <div class="form-row hours-split-only">
+                    <div class="form-group is-required">
+                        <label for="hoursOpening2">Apertura tarde</label>
+                        <input type="time" id="hoursOpening2" aria-required="true">
+                    </div>
+
+                    <div class="form-group is-required">
+                        <label for="hoursClosing2">Cierre tarde</label>
+                        <input type="time" id="hoursClosing2" aria-required="true">
+                    </div>
+                </div>
+
+                <fieldset class="form-group">
+                    <legend class="form-label">Días que atendés</legend>
+                    <div class="preset-chips" id="hoursDays">
+                        <label class="btn-filter"><input type="checkbox" class="sr-only" value="1">Lun</label>
+                        <label class="btn-filter"><input type="checkbox" class="sr-only" value="2">Mar</label>
+                        <label class="btn-filter"><input type="checkbox" class="sr-only" value="3">Mié</label>
+                        <label class="btn-filter"><input type="checkbox" class="sr-only" value="4">Jue</label>
+                        <label class="btn-filter"><input type="checkbox" class="sr-only" value="5">Vie</label>
+                        <label class="btn-filter"><input type="checkbox" class="sr-only" value="6">Sáb</label>
+                        <label class="btn-filter"><input type="checkbox" class="sr-only" value="7">Dom</label>
+                    </div>
+                </fieldset>
+
+                <p class="form-hint">Al cargar un turno te muestra el lugar libre y te avisa si queda fuera de horario.</p>
+
+                <button type="submit" class="btn btn--primary" id="hoursSave">Guardar horario</button>
+            </form>
+        </section>
+
         <section class="settings-section" aria-labelledby="settingsPasswordTitle">
             <h4 class="history-title" id="settingsPasswordTitle">Cambiar contraseña</h4>
 

@@ -34,6 +34,7 @@ final class Auth
         'logout'          => ['owner', 'admin'],
         'change_password' => ['owner', 'admin'],
         'account'         => ['owner', 'admin'],
+        'account_hours'   => ['owner'],
         'account_export'  => ['owner', 'admin'],
         'account_import'  => ['owner', 'admin'],
         'account_delete'  => ['owner'],
@@ -46,6 +47,7 @@ final class Auth
         'update_status' => ['owner'],
         'history'       => ['owner'],
         'client_appointments' => ['owner'],
+        'day_schedule'  => ['owner'],
 
         // Servicios
         'services'           => ['owner'],

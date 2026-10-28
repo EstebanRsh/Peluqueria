@@ -89,6 +89,51 @@ class UserModel
         return $row;
     }
 
+    public function getBusinessHours(int $id): array
+    {
+        $stmt = $this->conn->prepare("
+            SELECT opening_time, closing_time, opening_time_2, closing_time_2, work_days
+            FROM users
+            WHERE id = ?
+            LIMIT 1
+        ");
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+
+        $row = $stmt->get_result()->fetch_assoc() ?: [];
+        $time = static fn(?string $value): ?string => $value === null ? null : substr($value, 0, 5);
+
+        $hours = [
+            'opening'  => $time($row['opening_time'] ?? '09:00'),
+            'closing'  => $time($row['closing_time'] ?? '20:00'),
+            'opening2' => $time($row['opening_time_2'] ?? null),
+            'closing2' => $time($row['closing_time_2'] ?? null),
+            'days'     => array_map('intval', array_filter(explode(',', (string)($row['work_days'] ?? '')), 'strlen')),
+        ];
+
+        $hours['split'] = $hours['opening2'] !== null && $hours['closing2'] !== null;
+        $hours['ranges'] = [['start' => $hours['opening'], 'end' => $hours['closing']]];
+
+        if ($hours['split']) {
+            $hours['ranges'][] = ['start' => $hours['opening2'], 'end' => $hours['closing2']];
+        }
+
+        return $hours;
+    }
+
+    public function updateBusinessHours(int $id, string $opening, string $closing, ?string $opening2, ?string $closing2, array $days): bool
+    {
+        $list = implode(',', $days);
+        $stmt = $this->conn->prepare("
+            UPDATE users
+            SET opening_time = ?, closing_time = ?, opening_time_2 = ?, closing_time_2 = ?, work_days = ?
+            WHERE id = ?
+        ");
+        $stmt->bind_param('sssssi', $opening, $closing, $opening2, $closing2, $list, $id);
+
+        return $stmt->execute();
+    }
+
     public function identityTaken(string $username, string $email): bool
     {
         $stmt = $this->conn->prepare("SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1");

@@ -342,6 +342,10 @@ export function changePassword(data) {
   return postJson("change_password", data);
 }
 
+export function saveBusinessHours(hours) {
+  return postJson("account_hours", hours);
+}
+
 // ============================================================
 // LISTADOS PAGINADOS (CLIENTES, SERVICIOS Y PRODUCTOS)
 // ============================================================
@@ -381,6 +385,16 @@ export function updateAppointmentStatus(id, targetStatus, reason = "") {
     status: targetStatus,
     reason,
   });
+}
+
+export function fetchDaySchedule({
+  date,
+  duration = 0,
+  start = "",
+  end = "",
+  exclude = 0,
+}) {
+  return getJson("day_schedule", { date, duration, start, end, exclude });
 }
 
 export function fetchTimelineHistory(id) {

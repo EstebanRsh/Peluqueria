@@ -21,6 +21,7 @@ class AuthController extends BaseController
         'register',
         'logout',
         'change_password',
+        'account_hours',
         'account_import',
         'account_delete',
     ];
@@ -161,6 +162,7 @@ class AuthController extends BaseController
                         'email'      => $account['email'],
                         'created_at' => $account['created_at'],
                     ],
+                    'hours'   => $this->model->getBusinessHours($user['id']),
                 ]);
                 break;
 
@@ -291,6 +293,64 @@ class AuthController extends BaseController
 
             case 'logout':
                 Auth::logout();
+
+                $this->json(['success' => true]);
+                break;
+
+            case 'account_hours':
+                $user = Auth::currentUser();
+
+                if ($user === null) {
+                    $this->error('No autenticado.', 401);
+                }
+
+                $input = $this->readInput();
+                $opening = $this->str($input['opening'] ?? null);
+                $closing = $this->str($input['closing'] ?? null);
+                $timePattern = '/^([01]\d|2[0-3]):[0-5]\d$/';
+
+                if (!preg_match($timePattern, $opening) || !preg_match($timePattern, $closing)) {
+                    $this->error('Indicá la hora de apertura y la de cierre.');
+                }
+
+                if ($closing <= $opening) {
+                    $this->error('La hora de cierre tiene que ser posterior a la de apertura.');
+                }
+
+                $opening2 = null;
+                $closing2 = null;
+
+                if (!empty($input['split'])) {
+                    $opening2 = $this->str($input['opening2'] ?? null);
+                    $closing2 = $this->str($input['closing2'] ?? null);
+
+                    if (!preg_match($timePattern, $opening2) || !preg_match($timePattern, $closing2)) {
+                        $this->error('Indicá el horario de la tarde.');
+                    }
+
+                    if ($opening2 <= $closing) {
+                        $this->error('La tarde tiene que empezar después del cierre de la mañana.');
+                    }
+
+                    if ($closing2 <= $opening2) {
+                        $this->error('El cierre de la tarde tiene que ser posterior a su apertura.');
+                    }
+
+                    $opening2 .= ':00';
+                    $closing2 .= ':00';
+                }
+
+                $days = is_array($input['days'] ?? null) ? array_filter($input['days'], 'is_numeric') : [];
+                $days = array_values(array_unique(array_filter(array_map('intval', $days), fn($day) => $day >= 1 && $day <= 7)));
+                sort($days);
+
+                if ($days === []) {
+                    $this->error('Elegí al menos un día de atención.');
+                }
+
+                if (!$this->model->updateBusinessHours($user['id'], $opening . ':00', $closing . ':00', $opening2, $closing2, $days)) {
+                    $this->error('No se pudo guardar el horario.', 500);
+                }
 
                 $this->json(['success' => true]);
                 break;

@@ -7,6 +7,7 @@
 import {
   createAppointment,
   fetchAppointments,
+  fetchDaySchedule,
   updateAppointment,
   getErrorMessage,
   searchServices,
@@ -17,9 +18,10 @@ import {
   FINISHED_STATUS,
   INACTIVE_STATUSES,
 } from "./constants.js";
-import { $, escapeHtml, restoreFocus } from "./dom.js";
+import { $, escapeHtml, restoreFocus, setActiveFilter } from "./dom.js";
 import {
   formatDate,
+  formatTime,
   missingAppointmentNotice,
   pad,
   todayIso,
@@ -33,6 +35,7 @@ import {
 } from "./autocomplete.js";
 import { clearInvalidOnInput, createFeedback, setBusy } from "./feedback.js";
 import { confirmAction, showResult } from "./confirm.js";
+import { debounce } from "./list.js";
 
 // ============================================================
 // ELEMENTOS DEL MODAL
@@ -65,6 +68,10 @@ let startIsSuggested = false;
 let initialStylist = "";
 
 let lastStylist = "";
+
+let freeGaps = [];
+let freeGapsKey = "";
+let scheduleToken = 0;
 
 let dayAppointments = [];
 let dayContextToken = 0;
@@ -241,10 +248,17 @@ export function initModal() {
     startIsSuggested = false;
     updateScheduleHint();
     updateScheduleWarning();
+    syncFreeSlotChips();
+    queueScheduleRefresh();
   });
 
+  $("freeSlotsList")?.addEventListener("click", handleFreeSlotClick);
+
   $("timeEnd")?.addEventListener("change", handleEndTimeManualChange);
-  $("timeEnd")?.addEventListener("input", updateScheduleWarning);
+  $("timeEnd")?.addEventListener("input", () => {
+    updateScheduleWarning();
+    queueScheduleRefresh();
+  });
 
   $("stylist")?.addEventListener("input", updateScheduleWarning);
 
@@ -358,6 +372,8 @@ function openEditModal(
     id: appointment.id,
     status: appointment.status,
     date: previousDate ?? appointment.date,
+    timeStart: formatTime(appointment.time_start),
+    timeEnd: formatTime(appointment.time_end),
   };
 
   $("appointmentFormTitle").textContent = finish
@@ -601,6 +617,7 @@ function servicesChanged() {
   updatePriceHint();
   updateScheduleHint();
   updateScheduleWarning();
+  refreshSchedule();
 }
 
 function syncPriceMode() {
@@ -669,6 +686,7 @@ async function loadDayContext(date) {
   suggestStartTime();
   updateScheduleHint();
   updateScheduleWarning();
+  refreshSchedule();
 }
 
 function populateStylistOptions() {
@@ -813,6 +831,206 @@ function handleStartTimeChange() {
 
   updateScheduleHint();
   updateScheduleWarning();
+  syncFreeSlotChips();
+  queueScheduleRefresh();
+}
+
+// ============================================================
+// HORARIO DE ATENCIÓN Y LUGAR LIBRE DEL DÍA
+// ============================================================
+
+function outsideHoursText(schedule) {
+  if (schedule?.state === "closed") {
+    return "Ese día no atendés.";
+  }
+
+  if (schedule?.state !== "open" || schedule.within !== false) {
+    return "";
+  }
+
+  const ranges = (schedule.ranges ?? [])
+    .map((range) => `${range.start} a ${range.end}`)
+    .join(" y ");
+
+  return `El turno queda fuera de tu horario (${ranges}).`;
+}
+
+function renderHoursWarning(schedule) {
+  const box = $("hoursWarning");
+  const text = outsideHoursText(schedule);
+
+  box.textContent = text
+    ? `${text} ${schedule.state === "closed" ? "Podés guardarlo igual o elegir otro día." : "Podés guardarlo igual o cambiar la hora."}`
+    : "";
+  box.hidden = !text;
+}
+
+function hideFreeSlots() {
+  $("freeSlots").hidden = true;
+  $("freeSlotsList").replaceChildren();
+  freeGaps = [];
+  freeGapsKey = "";
+}
+
+function renderFreeSlots(schedule, duration) {
+  if (schedule?.state !== "open" || !Array.isArray(schedule.gaps)) {
+    hideFreeSlots();
+    return;
+  }
+
+  const text = $("freeSlotsText");
+  const gaps = duration > 0 ? schedule.gaps : [];
+  const key = `${duration}|${gaps.map((gap) => `${gap.start}-${gap.end}`).join(",")}`;
+
+  if (duration <= 0) {
+    text.textContent = "Elegí los servicios y te muestro dónde entra el turno.";
+  } else {
+    text.textContent = gaps.length
+      ? `Lugar libre para ${duration} min:`
+      : `No queda lugar para ${duration} min ese día.`;
+  }
+
+  if (key !== freeGapsKey) {
+    const template = $("freeSlotTemplate").content.firstElementChild;
+
+    freeGaps = gaps;
+    freeGapsKey = key;
+    $("freeSlotsList").replaceChildren(
+      ...gaps.map((gap) => {
+        const chip = template.cloneNode(true);
+
+        chip.textContent = `${gap.start} a ${gap.end}`;
+        chip.dataset.start = gap.start;
+        chip.setAttribute(
+          "aria-label",
+          `Empezar a las ${gap.start}, libre hasta las ${gap.end}`,
+        );
+
+        return chip;
+      }),
+    );
+  }
+
+  $("freeSlots").hidden = false;
+  syncFreeSlotChips();
+}
+
+async function refreshSchedule() {
+  const date = $("appointmentDate").value;
+  const duration = totalDuration();
+  const token = ++scheduleToken;
+
+  if (!date) {
+    renderHoursWarning(null);
+    hideFreeSlots();
+    return;
+  }
+
+  try {
+    const response = await fetchDaySchedule({
+      date,
+      duration,
+      start: $("timeStart").value,
+      end: $("timeEnd").value,
+      exclude: editingAppointment?.id ?? 0,
+    });
+
+    if (token !== scheduleToken) {
+      return;
+    }
+
+    const schedule = response?.success ? response.data : null;
+
+    renderHoursWarning(schedule);
+    renderFreeSlots(schedule, duration);
+  } catch (error) {
+    if (token !== scheduleToken) {
+      return;
+    }
+
+    logError("Error al consultar el horario del día:", error);
+    renderHoursWarning(null);
+    hideFreeSlots();
+  }
+}
+
+const queueScheduleRefresh = debounce(refreshSchedule);
+
+async function confirmOutsideHours(editing, data) {
+  if (
+    editing &&
+    editing.date === data.date &&
+    editing.timeStart === data.time_start &&
+    editing.timeEnd === data.time_end
+  ) {
+    return true;
+  }
+
+  let schedule = null;
+
+  try {
+    const response = await fetchDaySchedule({
+      date: data.date,
+      start: data.time_start,
+      end: data.time_end,
+      exclude: editing?.id ?? 0,
+    });
+
+    schedule = response?.success ? response.data : null;
+  } catch (error) {
+    logError("Error al consultar el horario del día:", error);
+    return true;
+  }
+
+  const text = outsideHoursText(schedule);
+
+  if (!text) {
+    return true;
+  }
+
+  const confirmed = await confirmAction({
+    title: "Fuera de tu horario",
+    message: `${text} ¿Lo guardás igual?`,
+    confirmLabel: "Guardar igual",
+    cancelLabel: "Corregir",
+  });
+
+  if (!confirmed) {
+    $(schedule.state === "closed" ? "appointmentDate" : "timeStart").focus();
+  }
+
+  return confirmed;
+}
+
+function syncFreeSlotChips() {
+  const start = toMinutes($("timeStart").value);
+  const duration = totalDuration();
+  const chips = [...$("freeSlotsList").children];
+
+  setActiveFilter(
+    chips,
+    chips.find((chip, index) => {
+      const gap = freeGaps[index];
+
+      return (
+        start !== null &&
+        start >= toMinutes(gap.start) &&
+        start + duration <= toMinutes(gap.end)
+      );
+    }) ?? null,
+  );
+}
+
+function handleFreeSlotClick(event) {
+  const chip = event.target.closest("[data-start]");
+
+  if (!chip) {
+    return;
+  }
+
+  $("timeStart").value = chip.dataset.start;
+  endTimeIsAutomatic = true;
+  handleStartTimeChange();
 }
 
 // ============================================================
@@ -832,6 +1050,7 @@ function handleEndTimeManualChange() {
 
   updateScheduleHint();
   updateScheduleWarning();
+  queueScheduleRefresh();
 }
 
 // ============================================================
@@ -947,6 +1166,9 @@ function clearModal() {
 
   $("scheduleHint").hidden = true;
   $("scheduleWarning").hidden = true;
+  renderHoursWarning(null);
+  hideFreeSlots();
+  scheduleToken += 1;
 
   feedback.clearInvalid();
 
@@ -1126,19 +1348,23 @@ async function submitModalData() {
 
   const editing = editingAppointment;
 
-  if (
-    editing &&
-    data.status === FINISHED_STATUS &&
-    editing.status !== FINISHED_STATUS
-  ) {
-    continueToRecord(editing, data);
-    return;
-  }
-
   isSaving = true;
   setBusy(modalSave, true);
 
   try {
+    if (!(await confirmOutsideHours(editing, data))) {
+      return;
+    }
+
+    if (
+      editing &&
+      data.status === FINISHED_STATUS &&
+      editing.status !== FINISHED_STATUS
+    ) {
+      continueToRecord(editing, data);
+      return;
+    }
+
     const response = editing
       ? await updateAppointment({ ...data, id: editing.id })
       : await createAppointment(data);

@@ -538,7 +538,8 @@
   border-color: var(--color-text-muted);
   color: var(--color-text);
 }
-.btn-filter.is-active {
+.btn-filter.is-active,
+.btn-filter:has(:checked) {
   background: var(--color-text);
   border-color: var(--color-text);
   color: var(--color-surface);
@@ -2335,6 +2336,33 @@ select.form-select:focus {
 .text-link {
   color: var(--color-gold-text);
   text-decoration: underline;
+}
+
+fieldset.form-group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+label.btn-filter {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.btn-filter:has(:focus-visible) {
+  outline: 2px solid var(--color-gold-text);
+  outline-offset: 2px;
+}
+
+.hours-form:not(:has(input[value="split"]:checked)) .hours-split-only {
+  display: none;
 }
 
 .preset-chips {

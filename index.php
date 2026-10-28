@@ -57,6 +57,7 @@ if (in_array($action, [
     'session',
     'change_password',
     'account',
+    'account_hours',
     'account_export',
     'account_import',
     'account_delete'
@@ -77,7 +78,8 @@ if (in_array($action, [
     'delete',
     'update_status',
     'history',
-    'client_appointments'
+    'client_appointments',
+    'day_schedule'
 ], true)) {
     $controller = new AppointmentController();
     $controller->handleRequest();

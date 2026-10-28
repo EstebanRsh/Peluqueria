@@ -8,6 +8,7 @@
 
 require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../models/AppointmentModel.php';
+require_once __DIR__ . '/../models/UserModel.php';
 
 class AppointmentController extends BaseController
 {
@@ -53,6 +54,53 @@ class AppointmentController extends BaseController
                     $this->str($_GET['search'] ?? ''),
                     $this->normalizeStatusFilter($this->str($_GET['status'] ?? 'todos'))
                 ));
+                break;
+
+            case 'day_schedule':
+                $date = $this->str($_GET['date'] ?? '');
+                $duration = filter_var($_GET['duration'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 1440]]);
+                $exclude = filter_var($_GET['exclude'] ?? 0, FILTER_VALIDATE_INT) ?: 0;
+                $start = $this->str($_GET['start'] ?? '');
+                $end = $this->str($_GET['end'] ?? '');
+
+                if (!$this->isValidDate($date)) {
+                    $this->error('Formato de fecha inválido. Use AAAA-MM-DD.');
+                }
+
+                if ($duration === false) {
+                    $this->error('La duración no es válida.');
+                }
+
+                $hours = (new UserModel())->getBusinessHours($this->ownerId());
+                $today = date('Y-m-d');
+                $schedule = ['state' => 'open', 'ranges' => $hours['ranges'], 'gaps' => [], 'within' => null];
+
+                if ($date < $today) {
+                    $this->json(['success' => true, 'data' => ['state' => 'past'] + $schedule]);
+                }
+
+                if (!in_array((int)date('N', strtotime($date)), $hours['days'], true)) {
+                    $this->json(['success' => true, 'data' => ['state' => 'closed', 'within' => false] + $schedule]);
+                }
+
+                $timePattern = '/^([01]\d|2[0-3]):[0-5]\d$/';
+
+                if (preg_match($timePattern, $start) && preg_match($timePattern, $end) && $end > $start) {
+                    $schedule['within'] = false;
+
+                    foreach ($hours['ranges'] as $range) {
+                        if ($start >= $range['start'] && $end <= $range['end']) {
+                            $schedule['within'] = true;
+                        }
+                    }
+                }
+
+                if ($duration > 0) {
+                    $from = $date === $today ? (int)ceil(((int)date('G') * 60 + (int)date('i')) / 5) * 5 : 0;
+                    $schedule['gaps'] = $this->model->getFreeGaps($this->ownerId(), $date, $duration, $exclude, $hours['ranges'], $from);
+                }
+
+                $this->json(['success' => true, 'data' => $schedule]);
                 break;
 
             case 'client_appointments':

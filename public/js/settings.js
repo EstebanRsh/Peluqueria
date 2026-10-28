@@ -13,6 +13,7 @@ import {
   getErrorMessage,
   importAccountData,
   logError,
+  saveBusinessHours,
 } from "./api.js";
 import { confirmAction, showResult } from "./confirm.js";
 import { $, goToLogin, initPasswordToggles } from "./dom.js";
@@ -44,11 +45,24 @@ let isSaving = false;
 
 async function loadAccount() {
   try {
-    const { account } = await fetchAccount();
+    const { account, hours } = await fetchAccount();
 
     $("accountUsername").textContent = account.username;
     $("accountEmail").textContent = account.email || "Sin email";
     $("accountCreated").textContent = formatDate(account.created_at.slice(0, 10));
+    $("hoursOpening").value = hours.opening;
+    $("hoursClosing").value = hours.closing;
+    $("hoursOpening2").value = hours.opening2 ?? "";
+    $("hoursClosing2").value = hours.closing2 ?? "";
+    $("hoursMode").querySelector(
+      `input[value="${hours.split ? "split" : "continuous"}"]`,
+    ).checked = true;
+    $("hoursDays")
+      .querySelectorAll("input")
+      .forEach((input) => {
+        input.checked = hours.days.includes(Number(input.value));
+      });
+    dirty.reset();
   } catch (error) {
     logError("Error al cargar la cuenta:", error);
     feedback.show(
@@ -75,6 +89,51 @@ function openSettings() {
   resetPasswordForm();
   drawer.open($("settingsModalClose"));
   loadAccount();
+}
+
+async function saveHours() {
+  if (isSaving) return;
+
+  feedback.clearInvalid();
+
+  const saveButton = $("hoursSave");
+  isSaving = true;
+  setBusy(saveButton, true);
+
+  try {
+    const result = await saveBusinessHours({
+      opening: $("hoursOpening").value,
+      closing: $("hoursClosing").value,
+      split: $("hoursMode").querySelector("input:checked")?.value === "split",
+      opening2: $("hoursOpening2").value,
+      closing2: $("hoursClosing2").value,
+      days: [...$("hoursDays").querySelectorAll("input:checked")].map((input) =>
+        Number(input.value),
+      ),
+    });
+
+    if (!result.success) {
+      throw new ApiError(result.error || "No se pudo guardar el horario.", {
+        kind: "request",
+      });
+    }
+
+    dirty.reset();
+    showResult(
+      "success",
+      "Horario guardado",
+      "Lo vas a ver al cargar un turno.",
+    );
+  } catch (error) {
+    logError("Error al guardar el horario:", error);
+    feedback.show(
+      "error",
+      getErrorMessage(error, "No se pudo guardar el horario."),
+    );
+  } finally {
+    isSaving = false;
+    setBusy(saveButton, false);
+  }
 }
 
 async function savePassword() {
@@ -327,6 +386,11 @@ export function initSettings() {
   $("deleteAccountForm").addEventListener("submit", (event) => {
     event.preventDefault();
     removeAccount();
+  });
+
+  $("hoursForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    saveHours();
   });
 
   $("passwordForm").addEventListener("submit", (event) => {
