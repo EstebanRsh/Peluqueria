@@ -15,9 +15,7 @@
             type="button"
             class="surface__close"
             id="modalClose"
-            aria-label="Cerrar">
-            ×
-        </button>
+            aria-label="Cerrar"></button>
     </div>
 
     <form class="drawer-form" id="appointmentForm" novalidate autocomplete="off">

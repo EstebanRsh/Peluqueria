@@ -86,7 +86,7 @@
 <dialog class="surface-dialog" id="productRowDialog" aria-labelledby="productRowDialogName">
     <div class="surface__header">
         <h3 class="surface__title" id="productRowDialogName"></h3>
-        <button type="button" class="surface__close" aria-label="Cerrar">×</button>
+        <button type="button" class="surface__close" aria-label="Cerrar"></button>
     </div>
     <div class="surface__body">
         <dl class="row-dialog__data"></dl>

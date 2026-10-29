@@ -200,7 +200,7 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
     <dialog class="surface-dialog surface-dialog--wide" id="legalDialog" aria-labelledby="legalDialogTitle">
         <div class="surface__header">
             <h3 class="surface__title" id="legalDialogTitle"></h3>
-            <button type="button" class="surface__close" aria-label="Cerrar">×</button>
+            <button type="button" class="surface__close" aria-label="Cerrar"></button>
         </div>
         <div class="surface__body legal-doc" id="legalDialogContent"></div>
     </dialog>
@@ -231,7 +231,9 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
             <li class="message-screen__change">
                 <span class="message-screen__change-name"></span>
                 <span class="message-screen__change-stock">
-                    <span class="message-screen__change-value"></span>
+                    <span class="message-screen__change-from"></span>
+                    <span class="message-screen__change-arrow" aria-hidden="true"></span>
+                    <span class="message-screen__change-to"></span>
                     <svg class="message-screen__change-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
                         <path d="M12 19V5M6 11l6-6 6 6" />
                     </svg>

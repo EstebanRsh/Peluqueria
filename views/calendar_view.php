@@ -171,7 +171,7 @@ foreach ($events as $dayEvents) {
         <span class="surface__title" id="panelDate"></span>
         <div class="surface__actions">
             <button type="button" class="btn btn--primary btn--sm" id="btnAddAppointment">+ Turno</button>
-            <button type="button" class="surface__close" id="panelClose" aria-label="Cerrar">×</button>
+            <button type="button" class="surface__close" id="panelClose" aria-label="Cerrar"></button>
         </div>
     </div>
     <div class="surface__body" id="panelBody"></div>
@@ -187,7 +187,7 @@ foreach ($events as $dayEvents) {
             <h3 class="surface__title" id="statusDialogName"></h3>
             <p class="surface__meta" id="statusDialogMeta"></p>
         </div>
-        <button type="button" class="surface__close" id="statusDialogClose" aria-label="Cerrar">×</button>
+        <button type="button" class="surface__close" id="statusDialogClose" aria-label="Cerrar"></button>
     </div>
     <div class="surface__body">
         <div class="status-options" role="group" aria-label="Estado del turno">

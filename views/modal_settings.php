@@ -17,9 +17,7 @@
             type="button"
             class="surface__close"
             id="settingsModalClose"
-            aria-label="Cerrar">
-            ×
-        </button>
+            aria-label="Cerrar"></button>
     </div>
 
 

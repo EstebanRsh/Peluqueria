@@ -144,7 +144,7 @@ export function initQuickEntry() {
     if (isDirty()) {
       feedback.show(
         "warning",
-        "Hay datos sin guardar. Usá Cancelar o × para descartarlos.",
+        "Hay datos sin guardar. Usá Cancelar o el botón de cerrar para descartarlos.",
       );
       return;
     }

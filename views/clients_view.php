@@ -97,9 +97,7 @@
                 <span class="profile-drawer__code" id="clientProfileCode">CLI-0000</span>
             </div>
         </div>
-        <button type="button" class="surface__close" id="clientProfileClose" aria-label="Cerrar perfil">
-            ×
-        </button>
+        <button type="button" class="surface__close" id="clientProfileClose" aria-label="Cerrar perfil"></button>
     </div>
 
     <div class="surface__body">
@@ -172,7 +170,7 @@
 <dialog class="surface-dialog" id="clientRowDialog" aria-labelledby="clientRowDialogName">
     <div class="surface__header">
         <h3 class="surface__title" id="clientRowDialogName"></h3>
-        <button type="button" class="surface__close" aria-label="Cerrar">×</button>
+        <button type="button" class="surface__close" aria-label="Cerrar"></button>
     </div>
     <div class="surface__body">
         <dl class="row-dialog__data"></dl>

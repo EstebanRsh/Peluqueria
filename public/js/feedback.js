@@ -47,7 +47,7 @@ export function createFeedback(panel) {
 }
 
 const UNSAVED_MESSAGE =
-  "Hay datos sin guardar. Usá Cancelar o × para descartarlos.";
+  "Hay datos sin guardar. Usá Cancelar o el botón de cerrar para descartarlos.";
 
 export function createDrawer({ overlay, panel, feedback, dirty }) {
   let opener = null;

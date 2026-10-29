@@ -215,7 +215,7 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
     <dialog class="surface-dialog surface-dialog--wide" id="legalDialog" aria-labelledby="legalDialogTitle">
         <div class="surface__header">
             <h3 class="surface__title" id="legalDialogTitle"></h3>
-            <button type="button" class="surface__close" aria-label="Cerrar">×</button>
+            <button type="button" class="surface__close" aria-label="Cerrar"></button>
         </div>
         <div class="surface__body legal-doc" id="legalDialogContent"></div>
     </dialog>

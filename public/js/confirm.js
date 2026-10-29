@@ -48,8 +48,9 @@ function renderChanges(changes) {
       );
       item.querySelector(".message-screen__change-name").textContent =
         change.name;
-      item.querySelector(".message-screen__change-value").textContent =
-        `${change.from} → ${change.to}`;
+      item.querySelector(".message-screen__change-from").textContent =
+        change.from;
+      item.querySelector(".message-screen__change-to").textContent = change.to;
 
       return item;
     }),

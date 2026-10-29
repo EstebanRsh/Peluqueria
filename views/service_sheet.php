@@ -10,7 +10,7 @@
     <div class="surface__header">
         <h3 class="surface__title" id="quickEntryTitle">Ficha de servicio</h3>
         <div class="surface__actions">
-            <button type="button" class="surface__close" id="quickEntryClose" aria-label="Cerrar">×</button>
+            <button type="button" class="surface__close" id="quickEntryClose" aria-label="Cerrar"></button>
         </div>
     </div>
 
