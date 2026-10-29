@@ -233,6 +233,3 @@ foreach ($events as $dayEvents) {
         </form>
     </div>
 </dialog>
-
-<?php require __DIR__ . '/service_sheet.php'; ?>
-<?php require __DIR__ . '/modal_appointment.php'; ?>

@@ -533,3 +533,25 @@ export function deleteProduct(id) {
 export function saveServiceHistory(data) {
   return postJson("service_history_save", data);
 }
+
+export function fetchServiceHistory(id) {
+  return getJson("service_history_detail", { id });
+}
+
+export function previewHistoryStock(id, consumptions = []) {
+  return postJson("service_history_stock_preview", {
+    id: Number(id),
+    consumptions,
+  });
+}
+
+export function updateServiceHistory(data) {
+  return postJson("service_history_update", data);
+}
+
+export function deleteServiceHistory(id, adjustStock) {
+  return postJson("service_history_delete", {
+    id: Number(id),
+    adjust_stock: adjustStock,
+  });
+}

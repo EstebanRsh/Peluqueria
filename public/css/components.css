@@ -1103,6 +1103,20 @@ select.form-select:focus {
   flex-wrap: wrap;
 }
 
+.timeline-header .timeline-service {
+  flex: 1;
+  text-align: right;
+}
+
+.timeline-actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.timeline-actions .btn__icon {
+  display: inline-flex;
+}
+
 .profile-appointment__meta {
   display: flex;
   align-items: center;
@@ -1269,6 +1283,59 @@ select.form-select:focus {
 .message-screen__button:focus-visible {
   outline: 2px solid var(--color-on-dark);
   outline-offset: 3px;
+}
+
+.message-screen__changes {
+  width: 100%;
+  max-width: 26rem;
+  max-height: 40vh;
+  margin: 0;
+  padding: var(--space-1) var(--space-4);
+  overflow-y: auto;
+  list-style: none;
+  background: var(--color-bg);
+  border-radius: var(--radius-ctrl);
+  color: var(--color-text);
+  text-align: left;
+}
+
+.message-screen__change {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.9rem;
+}
+
+.message-screen__change:last-child {
+  border-bottom: 0;
+}
+
+.message-screen__change-stock {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.message-screen__change--up .message-screen__change-stock {
+  color: var(--color-atencion-text);
+}
+
+.message-screen__change--down .message-screen__change-stock {
+  color: var(--color-cancelado-text);
+}
+
+.message-screen__change-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.message-screen__change--down .message-screen__change-icon {
+  transform: rotate(180deg);
 }
 
 @media (max-width: 768px) {

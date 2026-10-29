@@ -184,6 +184,8 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
             <?php require __DIR__ . '/modal_service.php'; ?>
             <?php require __DIR__ . '/modal_settings.php'; ?>
             <?php require __DIR__ . '/modal_delete_account.php'; ?>
+            <?php require __DIR__ . '/service_sheet.php'; ?>
+            <?php require __DIR__ . '/modal_appointment.php'; ?>
         </main>
     </div>
 
@@ -224,6 +226,18 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
             <h2 class="message-screen__title" id="messageTitle"></h2>
             <p class="message-screen__text" id="messageText"></p>
         </div>
+        <ul class="message-screen__changes" id="messageChanges" hidden></ul>
+        <template id="messageChangeTemplate">
+            <li class="message-screen__change">
+                <span class="message-screen__change-name"></span>
+                <span class="message-screen__change-stock">
+                    <span class="message-screen__change-value"></span>
+                    <svg class="message-screen__change-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                        <path d="M12 19V5M6 11l6-6 6 6" />
+                    </svg>
+                </span>
+            </li>
+        </template>
         <div class="message-screen__actions">
             <button type="button" class="btn message-screen__button message-screen__button--cancel" id="messageExtra" hidden></button>
             <button type="button" class="btn message-screen__button message-screen__button--cancel" id="messageCancel" hidden>Cancelar</button>

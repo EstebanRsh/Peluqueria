@@ -84,6 +84,9 @@ final class Auth
         'service_history_save'   => ['owner'],
         'client_timeline'        => ['owner'],
         'service_history_detail' => ['owner'],
+        'service_history_stock_preview' => ['owner'],
+        'service_history_update' => ['owner'],
+        'service_history_delete' => ['owner'],
     ];
 
     private const SESSION_WRITE_ACTIONS = ['login', 'register', 'logout', 'change_password'];

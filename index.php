@@ -151,7 +151,10 @@ if (in_array($action, [
 if (in_array($action, [
     'service_history_save',
     'client_timeline',
-    'service_history_detail'
+    'service_history_detail',
+    'service_history_stock_preview',
+    'service_history_update',
+    'service_history_delete'
 ], true)) {
     $controller = new ServiceHistoryController();
     $controller->handleRequest();

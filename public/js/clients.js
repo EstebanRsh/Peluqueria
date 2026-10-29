@@ -8,6 +8,9 @@ import {
   fetchAllClients,
   fetchClientAppointments,
   fetchClientTimeline,
+  fetchServiceHistory,
+  previewHistoryStock,
+  deleteServiceHistory,
   createClient,
   updateClient,
   activateClient,
@@ -18,7 +21,7 @@ import {
   logError,
 } from "./api.js";
 import { RECORD_STATUS } from "./constants.js";
-import { displayStatus, formatTime, slugify } from "./utils.js";
+import { displayStatus, formatTime, slugify, stockChanges } from "./utils.js";
 import {
   $,
   escapeHtml,
@@ -44,12 +47,13 @@ import {
   moreRowHtml,
   refreshAfterChange,
   renderMessageRow,
+  ROW_ICONS,
   rowActionsHtml,
   rowToggleHtml,
   runTableAction,
   statusBadgeHtml,
 } from "./list.js";
-import { confirmAction, showError, showResult } from "./confirm.js";
+import { confirmAction, confirmChoice, showError, showResult } from "./confirm.js";
 
 const list = createListLoader(fetchAllClients, $("clientListSearch"));
 
@@ -278,11 +282,20 @@ function renderTimeline() {
         )
         .join("");
 
+      const id = escapeHtml(record.id);
+      const editButton = record.editable
+        ? `<button type="button" class="btn btn--ghost btn--sm" data-timeline-action="edit" data-id="${id}" title="Editar ficha" aria-label="Editar ficha del ${escapeHtml(record.date_label)}">${ROW_ICONS.edit}</button>`
+        : "";
+
       return `
         <article class="timeline-node">
           <header class="timeline-header">
             <time class="timeline-date">${escapeHtml(record.date_label)}</time>
             <strong class="timeline-service">${escapeHtml(record.service)}</strong>
+            <div class="timeline-actions">
+              ${editButton}
+              <button type="button" class="btn btn--danger btn--sm" data-timeline-action="delete" data-id="${id}" title="Eliminar ficha" aria-label="Eliminar ficha del ${escapeHtml(record.date_label)}">${ROW_ICONS.delete}</button>
+            </div>
           </header>
           <div class="timeline-details">${groups || '<p class="history-empty">Sin datos técnicos.</p>'}</div>
         </article>`;
@@ -428,6 +441,119 @@ async function loadMoreTimeline(button) {
 function reloadTimeline() {
   if (profileClient) {
     void loadProfileTimeline(profileClient, profileRequestId);
+  }
+}
+
+async function editTimelineRecord(id, button) {
+  setBusy(button, true);
+
+  try {
+    const response = await fetchServiceHistory(id);
+
+    if (!response?.success || !response.data) {
+      throw new ApiError(response?.error || "No se pudo abrir la ficha.", {
+        kind: "request",
+      });
+    }
+
+    document.dispatchEvent(
+      new CustomEvent("quickentry:edit", {
+        detail: { record: response.data, client: profileClient },
+      }),
+    );
+  } catch (error) {
+    logError("Error al abrir la ficha:", error);
+    showError(getErrorMessage(error, "No se pudo abrir la ficha."));
+  } finally {
+    setBusy(button, false);
+  }
+}
+
+async function deleteTimelineRecord(id, button) {
+  const record = timelineState.records.find((item) => String(item.id) === id);
+  if (!record) return;
+
+  let changes = [];
+  setBusy(button, true);
+
+  try {
+    const response = await previewHistoryStock(id);
+
+    if (!response?.success || !Array.isArray(response.data)) {
+      throw new ApiError(
+        response?.error || "No se pudo calcular el stock de los productos.",
+        { kind: "request" },
+      );
+    }
+
+    changes = response.data;
+  } catch (error) {
+    logError("Error al calcular el stock de la ficha:", error);
+    showError(getErrorMessage(error, "No se pudo eliminar la ficha."));
+    return;
+  } finally {
+    setBusy(button, false);
+  }
+
+  const date = record.date_label.split(" · ")[0];
+  let adjustStock = false;
+
+  if (changes.length > 0) {
+    const choice = await confirmChoice({
+      title: "Eliminar ficha",
+      message: `Se elimina la ficha del ${date}. Elegí qué hacer con los productos usados.`,
+      confirmLabel: "Eliminar y devolver al stock",
+      extraLabel: "Eliminar sin tocar el stock",
+      cancelLabel: "Cancelar",
+      changes: stockChanges(changes),
+    });
+
+    if (choice !== "confirm" && choice !== "extra") return;
+
+    adjustStock = choice === "confirm";
+  } else if (
+    !(await confirmAction({
+      title: "Eliminar ficha",
+      message: `Se elimina la ficha del ${date}. Esta acción no se puede deshacer.`,
+      confirmLabel: "Eliminar",
+      cancelLabel: "Cancelar",
+      danger: true,
+    }))
+  ) {
+    return;
+  }
+
+  try {
+    const response = await deleteServiceHistory(id, adjustStock);
+
+    if (!response?.success) {
+      throw new ApiError(response?.error || "No se pudo eliminar la ficha.", {
+        kind: "request",
+      });
+    }
+
+    showResult(
+      "success",
+      "Ficha eliminada",
+      adjustStock
+        ? "Ya no figura en el historial y los productos volvieron al stock."
+        : "Ya no figura en el historial.",
+    );
+    reloadTimeline();
+  } catch (error) {
+    logError("Error al eliminar la ficha:", error);
+    showError(getErrorMessage(error, "No se pudo eliminar la ficha."));
+  }
+}
+
+function handleTimelineAction(event) {
+  const button = event.target.closest("[data-timeline-action]");
+  if (!button || button.disabled) return;
+
+  if (button.dataset.timelineAction === "edit") {
+    editTimelineRecord(button.dataset.id, button);
+  } else {
+    deleteTimelineRecord(button.dataset.id, button);
   }
 }
 
@@ -812,9 +938,13 @@ export function initClients() {
   $("clientProfileHistoryMore")?.addEventListener("click", (event) =>
     loadMoreTimeline(event.currentTarget),
   );
+  $("clientProfileHistory")?.addEventListener("click", handleTimelineAction);
+  document.addEventListener("servicehistory:changed", reloadTimeline);
 
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
+
+    if ($("quickEntryPanel")?.classList.contains("is-open")) return;
 
     if ($("clientProfilePanel")?.classList.contains("is-open")) {
       closeClientProfile();

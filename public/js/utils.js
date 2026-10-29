@@ -1,7 +1,9 @@
 // ============================================================
 // FORMATO
-// Formato de fechas, horas y textos compartido por las vistas.
+// Formato de fechas, horas, textos y cambios de stock compartido por las vistas.
 // ============================================================
+
+import { UNIT_SHORTS } from "./constants.js";
 
 // ============================================================
 // FORMATEO DE FECHAS
@@ -92,4 +94,20 @@ export function missingAppointmentNotice(data) {
   return missing.length === 0
     ? ""
     : ` Quedó sin cargar ${missing.join(" y ")}: lo completás con «Editar turno» desde el detalle.`;
+}
+
+// ============================================================
+// CAMBIOS DE STOCK
+// ============================================================
+
+export function stockChanges(rows) {
+  const amount = (value, unit) =>
+    `${Number(value).toLocaleString("es-AR", { maximumFractionDigits: 2 })} ${UNIT_SHORTS[unit] ?? unit}`;
+
+  return rows.map((row) => ({
+    name: row.name,
+    from: amount(row.before, row.unit),
+    to: amount(row.after, row.unit),
+    up: Number(row.after) > Number(row.before),
+  }));
 }

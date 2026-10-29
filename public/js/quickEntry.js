@@ -6,19 +6,21 @@
 import {
   ApiError,
   getErrorMessage,
+  previewHistoryStock,
   saveServiceHistory,
   searchProducts,
   logError,
   updateAppointment,
+  updateServiceHistory,
 } from "./api.js";
 import { createAutocomplete, createClientAutocomplete } from "./autocomplete.js";
 import { UNIT_SHORTS } from "./constants.js";
 import { $, escapeHtml, setActiveFilter } from "./dom.js";
 import { clearInvalidOnInput, createFeedback, setBusy } from "./feedback.js";
-import { confirmAction, showResult } from "./confirm.js";
+import { confirmAction, confirmChoice, showResult } from "./confirm.js";
 import { appState } from "./state.js";
 import { loadAppointments, syncCalendarDay } from "./ui.js";
-import { missingAppointmentNotice } from "./utils.js";
+import { missingAppointmentNotice, stockChanges } from "./utils.js";
 
 const NUMBER_FIELDS = [
   "colorQuantityValue",
@@ -28,6 +30,40 @@ const NUMBER_FIELDS = [
   "treatmentTempValue",
   "treatmentPassesValue",
 ];
+
+const RECORD_FIELDS = {
+  general: {
+    session_notes: "sessionNotes",
+    next_visit_notes: "nextVisitNotes",
+  },
+  color: {
+    type: "colorType",
+    ratio: "colorOxidantRatio",
+    formula: "colorFormula",
+    brand: "colorBrand",
+    color_grams: "colorQuantityValue",
+    oxidant_vol: "colorOxidantValue",
+    exposure_time_min: "colorTimeValue",
+    application: "colorApplication",
+    result: "colorResult",
+  },
+  treatment: {
+    type: "treatmentType",
+    product: "treatmentProduct",
+    quantity_ml: "treatmentMlValue",
+    iron_temp_c: "treatmentTempValue",
+    iron_passes: "treatmentPassesValue",
+    processes: "treatmentProcess",
+    results: "treatmentResult",
+  },
+  cut: {
+    type: "cutType",
+    length: "cutLength",
+    condition: "cutCondition",
+    tools: "cutTools",
+    finish: "cutFinish",
+  },
+};
 
 function categoryHasData(category) {
   return Object.values(category).some((value) =>
@@ -66,6 +102,7 @@ export function initQuickEntry() {
   let aliasName = "";
   let linkedAppointment = null;
   let pendingFinish = null;
+  let editingRecord = null;
 
   // ============================================================
   // APERTURA Y CIERRE
@@ -152,6 +189,50 @@ export function initQuickEntry() {
     }
 
     openDrawer(appointment, finishing);
+  });
+
+  document.addEventListener("quickentry:edit", (event) => {
+    const { record, client } = event.detail;
+    const details = record.technical_details ?? {};
+    const brands = new Map(
+      (details.general?.cart_items ?? []).map((item) => [
+        Number(item.product_id),
+        item.brand ?? null,
+      ]),
+    );
+
+    openDrawer();
+    selectClient(client);
+    $("quickClientChange").hidden = true;
+    $("quickEntryTitle").textContent = record.service_name_snapshot
+      ? `Editar ficha · ${record.service_name_snapshot}`
+      : "Editar ficha";
+    btnSave.textContent = "Guardar cambios";
+
+    Object.entries(RECORD_FIELDS).forEach(([category, fields]) => {
+      const values = Array.isArray(details[category])
+        ? {}
+        : (details[category] ?? {});
+
+      Object.entries(fields).forEach(([key, id]) => {
+        $(id).value = values[key] ?? "";
+      });
+    });
+
+    panel.querySelectorAll("input[data-presets]").forEach((input) => {
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    cartItems = (record.consumptions ?? []).map((item) => ({
+      product_id: Number(item.product_id),
+      name: item.name,
+      brand: brands.get(Number(item.product_id)) ?? null,
+      unit: item.measurement_unit,
+      quantity: Number(item.quantity_used),
+    }));
+    renderCart();
+
+    editingRecord = { id: record.id, snapshot: JSON.stringify(buildJSON()) };
   });
   btnClose?.addEventListener("click", cancelDrawer);
   btnCancel?.addEventListener("click", cancelDrawer);
@@ -501,40 +582,19 @@ export function initQuickEntry() {
     return Number.isFinite(parsed) ? parsed : null;
   };
 
-  const buildGeneral = () => ({
-    cart_items: cartItems,
-    session_notes: textOrNull("sessionNotes"),
-    next_visit_notes: textOrNull("nextVisitNotes"),
-  });
+  const buildCategory = (category) =>
+    Object.fromEntries(
+      Object.entries(RECORD_FIELDS[category]).map(([key, id]) => [
+        key,
+        NUMBER_FIELDS.includes(id) ? numberOrNull(id) : textOrNull(id),
+      ]),
+    );
 
-  const buildColor = () => ({
-    type: textOrNull("colorType"),
-    ratio: textOrNull("colorOxidantRatio"),
-    formula: textOrNull("colorFormula"),
-    brand: textOrNull("colorBrand"),
-    color_grams: numberOrNull("colorQuantityValue"),
-    oxidant_vol: numberOrNull("colorOxidantValue"),
-    exposure_time_min: numberOrNull("colorTimeValue"),
-    application: textOrNull("colorApplication"),
-    result: textOrNull("colorResult"),
-  });
-
-  const buildTreatment = () => ({
-    type: textOrNull("treatmentType"),
-    product: textOrNull("treatmentProduct"),
-    quantity_ml: numberOrNull("treatmentMlValue"),
-    iron_temp_c: numberOrNull("treatmentTempValue"),
-    iron_passes: numberOrNull("treatmentPassesValue"),
-    processes: textOrNull("treatmentProcess"),
-    results: textOrNull("treatmentResult"),
-  });
-
-  const buildCut = () => ({
-    type: textOrNull("cutType"),
-    length: textOrNull("cutLength"),
-    condition: textOrNull("cutCondition"),
-    tools: textOrNull("cutTools"),
-    finish: textOrNull("cutFinish"),
+  const buildDetails = () => ({
+    general: { cart_items: cartItems, ...buildCategory("general") },
+    color: buildCategory("color"),
+    treatment: buildCategory("treatment"),
+    cut: buildCategory("cut"),
   });
 
   const buildJSON = () => {
@@ -549,12 +609,7 @@ export function initQuickEntry() {
         product_id: Number(item.product_id),
         quantity: Number(item.quantity),
       })),
-      details: {
-        general: buildGeneral(),
-        color: buildColor(),
-        treatment: buildTreatment(),
-        cut: buildCut(),
-      },
+      details: buildDetails(),
     };
   };
 
@@ -562,20 +617,17 @@ export function initQuickEntry() {
     Object.values(payload.details).some(categoryHasData);
 
   const isDirty = () =>
-    Boolean(
-      (!linkedAppointment &&
-        (selectedClient || aliasName || clientSearchInput.value.trim())) ||
-      cartItems.length > 0 ||
-      hasData(buildJSON()),
-    );
+    editingRecord
+      ? JSON.stringify(buildJSON()) !== editingRecord.snapshot
+      : Boolean(
+          (!linkedAppointment &&
+            (selectedClient || aliasName || clientSearchInput.value.trim())) ||
+          cartItems.length > 0 ||
+          hasData(buildJSON()),
+        );
 
   function updateTabIndicators() {
-    const details = {
-      general: buildGeneral(),
-      color: buildColor(),
-      treatment: buildTreatment(),
-      cut: buildCut(),
-    };
+    const details = buildDetails();
 
     tabs.forEach((tab) => {
       const filled = categoryHasData(details[tab.dataset.category] ?? {});
@@ -634,6 +686,11 @@ export function initQuickEntry() {
           ? "Completá al menos un dato de la ficha o usá «Finalizar sin ficha»."
           : "Completá al menos un dato de algún servicio antes de guardar.",
       );
+      return;
+    }
+
+    if (editingRecord) {
+      await saveEdit(data);
       return;
     }
 
@@ -710,6 +767,77 @@ export function initQuickEntry() {
       if (turnSaved) {
         refreshAgenda(finishing);
       }
+    } finally {
+      isSaving = false;
+      setBusy(btnSave, false);
+    }
+  };
+
+  const saveEdit = async (data) => {
+    isSaving = true;
+    setBusy(btnSave, true);
+
+    try {
+      const preview = await previewHistoryStock(
+        editingRecord.id,
+        data.consumptions,
+      );
+
+      if (!preview?.success || !Array.isArray(preview.data)) {
+        throw new ApiError(
+          preview?.error || "No se pudo calcular el stock de los productos.",
+          { kind: "request" },
+        );
+      }
+
+      let adjustStock = false;
+
+      if (preview.data.length > 0) {
+        const choice = await confirmChoice({
+          title: "Cambios en el stock",
+          message:
+            "Cambiaste los productos de la ficha. Elegí si el stock se ajusta.",
+          confirmLabel: "Guardar y ajustar stock",
+          extraLabel: "Guardar sin tocar el stock",
+          cancelLabel: "Volver a la ficha",
+          changes: stockChanges(preview.data),
+        });
+
+        if (choice !== "confirm" && choice !== "extra") {
+          return;
+        }
+
+        adjustStock = choice === "confirm";
+      }
+
+      const result = await updateServiceHistory({
+        id: editingRecord.id,
+        adjust_stock: adjustStock,
+        consumptions: data.consumptions,
+        details: data.details,
+      });
+
+      if (!result.success) {
+        throw new ApiError(result.error || "No se pudo guardar la ficha.", {
+          kind: "request",
+        });
+      }
+
+      showResult(
+        "success",
+        "Ficha actualizada",
+        adjustStock
+          ? "Los cambios ya están guardados y el stock se ajustó."
+          : "Los cambios ya están guardados.",
+      );
+      closeDrawer();
+      document.dispatchEvent(new CustomEvent("servicehistory:changed"));
+    } catch (error) {
+      logError("Error al actualizar la ficha:", error);
+      feedback.show(
+        "error",
+        getErrorMessage(error, "No se pudo guardar la ficha. Intentá de nuevo."),
+      );
     } finally {
       isSaving = false;
       setBusy(btnSave, false);
@@ -848,6 +976,8 @@ export function initQuickEntry() {
     clearClientUi();
     linkedAppointment = null;
     pendingFinish = null;
+    editingRecord = null;
+    btnSave.textContent = "Guardar ficha";
     $("quickEntryBack").hidden = true;
     btnCancel.hidden = false;
     $("quickEntryFinishOnly").hidden = true;

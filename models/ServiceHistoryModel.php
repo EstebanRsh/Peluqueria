@@ -70,18 +70,7 @@ class ServiceHistoryModel
         $this->conn->begin_transaction();
 
         try {
-            $details = $data['technical_details'];
-
-            foreach ($details as $key => $category) {
-                if ($category === []) {
-                    $details[$key] = new stdClass();
-                }
-            }
-
-            $json = json_encode(
-                $details,
-                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
-            );
+            $json = $this->encodeDetails($data['technical_details']);
 
             if ($data['appointment_id'] !== null) {
                 $historyId = $this->saveForAppointment($ownerId, $data, $json);
@@ -100,6 +89,20 @@ class ServiceHistoryModel
             $this->conn->rollback();
             throw $e;
         }
+    }
+
+    private function encodeDetails(array $details): string
+    {
+        foreach ($details as $key => $category) {
+            if ($category === []) {
+                $details[$key] = new stdClass();
+            }
+        }
+
+        return json_encode(
+            $details,
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+        );
     }
 
     private function saveForAppointment(int $ownerId, array $data, string $json): int
@@ -161,7 +164,7 @@ class ServiceHistoryModel
     // APLICAR CONSUMOS Y DESCUENTO DE STOCK
     // ============================================================
 
-    private function applyConsumptions(int $ownerId, int $historyId, array $consumptions): void
+    private function applyConsumptions(int $ownerId, int $historyId, array $consumptions, bool $touchStock = true, array $keptProducts = []): void
     {
         ksort($consumptions);
 
@@ -192,11 +195,11 @@ class ServiceHistoryModel
                 throw new ServiceHistoryException("Uno de los productos ya no existe (identificador {$productId}). Consultá con soporte.", 400);
             }
 
-            if (!$product['active']) {
+            if (!$product['active'] && !in_array($productId, $keptProducts, true)) {
                 throw new ServiceHistoryException("El producto \"{$product['name']}\" está inactivo.", 409);
             }
 
-            if ((float)$product['stock'] < $quantity) {
+            if ($touchStock && (float)$product['stock'] < $quantity) {
                 throw new ServiceHistoryException(
                     "Stock insuficiente de \"{$product['name']}\" " .
                         "(disponible: {$product['stock']}, requerido: {$quantity}).",
@@ -213,8 +216,153 @@ class ServiceHistoryModel
             $stmtInsert->bind_param('iiidd', $ownerId, $historyId, $productId, $quantity, $cost);
             $stmtInsert->execute();
 
-            $stmtStock->bind_param('dii', $quantity, $productId, $ownerId);
-            $stmtStock->execute();
+            if ($touchStock) {
+                $stmtStock->bind_param('dii', $quantity, $productId, $ownerId);
+                $stmtStock->execute();
+            }
+        }
+    }
+
+    private function restoreStock(int $ownerId, array $totals): void
+    {
+        $stmt = $this->conn->prepare("UPDATE products SET stock = stock + ? WHERE id = ? AND owner_id = ?");
+
+        foreach ($totals as $productId => $quantity) {
+            $productId = (int)$productId;
+            $stmt->bind_param('dii', $quantity, $productId, $ownerId);
+            $stmt->execute();
+        }
+    }
+
+    // ============================================================
+    // EDITAR Y ELIMINAR FICHA
+    // ============================================================
+
+    public function getConsumptionTotals(int $ownerId, int $historyId): array
+    {
+        $stmt = $this->conn->prepare("
+            SELECT product_id, SUM(quantity_used) AS total
+            FROM service_consumptions
+            WHERE service_history_id = ?
+              AND owner_id = ?
+            GROUP BY product_id
+        ");
+        $stmt->bind_param('ii', $historyId, $ownerId);
+        $stmt->execute();
+
+        $totals = [];
+
+        foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+            $totals[(int)$row['product_id']] = round((float)$row['total'], 2);
+        }
+
+        return $totals;
+    }
+
+    public function stockPreview(int $ownerId, array $current, array $next): array
+    {
+        $stmt = $this->conn->prepare("
+            SELECT name, measurement_unit, stock
+            FROM products
+            WHERE id = ?
+              AND owner_id = ?
+        ");
+
+        $changes = [];
+        $productIds = array_unique(array_merge(array_keys($current), array_keys($next)));
+        sort($productIds);
+
+        foreach ($productIds as $productId) {
+            $productId = (int)$productId;
+            $delta = round(($current[$productId] ?? 0) - ($next[$productId] ?? 0), 2);
+
+            if ($delta == 0) {
+                continue;
+            }
+
+            $stmt->bind_param('ii', $productId, $ownerId);
+            $stmt->execute();
+            $product = $stmt->get_result()->fetch_assoc();
+
+            if (!$product) {
+                throw new ServiceHistoryException("Uno de los productos ya no existe (identificador {$productId}). Consultá con soporte.", 400);
+            }
+
+            $changes[] = [
+                'product_id' => $productId,
+                'name'       => $product['name'],
+                'unit'       => $product['measurement_unit'],
+                'before'     => round((float)$product['stock'], 2),
+                'after'      => round((float)$product['stock'] + $delta, 2),
+            ];
+        }
+
+        return $changes;
+    }
+
+    public function update(int $ownerId, int $id, array $details, array $consumptions, bool $adjustStock): void
+    {
+        $this->conn->begin_transaction();
+
+        try {
+            $this->lockRecord($ownerId, $id);
+
+            $previous = $this->getConsumptionTotals($ownerId, $id);
+
+            if ($adjustStock) {
+                $this->restoreStock($ownerId, $previous);
+            }
+
+            $stmt = $this->conn->prepare("DELETE FROM service_consumptions WHERE service_history_id = ? AND owner_id = ?");
+            $stmt->bind_param('ii', $id, $ownerId);
+            $stmt->execute();
+
+            if ($consumptions) {
+                $this->applyConsumptions($ownerId, $id, $consumptions, $adjustStock, array_keys($previous));
+            }
+
+            $json = $this->encodeDetails($details);
+            $stmt = $this->conn->prepare("UPDATE service_history SET technical_details = ? WHERE id = ? AND owner_id = ?");
+            $stmt->bind_param('sii', $json, $id, $ownerId);
+            $stmt->execute();
+
+            $this->conn->commit();
+        } catch (Throwable $e) {
+            $this->conn->rollback();
+            throw $e;
+        }
+    }
+
+    public function delete(int $ownerId, int $id, bool $adjustStock): void
+    {
+        $this->conn->begin_transaction();
+
+        try {
+            $this->lockRecord($ownerId, $id);
+
+            if ($adjustStock) {
+                $this->restoreStock($ownerId, $this->getConsumptionTotals($ownerId, $id));
+            }
+
+            $stmt = $this->conn->prepare("DELETE FROM service_history WHERE id = ? AND owner_id = ?");
+            $stmt->bind_param('ii', $id, $ownerId);
+            $stmt->execute();
+
+            $this->conn->commit();
+        } catch (Throwable $e) {
+            $this->conn->rollback();
+            throw $e;
+        }
+    }
+
+    private function lockRecord(int $ownerId, int $id): void
+    {
+        $stmt = $this->conn->prepare("SELECT id FROM service_history WHERE id = ? AND owner_id = ? FOR UPDATE");
+        $stmt->bind_param('ii', $id, $ownerId);
+        $stmt->execute();
+
+        if (!$stmt->get_result()->fetch_assoc()) {
+            throw new ServiceHistoryException('La ficha no existe.', 404);
         }
     }
 
@@ -278,7 +426,7 @@ class ServiceHistoryModel
     {
         $stmt = $this->conn->prepare("
             SELECT 
-                sc.quantity_used, sc.cost_snapshot, p.name, p.measurement_unit 
+                sc.product_id, sc.quantity_used, sc.cost_snapshot, p.name, p.measurement_unit
             FROM service_consumptions sc
             INNER JOIN products p ON sc.product_id = p.id
             WHERE sc.service_history_id = ?

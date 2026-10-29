@@ -162,6 +162,54 @@ class ServiceHistoryController extends BaseController
             $this->json(['success' => true, 'data' => $record]);
         }
 
+        if (in_array($action, ['service_history_stock_preview', 'service_history_update', 'service_history_delete'], true)) {
+            $this->requirePost();
+
+            $input = $this->readInput();
+            $historyId = $this->validId($input['id'] ?? 0, 'ficha');
+
+            if (!$this->model->getById($this->ownerId(), $historyId)) {
+                $this->error('La ficha no existe.', 404);
+            }
+
+            $consumptions = $action === 'service_history_delete' ? [] : $this->buildConsumptions($input['consumptions'] ?? []);
+
+            if (is_string($consumptions)) {
+                $this->error($consumptions);
+            }
+
+            $adjustStock = !empty($input['adjust_stock']);
+
+            try {
+                if ($action === 'service_history_stock_preview') {
+                    $changes = $this->model->stockPreview(
+                        $this->ownerId(),
+                        $this->model->getConsumptionTotals($this->ownerId(), $historyId),
+                        $consumptions,
+                    );
+
+                    $this->json(['success' => true, 'data' => $changes]);
+                }
+
+                if ($action === 'service_history_update') {
+                    $details = $this->buildData($input)['technical_details'];
+                    $error = $this->validateDetails($details, $consumptions);
+
+                    if ($error !== true) {
+                        $this->error($error);
+                    }
+
+                    $this->model->update($this->ownerId(), $historyId, $details, $consumptions, $adjustStock);
+                } else {
+                    $this->model->delete($this->ownerId(), $historyId, $adjustStock);
+                }
+            } catch (ServiceHistoryException $e) {
+                $this->error($e->getMessage(), $e->getCode() ?: 400);
+            }
+
+            $this->json(['success' => true, 'error' => null]);
+        }
+
         $this->error('Acción no válida.', 404);
     }
 
@@ -296,11 +344,16 @@ class ServiceHistoryController extends BaseController
             }
         }
 
-        if (!$this->hasMeaningfulData($data['technical_details']) && $consumptions === []) {
+        return $this->validateDetails($data['technical_details'], $consumptions);
+    }
+
+    private function validateDetails(array $details, array $consumptions)
+    {
+        if (!$this->hasMeaningfulData($details) && $consumptions === []) {
             return 'Complete al menos un campo de alguna categoría antes de guardar.';
         }
 
-        $encoded = json_encode($data['technical_details'], JSON_UNESCAPED_UNICODE);
+        $encoded = json_encode($details, JSON_UNESCAPED_UNICODE);
 
         if ($encoded === false || strlen($encoded) > self::MAX_DETAILS_BYTES) {
             return 'Los datos técnicos de la ficha son demasiado extensos.';
@@ -392,6 +445,7 @@ class ServiceHistoryController extends BaseController
             'id'         => (int)$row['id'],
             'date_label' => $dateLabel,
             'service'    => $service,
+            'editable'   => array_filter(array_intersect_key($details, self::TIMELINE_CATEGORIES), 'is_array') !== [],
             'groups'     => $groups,
             'search'     => $this->normalizeText(implode(' ', $searchParts)),
         ];

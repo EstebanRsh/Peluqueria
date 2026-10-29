@@ -11,6 +11,8 @@ const body = document.getElementById("messageBody");
 const accept = document.getElementById("messageAccept");
 const cancel = document.getElementById("messageCancel");
 const extra = document.getElementById("messageExtra");
+const changesList = document.getElementById("messageChanges");
+const changeTemplate = document.getElementById("messageChangeTemplate");
 
 let timer = null;
 let holdScreen = false;
@@ -28,6 +30,31 @@ function settle(value = "cancel") {
   const resolve = pending;
   pending = null;
   resolve?.(returnChoice ? value : value === "confirm");
+}
+
+function renderChanges(changes) {
+  if (!changesList) {
+    return;
+  }
+
+  changesList.replaceChildren(
+    ...changes.map((change) => {
+      const item = changeTemplate.content.firstElementChild.cloneNode(true);
+
+      item.classList.add(
+        change.up
+          ? "message-screen__change--up"
+          : "message-screen__change--down",
+      );
+      item.querySelector(".message-screen__change-name").textContent =
+        change.name;
+      item.querySelector(".message-screen__change-value").textContent =
+        `${change.from} → ${change.to}`;
+
+      return item;
+    }),
+  );
+  changesList.hidden = changes.length === 0;
 }
 
 function finishSuccess() {
@@ -53,6 +80,7 @@ function present(
     action = false,
     duration = SUCCESS_MS,
     choices = false,
+    changes = [],
   } = {},
 ) {
   if (!screen) {
@@ -81,6 +109,7 @@ function present(
   cancel.hidden = type !== "confirm";
   extra.textContent = extraLabel;
   extra.hidden = !extraLabel;
+  renderChanges(changes);
 
   return new Promise((resolve) => {
     pending = resolve;
@@ -186,6 +215,7 @@ export function confirmChoice({
   confirmLabel,
   cancelLabel,
   extraLabel,
+  changes = [],
 }) {
   return present("confirm", title, message, {
     acceptLabel: confirmLabel,
@@ -193,5 +223,6 @@ export function confirmChoice({
     extraLabel,
     focusCancel: true,
     choices: true,
+    changes,
   });
 }
