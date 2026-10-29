@@ -133,9 +133,9 @@
   --z-fab: 900;
 
   /* Fondos de capa */
-  --overlay-fab: rgba(28, 21, 16, 0.25);
-  --overlay-drawer: rgba(28, 21, 16, 0.35);
-  --overlay-sidebar: rgba(0, 0, 0, 0.4);
+  --overlay-fab: rgba(28, 21, 16, 0.45);
+  --overlay-drawer: rgba(28, 21, 16, 0.6);
+  --overlay-sidebar: rgba(0, 0, 0, 0.6);
   --bg-glow-gold: var(--color-hover-strong);
   --bg-glow-dark: rgba(60, 51, 42, 0.05);
   --scrollbar-thumb: rgba(var(--gold-rgb), 0.35);

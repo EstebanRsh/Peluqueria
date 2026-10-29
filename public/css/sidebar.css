@@ -68,7 +68,7 @@
 }
 
 .brand-script {
-  font-family: "Alex Brush", cursive;
+  font-family: var(--font-brand);
   font-size: 2.1rem;
   font-weight: 400;
   line-height: 1;
@@ -223,7 +223,7 @@
   );
   border: 1px solid var(--color-gold-line);
   color: var(--color-gold-light);
-  font-family: "Cinzel", serif;
+  font-family: var(--font-serif);
   font-weight: 700;
   font-size: 0.9rem;
   display: flex;
@@ -402,7 +402,6 @@
     position: fixed;
     inset: 0;
     background: var(--overlay-sidebar);
-    backdrop-filter: blur(2px);
     z-index: var(--z-sidebar-overlay);
     opacity: 0;
     visibility: hidden;

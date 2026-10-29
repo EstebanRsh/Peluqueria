@@ -418,7 +418,6 @@
   position: fixed;
   inset: 0;
   background: var(--overlay-fab);
-  backdrop-filter: blur(2px);
   z-index: calc(var(--z-fab) - 1);
   opacity: 0;
   pointer-events: none;
@@ -554,7 +553,6 @@
   position: fixed;
   inset: 0;
   background: var(--overlay-drawer);
-  backdrop-filter: blur(4px);
   z-index: var(--z-drawer);
   opacity: 0;
   pointer-events: none;
