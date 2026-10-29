@@ -69,7 +69,7 @@ let initialStylist = "";
 let lastStylist = "";
 
 let freeGaps = [];
-let freeSlotsToken = 0;
+let dayScheduleToken = 0;
 
 let dayAppointments = [];
 let dayContextToken = 0;
@@ -265,12 +265,25 @@ export function initModal() {
 // APERTURA DEL MODAL
 // ============================================================
 
-function openModal(client = null) {
+async function openModal(client = null) {
+  const date = appState.activeDay || todayIso();
+
+  if (
+    date < todayIso() &&
+    !(await confirmAction({
+      title: "Fecha ya transcurrida",
+      message: `El turno quedará registrado el ${formatDate(date)}, una fecha anterior al día de hoy. ¿Deseás continuar?`,
+      confirmLabel: "Continuar",
+      cancelLabel: "Cancelar",
+    }))
+  ) {
+    return;
+  }
+
   modalOpener = document.activeElement;
 
   clearModal();
 
-  const date = appState.activeDay || todayIso();
   $("appointmentDate").value = date;
 
   initialStylist = lastStylist;
@@ -609,7 +622,7 @@ function servicesChanged() {
   }
 
   updatePriceHint();
-  refreshFreeSlots();
+  refreshDaySchedule();
 }
 
 function syncPriceMode() {
@@ -675,9 +688,7 @@ async function loadDayContext(date) {
   }
 
   populateStylistOptions();
-  suggestStartTime();
-  updateScheduleHint();
-  refreshFreeSlots();
+  refreshDaySchedule();
 }
 
 function populateStylistOptions() {
@@ -709,22 +720,17 @@ function populateStylistOptions() {
   );
 }
 
-function suggestStartTime() {
+function applySuggestedStart(suggested) {
   const timeStart = $("timeStart");
 
   if (timeStart.value && !startIsSuggested) {
     return;
   }
 
-  const lastEnd = dayAppointments
-    .filter((appointment) => !INACTIVE_STATUSES.includes(appointment.status))
-    .map((appointment) => toMinutes(appointment.time_end))
-    .filter((minutes) => minutes !== null)
-    .reduce((latest, minutes) => Math.max(latest, minutes), -1);
-
-  if (lastEnd >= 0 && lastEnd < 24 * 60) {
-    timeStart.value = toTimeString(lastEnd);
+  if (suggested?.time) {
+    timeStart.value = suggested.time;
     startIsSuggested = true;
+    $("scheduleHint").textContent = SUGGESTION_HINTS[suggested.reason] ?? "";
 
     const duration = totalDuration();
 
@@ -735,14 +741,24 @@ function suggestStartTime() {
     timeStart.value = "";
     startIsSuggested = false;
   }
+
+  updateScheduleHint();
 }
 
 // ============================================================
 // AYUDAS DEL HORARIO
 // ============================================================
 
+const SUGGESTION_HINTS = {
+  last: "Hora sugerida: a continuación del último turno del día.",
+  opening: "Hora sugerida: la apertura de tu horario.",
+  now: "Hora sugerida: la próxima desde ahora.",
+};
+
 function updateScheduleHint() {
-  $("scheduleHint").hidden = !startIsSuggested;
+  const hint = $("scheduleHint");
+
+  hint.hidden = !startIsSuggested || !hint.textContent;
 }
 
 function overlapText(appointments, data) {
@@ -800,7 +816,7 @@ function handleStartTimeChange() {
 }
 
 // ============================================================
-// LUGAR LIBRE DEL DÍA
+// HORA SUGERIDA Y LUGAR LIBRE DEL DÍA
 // ============================================================
 
 function hideFreeSlots() {
@@ -846,10 +862,10 @@ function renderFreeSlots(schedule, duration) {
   syncFreeSlotChips();
 }
 
-async function refreshFreeSlots() {
+async function refreshDaySchedule() {
   const date = $("appointmentDate").value;
   const duration = totalDuration();
-  const token = ++freeSlotsToken;
+  const token = ++dayScheduleToken;
 
   if (!date) {
     hideFreeSlots();
@@ -863,17 +879,20 @@ async function refreshFreeSlots() {
       exclude: editingAppointment?.id ?? 0,
     });
 
-    if (token !== freeSlotsToken) {
+    if (token !== dayScheduleToken) {
       return;
     }
 
-    renderFreeSlots(response?.success ? response.data : null, duration);
+    const schedule = response?.success ? response.data : null;
+
+    applySuggestedStart(schedule?.suggested);
+    renderFreeSlots(schedule, duration);
   } catch (error) {
-    if (token !== freeSlotsToken) {
+    if (token !== dayScheduleToken) {
       return;
     }
 
-    logError("Error al buscar el lugar libre del día:", error);
+    logError("Error al consultar el horario del día:", error);
     hideFreeSlots();
   }
 }
@@ -960,29 +979,42 @@ async function reviewSchedule(editing, data) {
     return "confirm";
   }
 
-  const hoursText = outsideHoursText(schedule);
-  const overlap = overlapText(appointments, data);
+  const startChanged =
+    !editing ||
+    editing.date !== data.date ||
+    editing.timeStart !== data.time_start;
+  const isPast =
+    schedule?.past_start &&
+    startChanged &&
+    data.status === DEFAULT_APPOINTMENT_STATUS;
 
-  if (!hoursText && !overlap) {
+  const issues = [
+    isPast && {
+      title: "Horario ya transcurrido",
+      text: "El horario elegido ya transcurrió.",
+    },
+    { title: "Fuera de tu horario", text: outsideHoursText(schedule) },
+    { title: "Turno superpuesto", text: overlapText(appointments, data) },
+  ].filter((issue) => issue?.text);
+
+  if (issues.length === 0) {
     return "confirm";
   }
 
-  let title = "Turno superpuesto";
-
-  if (hoursText) {
-    title = overlap ? "Revisá el horario" : "Fuera de tu horario";
-  }
-
   const choice = await confirmChoice({
-    title,
-    message: `${[hoursText, overlap].filter(Boolean).join(" ")} ¿Qué querés hacer?`,
+    title: issues.length > 1 ? "Revisá el horario" : issues[0].title,
+    message: `${issues.map((issue) => issue.text).join(" ")} ¿Qué querés hacer?`,
     confirmLabel: "Guardar igual",
     cancelLabel: "Corregir",
     extraLabel: editing ? "Descartar cambios" : "Descartar turno",
   });
 
   if (choice === "cancel") {
-    $(schedule?.state === "closed" ? "appointmentDate" : "timeStart").focus();
+    $(
+      schedule?.state === "closed" || schedule?.state === "past"
+        ? "appointmentDate"
+        : "timeStart",
+    ).focus();
   }
 
   return choice;
@@ -1117,7 +1149,7 @@ function clearModal() {
 
   $("scheduleHint").hidden = true;
   hideFreeSlots();
-  freeSlotsToken += 1;
+  dayScheduleToken += 1;
 
   feedback.clearInvalid();
 

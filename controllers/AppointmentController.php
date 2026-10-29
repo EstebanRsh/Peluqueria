@@ -18,6 +18,8 @@ class AppointmentController extends BaseController
 
     private const MAX_SERVICES = 10;
 
+    private const PAST_MARGIN_MINUTES = 15;
+
     private const POST_ACTIONS = ['create', 'update', 'update_status', 'delete'];
 
     public function __construct()
@@ -72,8 +74,27 @@ class AppointmentController extends BaseController
                 }
 
                 $hours = (new UserModel())->getBusinessHours($this->ownerId());
+                $busy = $this->model->getBusySlots($this->ownerId(), $date, $exclude);
                 $today = date('Y-m-d');
-                $schedule = ['state' => 'open', 'ranges' => $hours['ranges'], 'gaps' => [], 'within' => null];
+                $from = $date === $today ? (int)ceil(((int)date('G') * 60 + (int)date('i')) / 5) * 5 : 0;
+                $timePattern = '/^([01]\d|2[0-3]):[0-5]\d$/';
+
+                $lastEnd = $busy ? max(array_map(fn(array $row): string => substr($row['time_end'], 0, 5), $busy)) : null;
+                $suggested = ['time' => $lastEnd ?? $hours['ranges'][0]['start'], 'reason' => $lastEnd ? 'last' : 'opening'];
+                $now = sprintf('%02d:%02d', intdiv($from, 60), $from % 60);
+
+                if ($date === $today && $now > $suggested['time']) {
+                    $suggested = $from < 1440 ? ['time' => $now, 'reason' => 'now'] : null;
+                }
+
+                $schedule = [
+                    'state' => 'open',
+                    'ranges' => $hours['ranges'],
+                    'gaps' => [],
+                    'within' => null,
+                    'suggested' => $suggested,
+                    'past_start' => preg_match($timePattern, $start) === 1 && $this->startsInPast($date, $start),
+                ];
 
                 if ($date < $today) {
                     $this->json(['success' => true, 'data' => ['state' => 'past'] + $schedule]);
@@ -82,8 +103,6 @@ class AppointmentController extends BaseController
                 if (!in_array((int)date('N', strtotime($date)), $hours['days'], true)) {
                     $this->json(['success' => true, 'data' => ['state' => 'closed', 'within' => false] + $schedule]);
                 }
-
-                $timePattern = '/^([01]\d|2[0-3]):[0-5]\d$/';
 
                 if (preg_match($timePattern, $start) && preg_match($timePattern, $end) && $end > $start) {
                     $schedule['within'] = false;
@@ -96,8 +115,7 @@ class AppointmentController extends BaseController
                 }
 
                 if ($duration > 0) {
-                    $from = $date === $today ? (int)ceil(((int)date('G') * 60 + (int)date('i')) / 5) * 5 : 0;
-                    $schedule['gaps'] = $this->model->getFreeGaps($this->ownerId(), $date, $duration, $exclude, $hours['ranges'], $from);
+                    $schedule['gaps'] = $this->model->getFreeGaps($busy, $duration, $hours['ranges'], $from);
                 }
 
                 $this->json(['success' => true, 'data' => $schedule]);
@@ -362,6 +380,11 @@ class AppointmentController extends BaseController
         }
 
         return $this->validateDateTime($data['date'], $data['time_start'], $data['time_end']);
+    }
+
+    private function startsInPast(string $date, string $time): bool
+    {
+        return strtotime($date . ' ' . $time) < time() - self::PAST_MARGIN_MINUTES * 60;
     }
 
     // ============================================================

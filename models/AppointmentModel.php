@@ -135,7 +135,7 @@ class AppointmentModel
         ];
     }
 
-    public function getFreeGaps(int $ownerId, string $date, int $duration, int $excludeId, array $ranges, int $fromMinutes): array
+    public function getBusySlots(int $ownerId, string $date, int $excludeId): array
     {
         $stmt = $this->conn->prepare("
             SELECT time_start, time_end
@@ -149,9 +149,13 @@ class AppointmentModel
         $stmt->bind_param('isi', $ownerId, $date, $excludeId);
         $stmt->execute();
 
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
+
+    public function getFreeGaps(array $busy, int $duration, array $ranges, int $fromMinutes): array
+    {
         $toMinutes = static fn(string $time): int => (int)substr($time, 0, 2) * 60 + (int)substr($time, 3, 2);
         $toTime = static fn(int $minutes): string => sprintf('%02d:%02d', intdiv($minutes, 60), $minutes % 60);
-        $busy = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         $gaps = [];
 
         foreach ($ranges as $range) {

@@ -101,7 +101,7 @@
                 </div>
             </div>
 
-            <p class="form-hint" id="scheduleHint" hidden>Hora sugerida: a continuación del último turno del día.</p>
+            <p class="form-hint" id="scheduleHint" hidden></p>
 
             <!-- Lugar libre -->
             <div id="freeSlots" hidden>
