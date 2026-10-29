@@ -695,35 +695,33 @@ function openAppointmentDetailModal(appointmentId) {
           class="surface__close"
           data-action="close-detail"
           aria-label="Cerrar detalle"
-        >
-          ×
-        </button>
+        ></button>
       </div>
 
       <div class="surface__body">
         <section class="detail-grid">
-          <div class="detail-card">
+          <div class="detail-card detail-card-full detail-card--inline">
             <span class="detail-label">Fecha</span>
             <span class="detail-value">
               ${escapeHtml(formatDate(appState.activeDay))}
             </span>
           </div>
 
-          <div class="detail-card">
+          <div class="detail-card detail-card-full detail-card--end">
             <span class="detail-label">Servicio</span>
             <span class="detail-value">
               ${serviceDetailHtml(appointment)}
             </span>
           </div>
 
-          <div class="detail-card">
+          <div class="detail-card detail-card-full detail-card--inline">
             <span class="detail-label">Profesional</span>
             <span class="detail-value">
               ${escapeHtml(appointment.stylist || "Sin asignar")}
             </span>
           </div>
 
-          <div class="detail-card">
+          <div class="detail-card detail-card-full detail-card--inline">
             <span class="detail-label">Duración</span>
             <span class="detail-value">
               ${
@@ -734,31 +732,29 @@ function openAppointmentDetailModal(appointmentId) {
             </span>
           </div>
 
-          <div class="detail-card">
+          <div class="detail-card detail-card-full detail-card--inline">
             <span class="detail-label">Precio</span>
             <span class="detail-value">
               $${escapeHtml(appointment.price || "0")}
             </span>
           </div>
 
-          <div class="detail-card">
+          <div class="detail-card detail-card-full detail-card--inline">
             <span class="detail-label">Estado</span>
-            <div class="appointment-card__status">
-              <span class="status-badge status-badge--${slugify(displayStatus(appointment))}" data-detail-status>
-                ${escapeHtml(displayStatus(appointment))}
-              </span>
-              <button
-                type="button"
-                class="btn btn--ghost btn--sm"
-                data-action="status"
-                data-id="${escapeHtml(appointment.id)}"
-              >
-                Cambiar estado
-              </button>
-            </div>
+            <button
+              type="button"
+              class="status-badge status-badge--${slugify(displayStatus(appointment))} status-badge--action"
+              data-action="status"
+              data-id="${escapeHtml(appointment.id)}"
+              data-detail-status
+              aria-label="Cambiar el estado del turno: ${escapeHtml(displayStatus(appointment))}"
+              title="Cambiar estado"
+            >
+              ${escapeHtml(displayStatus(appointment))}
+            </button>
           </div>
 
-          <div class="detail-card">
+          <div class="detail-card detail-card-full detail-card--inline">
             <span class="detail-label">Horario</span>
             <span class="detail-value">
               ${escapeHtml(formatTime(appointment.time_start))} - ${escapeHtml(
@@ -767,7 +763,7 @@ function openAppointmentDetailModal(appointmentId) {
             </span>
           </div>
 
-          <div class="detail-card detail-card-full">
+          <div class="detail-card detail-card-full${appointment.notes ? "" : " detail-card--inline"}">
             <span class="detail-label">Notas</span>
             <span class="detail-value">
               ${escapeHtml(appointment.notes || "Sin observaciones")}
@@ -983,8 +979,9 @@ function syncDetailStatus(id, status) {
 
   const badge = activeDetailModal.panel.querySelector("[data-detail-status]");
 
-  badge.className = `status-badge status-badge--${slugify(status)}`;
+  badge.className = `status-badge status-badge--${slugify(status)} status-badge--action`;
   badge.textContent = status;
+  badge.setAttribute("aria-label", `Cambiar el estado del turno: ${status}`);
   loadTimelineHistory(
     id,
     activeDetailModal.panel.querySelector(".history-items"),
@@ -1212,15 +1209,16 @@ async function loadTimelineHistory(id, container) {
 
         return `
           <div class="shadow-text">
-            • <strong>${escapeHtml(time)} hs:</strong>
+            <span class="shadow-text__dot" aria-hidden="true"></span>
+            <strong>${escapeHtml(time)} hs:</strong>
             ${
               historyItem.status_from
                 ? escapeHtml(historyItem.status_from)
                 : "Turno creado"
             }
-            →
+            <span class="shadow-text__arrow" aria-hidden="true"></span>
             <span>${escapeHtml(historyItem.status_to)}</span>
-            ${historyItem.reason ? `<br>Motivo: ${escapeHtml(historyItem.reason)}` : ""}
+            ${historyItem.reason ? `<span class="shadow-text__reason">Motivo: ${escapeHtml(historyItem.reason)}</span>` : ""}
           </div>
         `;
       })

@@ -170,6 +170,7 @@
   color: var(--color-text);
 }
 
+.surface__close::before,
 .cart-remove::before {
   content: "";
   width: 1rem;
@@ -752,8 +753,34 @@
 }
 
 .shadow-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
   color: var(--color-text-muted);
   font-weight: 600;
+}
+
+.shadow-text__dot,
+.shadow-text__arrow {
+  flex: none;
+  width: 0.9rem;
+  height: 0.9rem;
+  background: currentColor;
+}
+
+.shadow-text__dot {
+  -webkit-mask: var(--icon-dot) center / contain no-repeat;
+  mask: var(--icon-dot) center / contain no-repeat;
+}
+
+.shadow-text__arrow {
+  -webkit-mask: var(--icon-arrow) center / contain no-repeat;
+  mask: var(--icon-arrow) center / contain no-repeat;
+}
+
+.shadow-text__reason {
+  flex-basis: 100%;
 }
 
 /* ==========================================================================
@@ -1032,6 +1059,17 @@ select.form-select:focus {
 
 .detail-card-full {
   grid-column: 1 / -1;
+}
+
+.detail-card--end .detail-value {
+  text-align: right;
+}
+
+.detail-card--inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 
 .detail-label {
@@ -1319,6 +1357,14 @@ select.form-select:focus {
   white-space: nowrap;
 }
 
+.message-screen__change-arrow {
+  width: 0.9rem;
+  height: 0.9rem;
+  background: currentColor;
+  -webkit-mask: var(--icon-arrow) center / contain no-repeat;
+  mask: var(--icon-arrow) center / contain no-repeat;
+}
+
 .message-screen__change--up .message-screen__change-stock {
   color: var(--color-atencion-text);
 }
@@ -1591,8 +1637,12 @@ select.form-select:focus {
   border-radius: var(--radius-ctrl);
 }
 
+.surface__close,
 .cart-remove {
   --icon: var(--icon-close);
+}
+
+.cart-remove {
   color: var(--color-danger);
 }
 
