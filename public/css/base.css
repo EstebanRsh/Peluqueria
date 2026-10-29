@@ -36,9 +36,9 @@
   /* --- Acento dorado: todos los tonos dorados derivan de --gold-rgb ------ */
   --gold-rgb: 197, 160, 89;
   --color-gold: rgb(var(--gold-rgb));
-  --color-gold-light: #f3e0b5;
-  --color-gold-dark: #b6913f;
-  --color-gold-text: #8a6a24;
+  --color-gold-light: color-mix(in srgb, var(--color-gold) 40%, white);
+  --color-gold-dark: color-mix(in srgb, var(--color-gold) 89%, black);
+  --color-gold-text: color-mix(in srgb, var(--color-gold) 62%, black);
 
   /* --- Paleta Base: "Atelier Dorado" ------------------------------------ */
   --color-bg: #f5f2eb;
@@ -85,6 +85,7 @@
     "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
   --font-serif: "Cinzel", serif;
+  --font-brand: "Alex Brush", cursive;
   --cell-min-h: 64px;
 
   /* Medidas */
