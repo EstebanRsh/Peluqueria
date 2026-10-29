@@ -141,6 +141,9 @@
             <div class="timeline-container" id="clientProfileHistory">
                 <p class="history-empty">Sin historial.</p>
             </div>
+            <p class="panel-empty__action">
+                <button type="button" class="btn btn--ghost btn--sm" id="clientProfileHistoryMore" hidden>Cargar más</button>
+            </p>
         </div>
 
         <div class="profile-drawer__section">

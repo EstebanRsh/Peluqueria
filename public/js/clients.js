@@ -14,9 +14,10 @@ import {
   deactivateClient,
   deleteClient,
   getErrorMessage,
+  isAbortError,
   logError,
 } from "./api.js";
-import { RECORD_STATUS, UNIT_SHORTS } from "./constants.js";
+import { RECORD_STATUS } from "./constants.js";
 import { displayStatus, formatTime, slugify } from "./utils.js";
 import {
   $,
@@ -226,163 +227,12 @@ const timelineState = {
   records: [],
   filter: "todos",
   search: "",
+  page: 1,
+  total: 0,
+  totalRecords: 0,
 };
 
-const TIMELINE_CATEGORIES = {
-  general: "General",
-  color: "Color",
-  treatment: "Tratamiento",
-  cut: "Corte",
-};
-
-const FIELD_LABELS = {
-  general: {
-    cart_items: "Productos usados",
-    session_notes: "Observaciones",
-    next_visit_notes: "Para la próxima visita",
-  },
-  color: {
-    type: "Tipo de color",
-    ratio: "Proporción",
-    formula: "Fórmula / tono",
-    brand: "Marca / línea",
-    color_grams: "Cantidad de color (g)",
-    oxidant_vol: "Oxidante (vol)",
-    exposure_time_min: "Exposición (min)",
-    application: "Aplicación",
-    result: "Resultado / corrección",
-  },
-  treatment: {
-    type: "Tipo de tratamiento",
-    product: "Producto / línea",
-    quantity_ml: "Cantidad aplicada (ml)",
-    iron_temp_c: "Temperatura de plancha (°C)",
-    iron_passes: "Pasadas por mecha",
-    processes: "Proceso realizado",
-    results: "Resultado",
-  },
-  cut: {
-    type: "Tipo de corte",
-    length: "Largo / referencia",
-    condition: "Condición",
-    tools: "Técnicas / herramientas",
-    finish: "Terminación",
-  },
-};
-
-function humanizeField(field) {
-  const text = String(field).replace(/_/g, " ");
-
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
-function fieldLabel(groupKey, field) {
-  return FIELD_LABELS[groupKey]?.[field] ?? humanizeField(field);
-}
-
-function technicalEntries(category) {
-  if (!category || typeof category !== "object" || Array.isArray(category)) {
-    return [];
-  }
-
-  return Object.entries(category).filter(([, value]) => {
-    if (value === null || value === "") return false;
-    if (Array.isArray(value)) return value.length > 0;
-    if (typeof value === "object") return Object.keys(value).length > 0;
-    return true;
-  });
-}
-
-function timelineGroups(details, serviceName = "") {
-  const categoryKeys = Object.keys(TIMELINE_CATEGORIES);
-  const nestedKeys = categoryKeys.filter(
-    (key) =>
-      details[key] &&
-      typeof details[key] === "object" &&
-      !Array.isArray(details[key]),
-  );
-
-  if (nestedKeys.length) {
-    const groups = nestedKeys
-      .map((key) => ({
-        key,
-        label: TIMELINE_CATEGORIES[key],
-        entries: technicalEntries(details[key]),
-      }))
-      .filter((group) => group.entries.length);
-    const additionalEntries = Object.entries(details).filter(
-      ([key]) => !categoryKeys.includes(key),
-    );
-    if (additionalEntries.length) {
-      groups.push({
-        key: "general",
-        label: "Otros datos",
-        entries: additionalEntries,
-      });
-    }
-    return groups;
-  }
-
-  const entries = technicalEntries(details);
-  if (!entries.length) return [];
-
-  const searchable = `${serviceName} ${entries.map(([key]) => key).join(" ")}`
-    .toLocaleLowerCase("es")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-  let category = "general";
-  if (/\b(corte|tijera|maquina|capas|bob|pixie)\b/.test(searchable)) {
-    category = "cut";
-  } else if (
-    /\b(color|tinte|oxidante|decoloracion|matizador|formula|tono)\b/.test(
-      searchable,
-    )
-  ) {
-    category = "color";
-  } else if (
-    /\b(tratamiento|alisado|hidratacion|reconstruccion)\b/.test(searchable)
-  ) {
-    category = "treatment";
-  }
-
-  return [
-    {
-      key: category,
-      label: TIMELINE_CATEGORIES[category] || "Datos técnicos",
-      entries,
-    },
-  ];
-}
-
-function formatTechnicalValue(key, value) {
-  if (key === "cart_items" && Array.isArray(value)) {
-    return value
-      .map((item) => {
-        const name = item.name || `Producto ${item.product_id}`;
-        const unit = item.unit ? ` ${UNIT_SHORTS[item.unit] ?? item.unit}` : "";
-        return `${name} × ${item.quantity}${unit}`;
-      })
-      .join(", ");
-  }
-  if (Array.isArray(value)) {
-    return value
-      .map((item) =>
-        item && typeof item === "object"
-          ? formatTechnicalValue("", item)
-          : String(item),
-      )
-      .join(", ");
-  }
-  if (typeof value === "object" && value !== null) {
-    return Object.entries(value)
-      .map(
-        ([field, child]) =>
-          `${field.replace(/_/g, " ")}: ${formatTechnicalValue(field, child)}`,
-      )
-      .join(", ");
-  }
-  return String(value);
-}
+let timelineController = null;
 
 function formatProfileDate(value, includeTime = true) {
   const [date, time] = String(value ?? "").split(" ");
@@ -398,73 +248,41 @@ function renderTimeline() {
   const container = $("clientProfileHistory");
   if (!container) return;
 
-  const filtered = timelineState.records.filter((record) => {
-    const details = record.technical_details || {};
-    const groups = timelineGroups(details, record.service_name_snapshot);
-    const filterCategory =
-      timelineState.filter === "tratamiento"
-        ? "treatment"
-        : timelineState.filter === "corte"
-          ? "cut"
-          : timelineState.filter;
-    const matchFilter =
-      timelineState.filter === "todos" ||
-      groups.some((group) => group.key === filterCategory);
-    const searchableDetails = groups
-      .flatMap((group) =>
-        group.entries.flatMap(([key, value]) => [
-          group.label,
-          fieldLabel(group.key, key),
-          formatTechnicalValue(key, value),
-        ]),
-      )
-      .join(" ")
-      .toLowerCase();
-    const matchSearch =
-      !timelineState.search ||
-      `${record.service_name_snapshot || ""} ${searchableDetails}`.includes(
-        timelineState.search.toLowerCase(),
-      );
-
-    return matchFilter && matchSearch;
-  });
-
-  if (filtered.length === 0) {
+  if (timelineState.records.length === 0) {
     container.innerHTML =
-      timelineState.records.length === 0
+      timelineState.totalRecords === 0
         ? '<p class="history-empty">Todavía no hay fichas técnicas para este cliente.</p>'
         : '<p class="history-empty">No hay fichas que coincidan con la búsqueda o el filtro.</p>';
     return;
   }
 
-  container.innerHTML = filtered
+  container.innerHTML = timelineState.records
     .map((record) => {
-      const details = record.technical_details || {};
-      const groups = timelineGroups(details, record.service_name_snapshot)
-        .map((group) => {
-          return `
+      const groups = record.groups
+        .map(
+          (group) => `
             <section class="timeline-category">
               <h4>${escapeHtml(group.label)}</h4>
               <dl>
-                ${group.entries
+                ${group.fields
                   .map(
-                    ([field, value]) => `
+                    (field) => `
                       <div class="timeline-field">
-                        <dt>${escapeHtml(fieldLabel(group.key, field))}</dt>
-                        <dd>${escapeHtml(formatTechnicalValue(field, value))}</dd>
+                        <dt>${escapeHtml(field.label)}</dt>
+                        <dd>${escapeHtml(field.value)}</dd>
                       </div>`,
                   )
                   .join("")}
               </dl>
-            </section>`;
-        })
+            </section>`,
+        )
         .join("");
 
       return `
         <article class="timeline-node">
           <header class="timeline-header">
-            <time class="timeline-date">${escapeHtml(formatProfileDate(record.performed_at))}</time>
-            <strong class="timeline-service">${escapeHtml(record.service_name_snapshot || "Ficha técnica")}</strong>
+            <time class="timeline-date">${escapeHtml(record.date_label)}</time>
+            <strong class="timeline-service">${escapeHtml(record.service)}</strong>
           </header>
           <div class="timeline-details">${groups || '<p class="history-empty">Sin datos técnicos.</p>'}</div>
         </article>`;
@@ -523,26 +341,93 @@ async function loadClientProfileData(client, requestId) {
   ]);
 }
 
+async function fetchTimelinePage(client, page, signal) {
+  const response = await fetchClientTimeline(client.id, {
+    search: timelineState.search,
+    category: timelineState.filter,
+    page,
+    signal,
+  });
+
+  if (!response?.success || !Array.isArray(response.data)) {
+    throw new ApiError(
+      response?.error || "El historial llegó con un formato inesperado.",
+      { kind: "invalid-response" },
+    );
+  }
+
+  return response;
+}
+
+function updateTimelineMore() {
+  const more = $("clientProfileHistoryMore");
+  if (more) more.hidden = timelineState.records.length >= timelineState.total;
+}
+
 async function loadProfileTimeline(client, requestId) {
+  timelineController?.abort();
+  timelineController = new AbortController();
+
+  const controller = timelineController;
+
+  timelineState.page = 1;
+  timelineState.total = 0;
+  updateTimelineMore();
+
   try {
-    const response = await fetchClientTimeline(client.id);
-    if (!response?.success || !Array.isArray(response.data)) {
-      throw new ApiError(
-        response?.error || "El historial llegó con un formato inesperado.",
-        { kind: "invalid-response" },
-      );
-    }
+    const response = await fetchTimelinePage(client, 1, controller.signal);
     if (requestId !== profileRequestId) return;
     timelineState.records = response.data;
+    timelineState.total = Number(response.total) || 0;
+    timelineState.totalRecords = Number(response.total_records) || 0;
     renderTimeline();
+    updateTimelineMore();
   } catch (error) {
-    if (requestId !== profileRequestId) return;
+    if (isAbortError(error) || requestId !== profileRequestId) return;
     logError("Error al cargar historial técnico:", error);
     renderProfileError(
       $("clientProfileHistory"),
       error,
       "No se pudo cargar el historial técnico.",
     );
+  } finally {
+    if (controller === timelineController) {
+      setSearching($("historySearch"), false);
+    }
+  }
+}
+
+async function loadMoreTimeline(button) {
+  if (!profileClient || !timelineController) return;
+
+  const requestId = profileRequestId;
+  const { signal } = timelineController;
+  setBusy(button, true);
+
+  try {
+    const response = await fetchTimelinePage(
+      profileClient,
+      timelineState.page + 1,
+      signal,
+    );
+    if (requestId !== profileRequestId || signal.aborted) return;
+    timelineState.page += 1;
+    timelineState.records = [...timelineState.records, ...response.data];
+    timelineState.total = Number(response.total) || timelineState.records.length;
+    renderTimeline();
+  } catch (error) {
+    if (isAbortError(error) || requestId !== profileRequestId) return;
+    logError("Error al cargar más fichas del cliente:", error);
+    showError(getErrorMessage(error, "No se pudieron cargar más fichas."));
+  } finally {
+    setBusy(button, false);
+    updateTimelineMore();
+  }
+}
+
+function reloadTimeline() {
+  if (profileClient) {
+    void loadProfileTimeline(profileClient, profileRequestId);
   }
 }
 
@@ -616,9 +501,15 @@ async function loadMoreProfileAppointments(button) {
 function initTimelineEvents() {
   const historySearch = $("historySearch");
   const filterTimelineSoon = debounce(() => {
-    timelineState.search = historySearch.value.trim();
-    renderTimeline();
-    setSearching(historySearch, false);
+    const search = historySearch.value.trim();
+
+    if (search === timelineState.search) {
+      setSearching(historySearch, false);
+      return;
+    }
+
+    timelineState.search = search;
+    reloadTimeline();
   });
 
   historySearch?.addEventListener("input", () => {
@@ -634,7 +525,7 @@ function initTimelineEvents() {
     button.addEventListener("click", () => {
       timelineState.filter = button.dataset.historyFilter;
       setActiveFilter(historyButtons, button);
-      renderTimeline();
+      reloadTimeline();
     });
   });
 }
@@ -645,6 +536,7 @@ function initTimelineEvents() {
 
 function closeClientProfile() {
   profileRequestId += 1;
+  timelineController?.abort();
   const panel = $("clientProfilePanel");
   const overlay = $("clientProfileOverlay");
   const tableBody = $("clientsTableBody");
@@ -709,6 +601,7 @@ function openClientProfile(client) {
   timelineState.records = [];
   timelineState.filter = "todos";
   timelineState.search = "";
+  timelineState.totalRecords = 0;
   profileAppointments = [];
   $("historySearch").value = "";
 
@@ -915,6 +808,9 @@ export function initClients() {
 
   $("clientProfileAppointmentsMore")?.addEventListener("click", (event) =>
     loadMoreProfileAppointments(event.currentTarget),
+  );
+  $("clientProfileHistoryMore")?.addEventListener("click", (event) =>
+    loadMoreTimeline(event.currentTarget),
   );
 
   document.addEventListener("keydown", (event) => {

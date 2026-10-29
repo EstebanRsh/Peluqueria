@@ -445,8 +445,21 @@ export function fetchAllClients(params) {
   return fetchListPage("clients_all", params);
 }
 
-export function fetchClientTimeline(clientId) {
-  return getJson("client_timeline", { client_id: clientId });
+export function fetchClientTimeline(
+  clientId,
+  { search = "", category = "todos", page = 1, signal = null } = {},
+) {
+  return getJson(
+    "client_timeline",
+    {
+      client_id: clientId,
+      q: search,
+      category,
+      page,
+      per_page: LIST_PAGE_SIZE,
+    },
+    signal,
+  );
 }
 
 export function fetchClientAppointments(clientId, page = 1) {

@@ -18,6 +18,56 @@ class ServiceHistoryController extends BaseController
     private const MAX_QUANTITY = 999999.99;
     private const MAX_DETAILS_BYTES = 100000;
 
+    private const TIMELINE_CATEGORIES = [
+        'general'   => 'General',
+        'color'     => 'Color',
+        'treatment' => 'Tratamiento',
+        'cut'       => 'Corte',
+    ];
+
+    private const TIMELINE_FILTERS = [
+        'color'       => 'color',
+        'tratamiento' => 'treatment',
+        'corte'       => 'cut',
+    ];
+
+    private const FIELD_LABELS = [
+        'general' => [
+            'cart_items'       => 'Productos usados',
+            'session_notes'    => 'Observaciones',
+            'next_visit_notes' => 'Para la próxima visita',
+        ],
+        'color' => [
+            'type'              => 'Tipo de color',
+            'ratio'             => 'Proporción',
+            'formula'           => 'Fórmula / tono',
+            'brand'             => 'Marca / línea',
+            'color_grams'       => 'Cantidad de color (g)',
+            'oxidant_vol'       => 'Oxidante (vol)',
+            'exposure_time_min' => 'Exposición (min)',
+            'application'       => 'Aplicación',
+            'result'            => 'Resultado / corrección',
+        ],
+        'treatment' => [
+            'type'        => 'Tipo de tratamiento',
+            'product'     => 'Producto / línea',
+            'quantity_ml' => 'Cantidad aplicada (ml)',
+            'iron_temp_c' => 'Temperatura de plancha (°C)',
+            'iron_passes' => 'Pasadas por mecha',
+            'processes'   => 'Proceso realizado',
+            'results'     => 'Resultado',
+        ],
+        'cut' => [
+            'type'      => 'Tipo de corte',
+            'length'    => 'Largo / referencia',
+            'condition' => 'Condición',
+            'tools'     => 'Técnicas / herramientas',
+            'finish'    => 'Terminación',
+        ],
+    ];
+
+    private const UNIT_SHORTS = ['ml' => 'ml', 'g' => 'g', 'unidad' => 'unidad'];
+
     public function __construct()
     {
         $this->model = new ServiceHistoryModel();
@@ -65,8 +115,33 @@ class ServiceHistoryController extends BaseController
                 $this->error('ID de cliente inválido.', 400);
             }
 
-            $timeline = $this->model->getTimelineByClient($this->ownerId(), $clientId);
-            $this->json(['success' => true, 'data' => $timeline]);
+            [$page, $perPage] = $this->pagination();
+            $search = $this->normalizeText(mb_substr($this->str($_GET['q'] ?? ''), 0, 100));
+            $category = self::TIMELINE_FILTERS[$_GET['category'] ?? ''] ?? null;
+
+            $records = array_map(
+                fn(array $row): array => $this->presentTimelineRecord($row),
+                $this->model->getTimelineByClient($this->ownerId(), $clientId),
+            );
+
+            $filtered = array_values(array_filter(
+                $records,
+                fn(array $record): bool =>
+                    ($category === null || in_array($category, array_column($record['groups'], 'key'), true))
+                    && ($search === '' || str_contains($record['search'], $search)),
+            ));
+
+            $this->json([
+                'success'       => true,
+                'data'          => array_map(
+                    fn(array $record): array => array_diff_key($record, ['search' => true]),
+                    array_slice($filtered, ($page - 1) * $perPage, $perPage),
+                ),
+                'total'         => count($filtered),
+                'total_records' => count($records),
+                'page'          => $page,
+                'per_page'      => $perPage,
+            ]);
         }
 
         if ($action === 'service_history_detail') {
@@ -268,5 +343,153 @@ class ServiceHistoryController extends BaseController
         }
 
         return false;
+    }
+
+    // ============================================================
+    // HISTORIAL TÉCNICO PARA MOSTRAR
+    // ============================================================
+
+    private function presentTimelineRecord(array $row): array
+    {
+        $service = $row['service_name_snapshot'] ?: 'Ficha técnica';
+        $details = is_array($row['technical_details']) ? $row['technical_details'] : [];
+        [$date, $time] = array_pad(explode(' ', (string)$row['performed_at']), 2, '');
+        $parts = explode('-', $date);
+        $dateLabel = count($parts) === 3 ? "{$parts[2]}/{$parts[1]}/{$parts[0]}" : 'Fecha no disponible';
+
+        if ($time !== '') {
+            $dateLabel .= ' · ' . substr($time, 0, 5);
+        }
+
+        $groups = array_map(
+            fn(array $group): array => [
+                'key'    => $group['key'],
+                'label'  => $group['label'],
+                'fields' => array_map(
+                    fn(string $field, mixed $value): array => [
+                        'label' => $this->fieldLabel($group['key'], $field),
+                        'value' => $this->formatTechnicalValue($field, $value),
+                    ],
+                    array_keys($group['entries']),
+                    $group['entries'],
+                ),
+            ],
+            $this->timelineGroups($details, $service),
+        );
+
+        $searchParts = [$dateLabel, $service];
+
+        foreach ($groups as $group) {
+            $searchParts[] = $group['label'];
+
+            foreach ($group['fields'] as $field) {
+                $searchParts[] = $field['label'];
+                $searchParts[] = $field['value'];
+            }
+        }
+
+        return [
+            'id'         => (int)$row['id'],
+            'date_label' => $dateLabel,
+            'service'    => $service,
+            'groups'     => $groups,
+            'search'     => $this->normalizeText(implode(' ', $searchParts)),
+        ];
+    }
+
+    private function timelineGroups(array $details, string $service): array
+    {
+        $groups = [];
+        $hasCategories = false;
+
+        foreach (self::TIMELINE_CATEGORIES as $key => $label) {
+            if (!isset($details[$key]) || !is_array($details[$key])) {
+                continue;
+            }
+
+            $hasCategories = true;
+            $entries = $this->technicalEntries($details[$key]);
+
+            if ($entries) {
+                $groups[] = ['key' => $key, 'label' => $label, 'entries' => $entries];
+            }
+        }
+
+        if ($hasCategories) {
+            $others = $this->technicalEntries(array_diff_key($details, self::TIMELINE_CATEGORIES));
+
+            if ($others) {
+                $groups[] = ['key' => 'general', 'label' => 'Otros datos', 'entries' => $others];
+            }
+
+            return $groups;
+        }
+
+        $entries = $this->technicalEntries($details);
+
+        if (!$entries) {
+            return [];
+        }
+
+        $searchable = $this->normalizeText($service . ' ' . implode(' ', array_keys($entries)));
+        $category = 'general';
+
+        if (preg_match('/\b(corte|tijera|maquina|capas|bob|pixie)\b/', $searchable)) {
+            $category = 'cut';
+        } elseif (preg_match('/\b(color|tinte|oxidante|decoloracion|matizador|formula|tono)\b/', $searchable)) {
+            $category = 'color';
+        } elseif (preg_match('/\b(tratamiento|alisado|hidratacion|reconstruccion)\b/', $searchable)) {
+            $category = 'treatment';
+        }
+
+        return [['key' => $category, 'label' => self::TIMELINE_CATEGORIES[$category], 'entries' => $entries]];
+    }
+
+    private function technicalEntries(array $values): array
+    {
+        return array_filter($values, fn(mixed $value): bool => $value !== null && $value !== '' && $value !== []);
+    }
+
+    private function fieldLabel(string $groupKey, string|int $field): string
+    {
+        $text = str_replace('_', ' ', (string)$field);
+
+        return self::FIELD_LABELS[$groupKey][$field] ?? mb_strtoupper(mb_substr($text, 0, 1)) . mb_substr($text, 1);
+    }
+
+    private function formatTechnicalValue(string|int $field, mixed $value): string
+    {
+        if ($field === 'cart_items' && is_array($value)) {
+            return implode(', ', array_map(function (mixed $item): string {
+                $item = is_array($item) ? $item : [];
+                $name = ($item['name'] ?? '') ?: 'Producto ' . ($item['product_id'] ?? '');
+                $unit = isset($item['unit']) && $item['unit'] !== '' ? ' ' . (self::UNIT_SHORTS[$item['unit']] ?? $item['unit']) : '';
+
+                return $name . ' × ' . ($item['quantity'] ?? '') . $unit;
+            }, $value));
+        }
+
+        if (is_array($value) && array_is_list($value)) {
+            return implode(', ', array_map(fn(mixed $item): string => $this->formatTechnicalValue('', $item), $value));
+        }
+
+        if (is_array($value)) {
+            return implode(', ', array_map(
+                fn(string|int $key, mixed $child): string => str_replace('_', ' ', (string)$key) . ': ' . $this->formatTechnicalValue($key, $child),
+                array_keys($value),
+                $value,
+            ));
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'Sí' : 'No';
+        }
+
+        return (string)$value;
+    }
+
+    private function normalizeText(string $text): string
+    {
+        return strtr(mb_strtolower($text, 'UTF-8'), ['á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n']);
     }
 }
