@@ -289,13 +289,29 @@
 }
 
 .legend__swatch {
-  display: inline-block;
-  width: 0.6rem;
-  height: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  height: 1.5rem;
+  margin-left: 0;
+  padding: 0 var(--space-2);
   border-radius: var(--radius-ctrl);
   flex-shrink: 0;
   border-width: 1px;
   border-style: solid;
+}
+
+.legend__swatch--days {
+  background-color: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-on-dark);
+}
+
+.legend__swatch .legend__num {
+  color: inherit;
+  font-size: 0.8rem;
+  line-height: 1;
 }
 
 .admin-view > .surface__body {

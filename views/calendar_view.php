@@ -144,15 +144,13 @@ foreach ($events as $dayEvents) {
             <!-- Resumen del mes y leyenda -->
             <ul class="calendar__legend" aria-label="Resumen del mes">
                 <li class="legend__item">
-                    <span class="legend__swatch cell__status-badge--reservado" aria-hidden="true"></span>
-                    <b class="legend__num" data-summary="reservas"><?= $monthTotalReservados ?></b> Reservados
+                    <span class="legend__swatch cell__status-badge--reservado"><b class="legend__num" data-summary="reservas"><?= $monthTotalReservados ?></b></span> Reservados
                 </li>
                 <li class="legend__item">
-                    <span class="legend__swatch cell__status-badge--finalizado" aria-hidden="true"></span>
-                    <b class="legend__num" data-summary="finalizados"><?= $monthTotalFinalizados ?></b> Finalizados
+                    <span class="legend__swatch cell__status-badge--finalizado"><b class="legend__num" data-summary="finalizados"><?= $monthTotalFinalizados ?></b></span> Finalizados
                 </li>
                 <li class="legend__item">
-                    <b class="legend__num" data-summary="dias"><?= $busyDays ?></b> días con turnos reservados
+                    <span class="legend__swatch legend__swatch--days"><b class="legend__num" data-summary="dias"><?= $busyDays ?></b></span> días con turnos reservados
                 </li>
             </ul>
         </div>
