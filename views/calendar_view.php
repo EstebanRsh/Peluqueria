@@ -150,7 +150,7 @@ foreach ($events as $dayEvents) {
                     <span class="legend__swatch cell__status-badge--finalizado"><b class="legend__num" data-summary="finalizados"><?= $monthTotalFinalizados ?></b></span> Finalizados
                 </li>
                 <li class="legend__item">
-                    <span class="legend__swatch legend__swatch--days"><b class="legend__num" data-summary="dias"><?= $busyDays ?></b></span> días con turnos reservados
+                    <span class="legend__swatch legend__swatch--days"><b class="legend__num" data-summary="dias"><?= $busyDays ?></b></span> Días con turnos reservados
                 </li>
             </ul>
         </div>
@@ -190,33 +190,55 @@ foreach ($events as $dayEvents) {
     <div class="surface__body">
         <div class="status-options" role="group" aria-label="Estado del turno">
             <button type="button" class="status-option status-option--reservado" data-set-status="Reservado" aria-pressed="false">
-                <svg class="status-option__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+                <svg class="status-option__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <rect x="3" y="4" width="18" height="17" rx="2" />
+                    <path d="M16 2v4M8 2v4M3 10h18" />
+                </svg>
                 <span class="status-option__text">
                     <span class="status-option__label">Reservado</span>
                     <span class="status-option__desc">El turno está agendado y pendiente de atender.</span>
                 </span>
-                <svg class="status-option__check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12" /></svg></button>
+                <svg class="status-option__check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <polyline points="20 6 9 17 4 12" />
+                </svg></button>
             <button type="button" class="status-option status-option--finalizado" data-set-status="Finalizado" aria-pressed="false">
-                <svg class="status-option__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12" /></svg>
+                <svg class="status-option__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <circle cx="6" cy="6" r="3" />
+                    <circle cx="6" cy="18" r="3" />
+                    <path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12" />
+                </svg>
                 <span class="status-option__text">
                     <span class="status-option__label">Finalizado</span>
                     <span class="status-option__desc">Se atendió al cliente. Vas a confirmar los datos y cargar la ficha.</span>
                 </span>
-                <svg class="status-option__check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12" /></svg></button>
+                <svg class="status-option__check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <polyline points="20 6 9 17 4 12" />
+                </svg></button>
             <button type="button" class="status-option status-option--ausente" data-set-status="Ausente" aria-pressed="false">
-                <svg class="status-option__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="7" r="4" /><path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2" /><path d="m17 8 5 5M22 8l-5 5" /></svg>
+                <svg class="status-option__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2" />
+                    <path d="m17 8 5 5M22 8l-5 5" />
+                </svg>
                 <span class="status-option__text">
                     <span class="status-option__label">Ausente</span>
                     <span class="status-option__desc">El cliente no se presentó. Libera el horario.</span>
                 </span>
-                <svg class="status-option__check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12" /></svg></button>
+                <svg class="status-option__check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <polyline points="20 6 9 17 4 12" />
+                </svg></button>
             <button type="button" class="status-option status-option--cancelado" data-set-status="Cancelado" aria-pressed="false">
-                <svg class="status-option__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><path d="m15 9-6 6M9 9l6 6" /></svg>
+                <svg class="status-option__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="m15 9-6 6M9 9l6 6" />
+                </svg>
                 <span class="status-option__text">
                     <span class="status-option__label">Cancelado</span>
                     <span class="status-option__desc">Se canceló el turno. Libera el horario.</span>
                 </span>
-                <svg class="status-option__check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12" /></svg></button>
+                <svg class="status-option__check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <polyline points="20 6 9 17 4 12" />
+                </svg></button>
         </div>
 
         <form class="status-reason" id="statusReasonForm" novalidate hidden>

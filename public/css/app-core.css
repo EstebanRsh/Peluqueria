@@ -284,10 +284,6 @@
   font-size: 0.8rem;
 }
 
-.legend__item:last-child {
-  flex-basis: 100%;
-}
-
 .legend__swatch {
   display: inline-flex;
   align-items: center;
@@ -884,6 +880,10 @@
   .calendar__legend {
     min-height: calc(3rem + env(safe-area-inset-bottom) + 52px + 0.75rem);
     padding: var(--space-2) 5rem var(--space-2) var(--space-4);
+  }
+
+  .legend__item:last-child {
+    flex-basis: 100%;
   }
 
   .surface__header {
