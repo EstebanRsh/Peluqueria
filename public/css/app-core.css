@@ -549,15 +549,6 @@
   color: var(--sidebar-muted);
 }
 
-.login-story__body p:first-child::first-letter {
-  float: left;
-  padding: var(--space-1) var(--space-2) 0 0;
-  font-family: "Alex Brush", cursive;
-  font-size: 4rem;
-  line-height: 0.75;
-  color: var(--color-gold);
-}
-
 /* --- Columna derecha: tarjeta de acceso --------------------------------- */
 
 .login-page .admin-view,
@@ -785,10 +776,6 @@
   .login-story__body {
     font-size: 0.95rem;
     line-height: 1.7;
-  }
-
-  .login-story__body p:first-child::first-letter {
-    font-size: 3.4rem;
   }
 }
 
