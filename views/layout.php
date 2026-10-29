@@ -265,6 +265,54 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
         </div>
     </dialog>
 
+    <!-- Plantillas compartidas de los listados -->
+    <template id="tableMessageTemplate">
+        <tr><td></td></tr>
+    </template>
+    <template id="tableMoreTemplate">
+        <tr><td class="panel-empty"><button type="button" class="btn btn--ghost btn--sm" data-action="more">Cargar más</button></td></tr>
+    </template>
+    <template id="panelEmptyTemplate">
+        <div class="panel-empty" role="status">
+            <div data-text></div>
+            <div class="panel-empty__action">
+                <button type="button" class="btn btn--primary btn--sm" data-action="new"></button>
+            </div>
+        </div>
+    </template>
+    <template id="panelErrorTemplate">
+        <div class="panel-error" role="alert">
+            <div data-text></div>
+            <div class="panel-empty__action">
+                <button type="button" class="btn btn--ghost btn--sm" data-action="retry">Reintentar</button>
+            </div>
+        </div>
+    </template>
+    <template id="rowToggleTemplate">
+        <button type="button" class="row-toggle" aria-haspopup="dialog">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="9 6 15 12 9 18" /></svg>
+        </button>
+    </template>
+    <template id="rowActionsTemplate">
+        <div class="data-table__actions">
+            <button type="button" class="btn btn--ghost btn--sm btn--row-extra" data-action="profile" title="Ver perfil">
+                <span class="btn__icon" aria-hidden="true"><svg <?= $iconAttrs ?>><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" /></svg></span><span class="btn__label">Ver perfil</span>
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" data-action="edit" title="Editar">
+                <span class="btn__icon" aria-hidden="true"><svg <?= $iconAttrs ?>><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg></span><span class="btn__label">Editar</span>
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" data-action="deactivate" title="Desactivar">
+                <span class="btn__icon" aria-hidden="true"><svg <?= $iconAttrs ?>><circle cx="12" cy="12" r="9" /><line x1="8" y1="12" x2="16" y2="12" /></svg></span><span class="btn__label">Desactivar</span>
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" data-action="activate" title="Activar">
+                <span class="btn__icon" aria-hidden="true"><svg <?= $iconAttrs ?>><circle cx="12" cy="12" r="9" /><path d="m8 12.5 3 3 5-6" /></svg></span><span class="btn__label">Activar</span>
+            </button>
+            <button type="button" class="btn btn--danger btn--sm" data-action="delete" title="Eliminar">
+                <span class="btn__icon" aria-hidden="true"><svg <?= $iconAttrs ?>><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M6 6l1 14h10l1-14" /></svg></span><span class="btn__label">Eliminar</span>
+            </button>
+        </div>
+    </template>
+
     <script>
         window.BASE_URL = <?= json_encode($base, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
     </script>

@@ -78,6 +78,17 @@
             </tbody>
         </table>
 
+        <template id="productRowTemplate">
+            <tr>
+                <td data-label="Nombre" class="cell-primary" data-field="name"></td>
+                <td data-label="Marca" data-field="brand"></td>
+                <td data-label="Stock" data-field="stock"></td>
+                <td data-label="Costo" data-field="cost"></td>
+                <td data-label="Estado"><span data-field="status"></span></td>
+                <td data-label="Acciones" data-field="actions"></td>
+            </tr>
+        </template>
+
     </div>
 
 </div>

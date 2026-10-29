@@ -77,6 +77,16 @@
             </tbody>
         </table>
 
+        <template id="clientRowTemplate">
+            <tr class="client-row">
+                <td data-label="Alias" class="cell-primary"><button type="button" class="table-link" data-action="profile" data-field="alias"></button></td>
+                <td data-label="Código" class="cell-primary" data-field="code"></td>
+                <td data-label="Estado"><span data-field="status"></span></td>
+                <td data-label="Notas" data-field="notes"></td>
+                <td data-label="Acciones" data-field="actions"></td>
+            </tr>
+        </template>
+
     </div>
 
 </div>
@@ -142,6 +152,36 @@
             <p class="panel-empty__action">
                 <button type="button" class="btn btn--ghost btn--sm" id="clientProfileHistoryMore" hidden>Cargar más</button>
             </p>
+
+            <template id="timelineNodeTemplate">
+                <article class="timeline-node">
+                    <header class="timeline-header">
+                        <time class="timeline-date"></time>
+                        <strong class="timeline-service"></strong>
+                        <div class="timeline-actions">
+                            <button type="button" class="btn btn--ghost btn--sm" data-timeline-action="edit" title="Editar ficha">
+                                <span class="btn__icon" aria-hidden="true"><svg <?= $iconAttrs ?>><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg></span>
+                            </button>
+                            <button type="button" class="btn btn--danger btn--sm" data-timeline-action="delete" title="Eliminar ficha">
+                                <span class="btn__icon" aria-hidden="true"><svg <?= $iconAttrs ?>><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M6 6l1 14h10l1-14" /></svg></span>
+                            </button>
+                        </div>
+                    </header>
+                    <div class="timeline-details"></div>
+                </article>
+            </template>
+            <template id="timelineGroupTemplate">
+                <section class="timeline-category">
+                    <h4></h4>
+                    <dl></dl>
+                </section>
+            </template>
+            <template id="timelineFieldTemplate">
+                <div class="timeline-field"><dt></dt><dd></dd></div>
+            </template>
+            <template id="historyEmptyTemplate">
+                <p class="history-empty"></p>
+            </template>
         </div>
 
         <div class="profile-drawer__section">

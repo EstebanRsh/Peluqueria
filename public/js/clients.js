@@ -43,15 +43,16 @@ import {
   createListLoader,
   isCompactView,
   debounce,
-  loadErrorHtml,
-  moreRowHtml,
+  emptyBlock,
+  errorBlock,
+  fillFields,
+  moreRow,
   refreshAfterChange,
   renderMessageRow,
-  ROW_ICONS,
-  rowActionsHtml,
-  rowToggleHtml,
+  rowActions,
+  rowToggle,
   runTableAction,
-  statusBadgeHtml,
+  setRecordStatus,
 } from "./list.js";
 import { confirmAction, confirmChoice, showError, showResult } from "./confirm.js";
 
@@ -79,47 +80,45 @@ function renderClientsList() {
   const clients = list.state.items;
 
   if (!clients.length) {
-    if (list.isPristine()) {
-      renderMessageRow(
-        body,
-        5,
-        `<div class="panel-empty" role="status">
-          <div>Todavía no cargaste clientes.</div>
-          <div class="panel-empty__action">
-            <button type="button" class="btn btn--primary btn--sm" data-action="new">Nuevo cliente</button>
-          </div>
-        </div>`,
-      );
-    } else {
-      renderMessageRow(
-        body,
-        5,
-        '<div class="panel-empty" role="status">No hay clientes que coincidan con la búsqueda o el filtro.</div>',
-      );
-    }
+    renderMessageRow(
+      body,
+      5,
+      list.isPristine()
+        ? emptyBlock("Todavía no cargaste clientes.", "Nuevo cliente")
+        : emptyBlock("No hay clientes que coincidan con la búsqueda o el filtro."),
+    );
     return;
   }
 
-  body.innerHTML = clients
-    .map((client) => {
-      const active = isActive(client);
-      const alias = escapeHtml(client.alias);
-      const id = escapeHtml(client.id);
-      const notes = client.notes
-        ? `<span title="${escapeHtml(client.notes)}">${escapeHtml(truncate(client.notes))}</span>`
-        : "—";
+  const rows = clients.map((client) => {
+    const row = $("clientRowTemplate").content.firstElementChild.cloneNode(true);
+    const active = isActive(client);
+    const link = row.querySelector('[data-field="alias"]');
+    const notes = row.querySelector('[data-field="notes"]');
 
-      return `
-      <tr data-client-id="${id}" class="client-row">
-        <td data-label="Alias" class="cell-primary"><button type="button" class="table-link" data-action="profile" data-id="${id}" aria-label="Ver perfil de ${alias}">${alias}</button>${rowToggleHtml(client.alias, client.id)}</td>
-        <td data-label="Código" class="cell-primary">${escapeHtml(client.internal_code || "—")}</td>
-        <td data-label="Estado">${statusBadgeHtml(active)}</td>
-        <td data-label="Notas">${notes}</td>
-        <td data-label="Acciones">${rowActionsHtml(client.id, client.alias, active, { profile: true })}</td>
-      </tr>`;
-    })
-    .join("")
-    .concat(list.hasMore() ? moreRowHtml(5) : "");
+    row.dataset.clientId = client.id;
+    link.dataset.id = client.id;
+    link.setAttribute("aria-label", `Ver perfil de ${client.alias}`);
+    fillFields(row, {
+      alias: client.alias,
+      code: client.internal_code || "—",
+      notes: client.notes ? truncate(client.notes) : "—",
+    });
+    notes.title = client.notes ?? "";
+    link.after(rowToggle(client.alias, client.id));
+    setRecordStatus(row.querySelector('[data-field="status"]'), active);
+    row
+      .querySelector('[data-field="actions"]')
+      .append(rowActions(client.id, client.alias, active, { profile: true }));
+
+    return row;
+  });
+
+  body.replaceChildren(...rows);
+
+  if (list.hasMore()) {
+    body.append(moreRow(5));
+  }
 }
 
 function renderLoadError(error) {
@@ -129,7 +128,7 @@ function renderLoadError(error) {
   renderMessageRow(
     body,
     5,
-    loadErrorHtml(error, "No se pudieron cargar los clientes."),
+    errorBlock(error, "No se pudieron cargar los clientes."),
   );
 }
 
@@ -248,59 +247,76 @@ function formatProfileDate(value, includeTime = true) {
     : formattedDate;
 }
 
+function historyEmpty(text) {
+  const message = $("historyEmptyTemplate").content.firstElementChild.cloneNode(true);
+
+  message.textContent = text;
+
+  return message;
+}
+
+function timelineNode(record) {
+  const node = $("timelineNodeTemplate").content.firstElementChild.cloneNode(true);
+  const details = node.querySelector(".timeline-details");
+
+  node.querySelector(".timeline-date").textContent = record.date_label;
+  node.querySelector(".timeline-service").textContent = record.service;
+
+  node.querySelectorAll("[data-timeline-action]").forEach((button) => {
+    button.dataset.id = record.id;
+    button.setAttribute(
+      "aria-label",
+      `${button.title} del ${record.date_label}`,
+    );
+  });
+
+  if (!record.editable) {
+    node.querySelector('[data-timeline-action="edit"]').remove();
+  }
+
+  details.append(
+    ...record.groups.map((group) => {
+      const section = $("timelineGroupTemplate").content.firstElementChild.cloneNode(true);
+
+      section.querySelector("h4").textContent = group.label;
+      section.querySelector("dl").append(
+        ...group.fields.map((field) => {
+          const item = $("timelineFieldTemplate").content.firstElementChild.cloneNode(true);
+
+          item.querySelector("dt").textContent = field.label;
+          item.querySelector("dd").textContent = field.value;
+
+          return item;
+        }),
+      );
+
+      return section;
+    }),
+  );
+
+  if (record.groups.length === 0) {
+    details.append(historyEmpty("Sin datos técnicos."));
+  }
+
+  return node;
+}
+
 function renderTimeline() {
   const container = $("clientProfileHistory");
   if (!container) return;
 
   if (timelineState.records.length === 0) {
-    container.innerHTML =
-      timelineState.totalRecords === 0
-        ? '<p class="history-empty">Todavía no hay fichas técnicas para este cliente.</p>'
-        : '<p class="history-empty">No hay fichas que coincidan con la búsqueda o el filtro.</p>';
+    container.replaceChildren(
+      historyEmpty(
+        timelineState.totalRecords === 0
+          ? "Todavía no hay fichas técnicas para este cliente."
+          : "No hay fichas que coincidan con la búsqueda o el filtro.",
+      ),
+    );
     return;
   }
 
-  container.innerHTML = timelineState.records
-    .map((record) => {
-      const groups = record.groups
-        .map(
-          (group) => `
-            <section class="timeline-category">
-              <h4>${escapeHtml(group.label)}</h4>
-              <dl>
-                ${group.fields
-                  .map(
-                    (field) => `
-                      <div class="timeline-field">
-                        <dt>${escapeHtml(field.label)}</dt>
-                        <dd>${escapeHtml(field.value)}</dd>
-                      </div>`,
-                  )
-                  .join("")}
-              </dl>
-            </section>`,
-        )
-        .join("");
-
-      const id = escapeHtml(record.id);
-      const editButton = record.editable
-        ? `<button type="button" class="btn btn--ghost btn--sm" data-timeline-action="edit" data-id="${id}" title="Editar ficha" aria-label="Editar ficha del ${escapeHtml(record.date_label)}">${ROW_ICONS.edit}</button>`
-        : "";
-
-      return `
-        <article class="timeline-node">
-          <header class="timeline-header">
-            <time class="timeline-date">${escapeHtml(record.date_label)}</time>
-            <strong class="timeline-service">${escapeHtml(record.service)}</strong>
-            <div class="timeline-actions">
-              ${editButton}
-              <button type="button" class="btn btn--danger btn--sm" data-timeline-action="delete" data-id="${id}" title="Eliminar ficha" aria-label="Eliminar ficha del ${escapeHtml(record.date_label)}">${ROW_ICONS.delete}</button>
-            </div>
-          </header>
-          <div class="timeline-details">${groups || '<p class="history-empty">Sin datos técnicos.</p>'}</div>
-        </article>`;
-    })
-    .join("");
+  container.replaceChildren(...timelineState.records.map(timelineNode));
 }
 
 function renderClientAppointments() {

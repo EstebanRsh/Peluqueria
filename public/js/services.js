@@ -14,7 +14,7 @@ import {
   getErrorMessage,
   logError,
 } from "./api.js";
-import { $, escapeHtml, isActive, setActiveFilter } from "./dom.js";
+import { $, isActive, setActiveFilter } from "./dom.js";
 import {
   clearInvalidOnInput,
   createDirtyTracker,
@@ -26,14 +26,16 @@ import {
   bindRowDialog,
   createListLoader,
   debounce,
-  loadErrorHtml,
-  moreRowHtml,
+  emptyBlock,
+  errorBlock,
+  fillFields,
+  moreRow,
   refreshAfterChange,
   renderMessageRow,
-  rowActionsHtml,
-  rowToggleHtml,
+  rowActions,
+  rowToggle,
   runTableAction,
-  statusBadgeHtml,
+  setRecordStatus,
 } from "./list.js";
 import { confirmAction, showError, showResult } from "./confirm.js";
 
@@ -56,43 +58,41 @@ function renderServicesList() {
   const services = list.state.items;
 
   if (!services.length) {
-    if (list.isPristine()) {
-      renderMessageRow(
-        body,
-        5,
-        `<div class="panel-empty" role="status">
-          <div>Todavía no cargaste servicios.</div>
-          <div class="panel-empty__action">
-            <button type="button" class="btn btn--primary btn--sm" data-action="new">Nuevo servicio</button>
-          </div>
-        </div>`,
-      );
-    } else {
-      renderMessageRow(
-        body,
-        5,
-        '<div class="panel-empty" role="status">No hay servicios que coincidan con la búsqueda o el filtro.</div>',
-      );
-    }
+    renderMessageRow(
+      body,
+      5,
+      list.isPristine()
+        ? emptyBlock("Todavía no cargaste servicios.", "Nuevo servicio")
+        : emptyBlock("No hay servicios que coincidan con la búsqueda o el filtro."),
+    );
     return;
   }
 
-  body.innerHTML = services
-    .map((service) => {
-      const active = isActive(service);
-      const name = escapeHtml(service.name);
+  const rows = services.map((service) => {
+    const row = $("serviceRowTemplate").content.firstElementChild.cloneNode(true);
+    const active = isActive(service);
 
-      return `
-      <tr>
-        <td data-label="Nombre" class="cell-primary">${name}${rowToggleHtml(service.name, service.id)}</td>
-        <td data-label="Duración">${escapeHtml(service.duration)} min</td>
-        <td data-label="Precio">$${escapeHtml(service.price)}</td>
-        <td data-label="Estado">${statusBadgeHtml(active)}</td>
-        <td data-label="Acciones">${rowActionsHtml(service.id, service.name, active)}</td>
-      </tr>`;
-    })
-    .join("")
-    .concat(list.hasMore() ? moreRowHtml(5) : "");
+    fillFields(row, {
+      name: service.name,
+      duration: `${service.duration} min`,
+      price: `$${service.price}`,
+    });
+    row
+      .querySelector('[data-field="name"]')
+      .append(rowToggle(service.name, service.id));
+    setRecordStatus(row.querySelector('[data-field="status"]'), active);
+    row
+      .querySelector('[data-field="actions"]')
+      .append(rowActions(service.id, service.name, active));
+
+    return row;
+  });
+
+  body.replaceChildren(...rows);
+
+  if (list.hasMore()) {
+    body.append(moreRow(5));
+  }
 }
 
 function renderLoadError(error) {
@@ -102,7 +102,7 @@ function renderLoadError(error) {
   renderMessageRow(
     body,
     5,
-    loadErrorHtml(error, "No se pudieron cargar los servicios."),
+    errorBlock(error, "No se pudieron cargar los servicios."),
   );
 }
 

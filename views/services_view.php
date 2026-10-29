@@ -77,6 +77,16 @@
             </tbody>
         </table>
 
+        <template id="serviceRowTemplate">
+            <tr>
+                <td data-label="Nombre" class="cell-primary" data-field="name"></td>
+                <td data-label="Duración" data-field="duration"></td>
+                <td data-label="Precio" data-field="price"></td>
+                <td data-label="Estado"><span data-field="status"></span></td>
+                <td data-label="Acciones" data-field="actions"></td>
+            </tr>
+        </template>
+
     </div>
 
 </div>

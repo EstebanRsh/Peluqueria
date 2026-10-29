@@ -31,7 +31,7 @@ import {
   toMinutes,
 } from "./utils.js";
 import { setSearching } from "./feedback.js";
-import { debounce, loadErrorHtml } from "./list.js";
+import { debounce, errorBlock } from "./list.js";
 import { appState } from "./state.js";
 
 // ============================================================
@@ -458,9 +458,8 @@ export async function loadAppointments(date, { showLoading = true } = {}) {
 
     logError("Error al cargar turnos:", error);
 
-    container.innerHTML = loadErrorHtml(
-      error,
-      "No se pudieron cargar los turnos.",
+    container.replaceChildren(
+      errorBlock(error, "No se pudieron cargar los turnos."),
     );
   } finally {
     if (token === loadToken) {

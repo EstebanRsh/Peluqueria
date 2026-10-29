@@ -12,7 +12,6 @@ import {
   logError,
 } from "./api.js";
 import { RECORD_STATUS } from "./constants.js";
-import { escapeHtml } from "./dom.js";
 import { setBusy, setSearching } from "./feedback.js";
 import { showError, showResult } from "./confirm.js";
 
@@ -78,73 +77,91 @@ export function createListLoader(fetchPage, searchInput = null) {
   };
 }
 
-export function moreRowHtml(colspan) {
-  return `<tr><td colspan="${colspan}" class="panel-empty"><button type="button" class="btn btn--ghost btn--sm" data-action="more">Cargar más</button></td></tr>`;
+const cloneTemplate = (id) =>
+  document.getElementById(id).content.firstElementChild.cloneNode(true);
+
+export function renderMessageRow(body, colspan, content) {
+  const row = cloneTemplate("tableMessageTemplate");
+  const cell = row.firstElementChild;
+
+  cell.colSpan = colspan;
+  cell.append(content);
+  body.replaceChildren(row);
 }
 
-export function renderMessageRow(body, colspan, html) {
-  body.innerHTML = `<tr><td colspan="${colspan}">${html}</td></tr>`;
+export function moreRow(colspan) {
+  const row = cloneTemplate("tableMoreTemplate");
+
+  row.firstElementChild.colSpan = colspan;
+
+  return row;
 }
 
-export function loadErrorHtml(error, fallback) {
-  return `<div class="panel-error" role="alert">
-      <div>${escapeHtml(getErrorMessage(error, fallback))}</div>
-      <div class="panel-empty__action">
-        <button type="button" class="btn btn--ghost btn--sm" data-action="retry">Reintentar</button>
-      </div>
-    </div>`;
+export function emptyBlock(text, actionLabel = "") {
+  const block = cloneTemplate("panelEmptyTemplate");
+  const action = block.querySelector(".panel-empty__action");
+
+  block.querySelector("[data-text]").textContent = text;
+
+  if (actionLabel) {
+    action.querySelector("button").textContent = actionLabel;
+  } else {
+    action.remove();
+  }
+
+  return block;
 }
 
-const svgIcon = (paths) =>
-  `<span class="btn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false">${paths}</svg></span>`;
+export function errorBlock(error, fallback) {
+  const block = cloneTemplate("panelErrorTemplate");
 
-export const ROW_ICONS = {
-  profile: svgIcon(
-    '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>',
-  ),
-  edit: svgIcon(
-    '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
-  ),
-  activate: svgIcon(
-    '<circle cx="12" cy="12" r="9"/><path d="m8 12.5 3 3 5-6"/>',
-  ),
-  deactivate: svgIcon(
-    '<circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/>',
-  ),
-  delete: svgIcon(
-    '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/>',
-  ),
-};
+  block.querySelector("[data-text]").textContent = getErrorMessage(
+    error,
+    fallback,
+  );
 
-const CHEVRON_ICON =
-  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="9 6 15 12 9 18"/></svg>';
-
-export function rowActionsHtml(id, name, active, { profile = false } = {}) {
-  const toggle = active ? "deactivate" : "activate";
-  const toggleLabel = active ? "Desactivar" : "Activar";
-  const safeId = escapeHtml(id);
-  const safeName = escapeHtml(name);
-  const button = (action, label, style) =>
-    `<button type="button" class="btn ${style} btn--sm" data-action="${action}" data-id="${safeId}" title="${label}" aria-label="${label} ${safeName}">${ROW_ICONS[action]}<span class="btn__label">${label}</span></button>`;
-
-  return `<div class="data-table__actions">
-          ${profile ? button("profile", "Ver perfil", "btn--ghost btn--row-extra") : ""}
-          ${button("edit", "Editar", "btn--ghost")}
-          ${button(toggle, toggleLabel, "btn--ghost")}
-          ${button("delete", "Eliminar", "btn--danger")}
-        </div>`;
+  return block;
 }
 
-export function statusBadgeHtml(active) {
+export function rowToggle(name, id) {
+  const button = cloneTemplate("rowToggleTemplate");
+
+  button.dataset.id = id;
+  button.dataset.title = name;
+  button.setAttribute("aria-label", `Ver detalles de ${name}`);
+
+  return button;
+}
+
+export function rowActions(id, name, active, { profile = false } = {}) {
+  const actions = cloneTemplate("rowActionsTemplate");
+  const unused = active ? "activate" : "deactivate";
+
+  actions.querySelector(`[data-action="${unused}"]`).remove();
+
+  if (!profile) {
+    actions.querySelector('[data-action="profile"]').remove();
+  }
+
+  actions.querySelectorAll("button").forEach((button) => {
+    button.dataset.id = id;
+    button.setAttribute("aria-label", `${button.title} ${name}`);
+  });
+
+  return actions;
+}
+
+export function setRecordStatus(badge, active) {
   const status = active ? RECORD_STATUS.active : RECORD_STATUS.inactive;
 
-  return `<span class="status-badge status-badge--${status.slug}">${status.label}</span>`;
+  badge.className = `status-badge status-badge--${status.slug}`;
+  badge.textContent = status.label;
 }
 
-export function rowToggleHtml(name, id) {
-  const safeName = escapeHtml(name);
-
-  return `<button type="button" class="row-toggle" data-id="${escapeHtml(id)}" data-title="${safeName}" aria-haspopup="dialog" aria-label="Ver detalles de ${safeName}">${CHEVRON_ICON}</button>`;
+export function fillFields(row, values) {
+  Object.entries(values).forEach(([field, value]) => {
+    row.querySelector(`[data-field="${field}"]`).textContent = value;
+  });
 }
 
 export const isCompactView = () => matchMedia("(max-width: 768px)").matches;

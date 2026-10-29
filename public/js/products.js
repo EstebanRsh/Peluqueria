@@ -15,7 +15,7 @@ import {
   logError,
 } from "./api.js";
 import { UNIT_NAMES, UNIT_SHORTS } from "./constants.js";
-import { $, escapeHtml, isActive, setActiveFilter } from "./dom.js";
+import { $, isActive, setActiveFilter } from "./dom.js";
 import {
   clearInvalidOnInput,
   createDirtyTracker,
@@ -27,14 +27,16 @@ import {
   bindRowDialog,
   createListLoader,
   debounce,
-  loadErrorHtml,
-  moreRowHtml,
+  emptyBlock,
+  errorBlock,
+  fillFields,
+  moreRow,
   refreshAfterChange,
   renderMessageRow,
-  rowActionsHtml,
-  rowToggleHtml,
+  rowActions,
+  rowToggle,
   runTableAction,
-  statusBadgeHtml,
+  setRecordStatus,
 } from "./list.js";
 import { confirmAction, showError, showResult } from "./confirm.js";
 
@@ -97,35 +99,39 @@ function renderProductsList() {
       body,
       6,
       list.isPristine()
-        ? `<div class="panel-empty" role="status">
-            <div>Todavía no cargaste productos.</div>
-            <div class="panel-empty__action">
-              <button type="button" class="btn btn--primary btn--sm" data-action="new">Nuevo producto</button>
-            </div>
-          </div>`
-        : '<div class="panel-empty" role="status">No hay productos que coincidan con la búsqueda o el filtro.</div>',
+        ? emptyBlock("Todavía no cargaste productos.", "Nuevo producto")
+        : emptyBlock("No hay productos que coincidan con la búsqueda o el filtro."),
     );
     return;
   }
 
-  body.innerHTML = products
-    .map((product) => {
-      const active = isActive(product);
-      const name = escapeHtml(product.name);
-      const id = escapeHtml(product.id);
+  const rows = products.map((product) => {
+    const row = $("productRowTemplate").content.firstElementChild.cloneNode(true);
+    const active = isActive(product);
 
-      return `
-      <tr data-product-id="${id}">
-        <td data-label="Nombre" class="cell-primary">${name}${rowToggleHtml(product.name, product.id)}</td>
-        <td data-label="Marca">${escapeHtml(product.brand || "—")}</td>
-        <td data-label="Stock">${escapeHtml(formatStock(product))}</td>
-        <td data-label="Costo">${escapeHtml(formatCost(product))}</td>
-        <td data-label="Estado">${statusBadgeHtml(active)}</td>
-        <td data-label="Acciones">${rowActionsHtml(product.id, product.name, active)}</td>
-      </tr>`;
-    })
-    .join("")
-    .concat(list.hasMore() ? moreRowHtml(6) : "");
+    row.dataset.productId = product.id;
+    fillFields(row, {
+      name: product.name,
+      brand: product.brand || "—",
+      stock: formatStock(product),
+      cost: formatCost(product),
+    });
+    row
+      .querySelector('[data-field="name"]')
+      .append(rowToggle(product.name, product.id));
+    setRecordStatus(row.querySelector('[data-field="status"]'), active);
+    row
+      .querySelector('[data-field="actions"]')
+      .append(rowActions(product.id, product.name, active));
+
+    return row;
+  });
+
+  body.replaceChildren(...rows);
+
+  if (list.hasMore()) {
+    body.append(moreRow(6));
+  }
 }
 
 function renderLoadError(error) {
@@ -135,7 +141,7 @@ function renderLoadError(error) {
   renderMessageRow(
     body,
     6,
-    loadErrorHtml(error, "No se pudieron cargar los productos."),
+    errorBlock(error, "No se pudieron cargar los productos."),
   );
 }
 
