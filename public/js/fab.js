@@ -6,34 +6,13 @@
 import { todayIso } from "./utils.js";
 
 // ============================================================
-// ÍCONOS Y ACCIONES
+// ACCIONES
 // ============================================================
-
-const svg = (inner) =>
-  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${inner}</svg>`;
-
-const ICONS = {
-  appointment: svg(
-    '<rect x="3" y="4" width="18" height="17" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/>',
-  ),
-  history: svg(
-    '<path d="M9 3h6a1 1 0 0 1 1 1v1h1a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h1V4a1 1 0 0 1 1-1z"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="16" y2="15"/>',
-  ),
-  product: svg(
-    '<path d="M21 8v8a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 16V8"/><path d="M3.27 6.96 12 12l8.73-5.04"/><path d="M12 22V12"/><path d="M8.5 4.27L16 8.5"/>',
-  ),
-  client: svg(
-    '<circle cx="12" cy="7.5" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/>',
-  ),
-  service: svg(
-    '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/>',
-  ),
-};
 
 const actions = {
   newAppointment: (ctx) => ({
     label: "Nuevo turno",
-    icon: "appointment",
+    icon: "fabIconAppointment",
     accent: true,
     run: () => {
       ctx.appState.activeDay ??= todayIso();
@@ -42,24 +21,24 @@ const actions = {
   }),
   newHistory: () => ({
     label: "Nueva ficha",
-    icon: "history",
+    icon: "fabIconHistory",
     run: () => document.dispatchEvent(new CustomEvent("quickentry:open")),
   }),
   newClient: () => ({
     label: "Nuevo cliente",
-    icon: "client",
+    icon: "fabIconClient",
     accent: true,
     trigger: "btnAddClient",
   }),
   newProduct: () => ({
     label: "Nuevo producto",
-    icon: "product",
+    icon: "fabIconProduct",
     accent: true,
     trigger: "btnAddProduct",
   }),
   newService: () => ({
     label: "Nuevo servicio",
-    icon: "service",
+    icon: "fabIconService",
     accent: true,
     trigger: "btnAddService",
   }),
@@ -83,6 +62,7 @@ export function initFab({ appState }) {
   const toggle = document.getElementById("fabToggle");
   const menu = document.getElementById("fabMenu");
   const backdrop = document.getElementById("fabBackdrop");
+  const itemTemplate = document.getElementById("fabItemTemplate");
   if (!root || !toggle || !menu) return { setView() {} };
 
   const ctx = { appState };
@@ -126,15 +106,13 @@ export function initFab({ appState }) {
       toggle.setAttribute("aria-controls", "fabMenu");
     }
 
-    menu.innerHTML = "";
+    menu.replaceChildren();
     (isDirect() ? [] : current).forEach((action) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.tabIndex = -1;
-      btn.className =
-        "fab-actions__item" +
-        (action.accent ? " fab-actions__item--accent" : "");
-      btn.innerHTML = `${ICONS[action.icon] || ""}<span>${action.label}</span>`;
+      const btn = itemTemplate.content.firstElementChild.cloneNode(true);
+
+      btn.classList.toggle("fab-actions__item--accent", Boolean(action.accent));
+      btn.querySelector(".fab-actions__label").textContent = action.label;
+      btn.prepend(document.getElementById(action.icon).content.cloneNode(true));
       btn.addEventListener("click", () => execute(action));
       menu.appendChild(btn);
     });
