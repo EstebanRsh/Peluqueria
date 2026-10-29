@@ -70,6 +70,20 @@
                     </div>
 
                     <ul class="service-list" id="serviceList"></ul>
+                    <template id="appointmentServiceTemplate">
+                        <li class="service-row">
+                            <span class="service-row__name"></span>
+                            <span class="service-row__meta">
+                                <span data-field="price"></span>
+                                <label class="service-row__time">
+                                    <svg class="service-row__icon" <?= $iconAttrs ?>><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                                    <input type="number" min="1" max="1440" step="1" inputmode="numeric" class="cart-quantity">
+                                    min
+                                </label>
+                            </span>
+                            <button type="button" class="cart-remove" title="Quitar"></button>
+                        </li>
+                    </template>
                 </div>
             </div>
 

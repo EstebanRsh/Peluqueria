@@ -182,6 +182,25 @@
             <template id="historyEmptyTemplate">
                 <p class="history-empty"></p>
             </template>
+            <template id="historyPlaceholderTemplate">
+                <p class="history-placeholder" role="status"></p>
+            </template>
+            <template id="profileErrorTemplate">
+                <p class="history-error" role="alert"></p>
+                <button type="button" class="btn btn--ghost btn--sm" data-action="retry-profile">Reintentar</button>
+            </template>
+            <template id="profileAppointmentTemplate">
+                <article class="profile-appointment">
+                    <div class="profile-appointment__header">
+                        <strong data-field="service"></strong>
+                        <span class="status-badge" data-field="status"></span>
+                    </div>
+                    <div class="profile-appointment__meta">
+                        <time data-field="when"></time>
+                        <span data-field="stylist"></span>
+                    </div>
+                </article>
+            </template>
         </div>
 
         <div class="profile-drawer__section">

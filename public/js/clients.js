@@ -24,7 +24,6 @@ import { RECORD_STATUS } from "./constants.js";
 import { displayStatus, formatTime, slugify, stockChanges } from "./utils.js";
 import {
   $,
-  escapeHtml,
   isActive,
   restoreFocus,
   setActiveFilter,
@@ -324,40 +323,60 @@ function renderClientAppointments() {
   if (!container) return;
 
   if (!profileAppointments.length) {
-    container.innerHTML = '<p class="history-empty">Sin turnos asociados.</p>';
+    container.replaceChildren(historyEmpty("Sin turnos asociados."));
     return;
   }
 
-  container.innerHTML = profileAppointments
-    .map(
-      (appointment) => `
-        <article class="profile-appointment">
-          <div class="profile-appointment__header">
-            <strong>${escapeHtml(appointment.service_name || "Servicio")}</strong>
-            <span class="status-badge status-badge--${slugify(displayStatus(appointment) || "")}">${escapeHtml(displayStatus(appointment) || "Sin estado")}</span>
-          </div>
-          <div class="profile-appointment__meta">
-            <time>${escapeHtml(formatProfileDate(appointment.date, false))} · ${escapeHtml(formatTime(appointment.time_start))}${appointment.time_end ? `–${escapeHtml(formatTime(appointment.time_end))}` : ""}</time>
-            <span>${escapeHtml(appointment.stylist || "Sin asignar")}</span>
-          </div>
-        </article>`,
-    )
-    .join("");
+  container.replaceChildren(
+    ...profileAppointments.map((appointment) => {
+      const card = $("profileAppointmentTemplate").content.firstElementChild.cloneNode(true);
+      const status = displayStatus(appointment) || "Sin estado";
+      const time = appointment.time_end
+        ? `${formatTime(appointment.time_start)}–${formatTime(appointment.time_end)}`
+        : formatTime(appointment.time_start);
+
+      fillFields(card, {
+        service: appointment.service_name || "Servicio",
+        status,
+        when: `${formatProfileDate(appointment.date, false)} · ${time}`,
+        stylist: appointment.stylist || "Sin asignar",
+      });
+      card.querySelector('[data-field="status"]').classList.add(
+        `status-badge--${slugify(displayStatus(appointment) || "")}`,
+      );
+
+      return card;
+    }),
+  );
 }
 
 function renderProfileError(container, error, fallback) {
   if (!container) return;
 
-  container.innerHTML = `
-    <p class="history-error" role="alert">${escapeHtml(getErrorMessage(error, fallback))}</p>
-    <button type="button" class="btn btn--ghost btn--sm" data-action="retry-profile">Reintentar</button>`;
+  const content = $("profileErrorTemplate").content.cloneNode(true);
+
+  content.querySelector(".history-error").textContent = getErrorMessage(
+    error,
+    fallback,
+  );
+  container.replaceChildren(content);
+}
+
+function historyPlaceholder(text) {
+  const message = $("historyPlaceholderTemplate").content.firstElementChild.cloneNode(true);
+
+  message.textContent = text;
+
+  return message;
 }
 
 function reloadProfileData(client) {
-  $("clientProfileHistory").innerHTML =
-    '<p class="history-placeholder" role="status">Cargando historial técnico…</p>';
-  $("clientProfileAppointments").innerHTML =
-    '<p class="history-placeholder" role="status">Cargando turnos…</p>';
+  $("clientProfileHistory").replaceChildren(
+    historyPlaceholder("Cargando historial técnico…"),
+  );
+  $("clientProfileAppointments").replaceChildren(
+    historyPlaceholder("Cargando turnos…"),
+  );
 
   profileRequestId += 1;
   void loadClientProfileData(client, profileRequestId);

@@ -18,7 +18,7 @@ import {
   FINISHED_STATUS,
   INACTIVE_STATUSES,
 } from "./constants.js";
-import { $, escapeHtml, restoreFocus, setActiveFilter } from "./dom.js";
+import { $, restoreFocus, setActiveFilter } from "./dom.js";
 import {
   formatDate,
   formatTime,
@@ -525,26 +525,27 @@ function totalDuration() {
 }
 
 function renderServices() {
-  $("serviceList").innerHTML = selectedServices
-    .map(
-      (service, index) => `
-        <li class="service-row">
-          <span class="service-row__name">${escapeHtml(service.name)}</span>
-          <span class="service-row__meta">
-            <span>$${escapeHtml(service.price)}</span>
-            <label class="service-row__time">
-              <svg class="service-row__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
-              <input type="number" min="1" max="1440" step="1" inputmode="numeric" class="cart-quantity"
-                value="${escapeHtml(service.duration)}" data-index="${index}"
-                aria-label="Duración de ${escapeHtml(service.name)} en minutos para este turno">
-              min
-            </label>
-          </span>
-          <button type="button" class="cart-remove" data-index="${index}"
-            aria-label="Quitar ${escapeHtml(service.name)}" title="Quitar"${servicesLocked ? " disabled" : ""}></button>
-        </li>`,
-    )
-    .join("");
+  $("serviceList").replaceChildren(
+    ...selectedServices.map((service, index) => {
+      const row = $("appointmentServiceTemplate").content.firstElementChild.cloneNode(true);
+      const quantity = row.querySelector(".cart-quantity");
+      const remove = row.querySelector(".cart-remove");
+
+      row.querySelector(".service-row__name").textContent = service.name;
+      row.querySelector('[data-field="price"]').textContent = `$${service.price}`;
+      quantity.value = service.duration;
+      quantity.dataset.index = index;
+      quantity.setAttribute(
+        "aria-label",
+        `Duración de ${service.name} en minutos para este turno`,
+      );
+      remove.dataset.index = index;
+      remove.setAttribute("aria-label", `Quitar ${service.name}`);
+      remove.disabled = servicesLocked;
+
+      return row;
+    }),
+  );
 
   $("serviceSearch").closest(".search-field").hidden = servicesLocked;
 }
