@@ -49,6 +49,14 @@ export function createFeedback(panel) {
 const UNSAVED_MESSAGE =
   "Hay datos sin guardar. Usá Cancelar o el botón de cerrar para descartarlos.";
 
+export function syncOptionalSections(panel) {
+  panel.querySelectorAll("details.form-optional").forEach((optional) => {
+    optional.open = [
+      ...optional.querySelectorAll("input, textarea, select"),
+    ].some((field) => field.value.trim() !== "");
+  });
+}
+
 export function createDrawer({ overlay, panel, feedback, dirty }) {
   let opener = null;
 
@@ -56,11 +64,7 @@ export function createDrawer({ overlay, panel, feedback, dirty }) {
     open(firstField) {
       opener = document.activeElement;
 
-      panel.querySelectorAll("details.form-optional").forEach((optional) => {
-        optional.open = [
-          ...optional.querySelectorAll("input, textarea, select"),
-        ].some((field) => field.value.trim() !== "");
-      });
+      syncOptionalSections(panel);
 
       overlay.classList.add("is-open");
       panel.classList.add("is-open");

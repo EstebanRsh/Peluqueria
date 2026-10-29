@@ -64,6 +64,8 @@
                 </div>
             </div>
 
+            <p class="form-hint">Los campos con * son obligatorios.</p>
+
         </div>
 
 

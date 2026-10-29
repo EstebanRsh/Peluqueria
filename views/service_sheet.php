@@ -18,7 +18,7 @@
         <div class="surface__body">
 
             <!-- CLIENTE -->
-            <div class="form-group">
+            <div class="form-group is-required">
                 <label for="quickEntryClientSearch">Cliente</label>
 
                 <div class="selected-chip" id="quickClientSelected" role="group" aria-label="Cliente elegido" hidden>
@@ -32,7 +32,7 @@
                 </div>
 
                 <div class="search-field">
-                    <input type="text" id="quickEntryClientSearch" class="input-base" placeholder="Buscar por nombre o código, o escribir un alias" aria-describedby="quickClientHelp" autocomplete="off">
+                    <input type="text" id="quickEntryClientSearch" class="input-base" aria-required="true" placeholder="Buscar por nombre o código, o escribir un alias" aria-describedby="quickClientHelp" autocomplete="off">
                     <ul class="autocomplete-list" id="clientSuggestions"></ul>
                 </div>
                 <input type="hidden" id="quickEntryClientId">
@@ -309,6 +309,7 @@
                 </div>
             </div>
 
+            <p class="form-hint">Los campos con * son obligatorios.</p>
 
         </div>
 

@@ -44,18 +44,13 @@
                             type="text"
                             id="clientSearch"
                             aria-required="true"
-                            placeholder="Buscar por nombre o código, o escribir un alias"
-                            aria-describedby="clientHelp">
+                            placeholder="Buscar por nombre o código, o escribir un alias">
 
                         <ul class="autocomplete-list" id="appointmentClientSuggestions"></ul>
                     </div>
 
                     <input type="hidden" id="clientId">
                     <input type="hidden" id="clientName">
-
-                    <p class="form-hint" id="clientHelp">
-                        Si escribís un nombre y no elegís a nadie, se guarda como alias.
-                    </p>
                 </div>
             </div>
 
@@ -121,23 +116,12 @@
                         min="0"
                         step="0.01"
                         inputmode="decimal">
-                    <p class="form-hint" id="priceHint" hidden></p>
                 </div>
             </div>
 
-            <!-- Profesional y estado -->
+            <!-- Estado -->
             <div class="form-row">
-                <div class="form-group">
-                    <label for="stylist">Profesional</label>
-                    <input
-                        type="text"
-                        id="stylist"
-                        list="stylistOptions"
-                        placeholder="Nombre">
-                    <datalist id="stylistOptions"></datalist>
-                </div>
-
-                <div class="form-group">
+                <div class="form-group form-group--full">
                     <label for="appointmentStatus" id="appointmentStatusLabel">Estado inicial</label>
 
                     <select id="appointmentStatus" class="form-select">
@@ -149,17 +133,34 @@
                 </div>
             </div>
 
-            <!-- Notas -->
-            <div class="form-row">
-                <div class="form-group form-group--full">
-                    <label for="notes">Notas</label>
+            <!-- Campos opcionales -->
+            <details class="form-optional">
+                <summary class="form-optional__summary">Más datos (opcional)</summary>
+                <div class="form-optional__fields">
+                    <div class="form-row">
+                        <div class="form-group form-group--full">
+                            <label for="stylist">Profesional</label>
+                            <input
+                                type="text"
+                                id="stylist"
+                                list="stylistOptions"
+                                placeholder="Nombre">
+                            <datalist id="stylistOptions"></datalist>
+                        </div>
+                    </div>
 
-                    <textarea
-                        id="notes"
-                        rows="3"
-                        placeholder="Observaciones del turno"></textarea>
+                    <div class="form-row">
+                        <div class="form-group form-group--full">
+                            <label for="notes">Notas</label>
+
+                            <textarea
+                                id="notes"
+                                rows="3"
+                                placeholder="Observaciones del turno"></textarea>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </details>
 
             <p class="form-hint">Los campos con * son obligatorios.</p>
 

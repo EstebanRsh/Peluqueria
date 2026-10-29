@@ -92,6 +92,7 @@
                 </fieldset>
 
                 <p class="form-hint">Al cargar un turno te muestra el lugar libre y te avisa si queda fuera de horario.</p>
+                <p class="form-hint">Los campos con * son obligatorios.</p>
 
                 <button type="submit" class="btn btn--primary" id="hoursSave">Guardar horario</button>
             </form>
@@ -168,6 +169,7 @@
                 </div>
 
                 <p class="form-hint">Al cambiarla se cierran tus otras sesiones abiertas.</p>
+                <p class="form-hint">Los campos con * son obligatorios.</p>
 
                 <button type="submit" class="btn btn--primary" id="passwordSave">Guardar contraseña</button>
 

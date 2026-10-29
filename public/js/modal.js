@@ -33,7 +33,12 @@ import {
   createAutocomplete,
   createClientAutocomplete,
 } from "./autocomplete.js";
-import { clearInvalidOnInput, createFeedback, setBusy } from "./feedback.js";
+import {
+  clearInvalidOnInput,
+  createFeedback,
+  setBusy,
+  syncOptionalSections,
+} from "./feedback.js";
 import { confirmAction, confirmChoice, showResult } from "./confirm.js";
 
 // ============================================================
@@ -182,12 +187,11 @@ export function initModal() {
   });
 
   $("clientSelected")?.addEventListener("click", () =>
-    changeSelected($("clientSelected"), $("clientSearch"), $("clientHelp")),
+    changeSelected($("clientSelected"), $("clientSearch")),
   );
   keepSelected(
     $("clientSelected"),
     $("clientSearch"),
-    $("clientHelp"),
     () => $("clientId").value || $("clientName").value,
     () => clientAutocomplete?.reset(),
   );
@@ -231,10 +235,7 @@ export function initModal() {
   $("serviceList").addEventListener("click", handleServiceListClick);
   $("serviceList").addEventListener("change", handleServiceDurationChange);
 
-  $("price")?.addEventListener("input", () => {
-    syncPriceMode();
-    updatePriceHint();
-  });
+  $("price")?.addEventListener("input", syncPriceMode);
 
   // ----------------------------------------------------------
   // FECHA, HORARIO Y PROFESIONAL
@@ -335,6 +336,7 @@ function showPanel(firstField, fromLeft = false) {
     modalPanel.classList.remove("is-from-left");
   }
 
+  syncOptionalSections(modalPanel);
   modalOverlay.classList.add("is-open");
   modalPanel.classList.add("is-open");
   modalPanel.setAttribute("aria-hidden", "false");
@@ -411,7 +413,6 @@ function openEditModal(
   $("appointmentStatus").value = finish ? FINISHED_STATUS : appointment.status;
 
   syncPriceMode();
-  updatePriceHint();
 
   const duration = totalDuration();
 
@@ -453,7 +454,6 @@ function showClientChip(title, meta) {
   $("clientSelected").hidden = false;
   $("clientSearch").hidden = true;
   $("clientSearch").value = "";
-  $("clientHelp").hidden = true;
 }
 
 function selectClient(client) {
@@ -481,18 +481,13 @@ function useAlias(text) {
   $("serviceSearch")?.focus();
 }
 
-function changeSelected(field, search, help = null) {
+function changeSelected(field, search) {
   field.hidden = true;
   search.hidden = false;
-
-  if (help) {
-    help.hidden = false;
-  }
-
   search.focus();
 }
 
-function keepSelected(field, search, help, hasValue, reset) {
+function keepSelected(field, search, hasValue, reset) {
   search.addEventListener("blur", () => {
     setTimeout(() => {
       if (search.hidden || search.value.trim() !== "" || !hasValue()) {
@@ -502,10 +497,6 @@ function keepSelected(field, search, help, hasValue, reset) {
       field.hidden = false;
       search.hidden = true;
       reset();
-
-      if (help) {
-        help.hidden = true;
-      }
     }, 200);
   });
 }
@@ -620,8 +611,6 @@ function servicesChanged() {
   if (duration > 0) {
     calculateEndTime(duration);
   }
-
-  updatePriceHint();
   refreshDaySchedule();
 }
 
@@ -632,17 +621,6 @@ function syncPriceMode() {
     value === "" || Number(value) === roundMoney(servicesTotal("price"));
 }
 
-function updatePriceHint() {
-  const hint = $("priceHint");
-
-  hint.textContent = priceIsAutomatic
-    ? "Es la suma de los servicios. Podés cambiarlo."
-    : `La suma de los servicios es $${roundMoney(servicesTotal("price"))}. Cambiaste el precio a mano.`;
-  hint.hidden =
-    selectedServices.length === 0 ||
-    (priceIsAutomatic && selectedServices.length < 2);
-}
-
 function resetServices() {
   selectedServices = [];
   servicesLocked = false;
@@ -650,7 +628,6 @@ function resetServices() {
   $("serviceSearch").value = "";
   serviceAutocomplete?.reset();
   renderServices();
-  updatePriceHint();
 }
 
 // ============================================================
@@ -1134,7 +1111,6 @@ function clearModal() {
 
   $("clientSelected").hidden = true;
   $("clientSearch").hidden = false;
-  $("clientHelp").hidden = false;
   clientAutocomplete?.reset();
 
   editingAppointment = null;
