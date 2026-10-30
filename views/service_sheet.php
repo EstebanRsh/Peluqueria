@@ -70,7 +70,7 @@
                     </button>
 
                 </div>
-                <p class="form-hint">Podés completar más de una categoría. Un punto marca las que ya tienen datos.</p>
+                <p class="form-hint">Podés completar más de una categoría. Las que ya tienen datos se pintan de dorado.</p>
             </div>
 
             <!-- PANEL: COLOR -->
@@ -103,16 +103,29 @@
                     <div class="form-group">
                         <label for="colorQuantityValue">Cantidad de color</label>
                         <div class="input-with-unit">
-                            <input type="number" id="colorQuantityValue" class="input-base" min="1" step="1" inputmode="numeric" placeholder="Ej: 50" data-presets="30,40,50,60,80">
+                            <input type="number" id="colorQuantityValue" class="input-base" min="1" step="1" inputmode="numeric" placeholder="Ej: 50">
                             <span>g</span>
+                        </div>
+                        <div class="preset-chips" role="group" aria-label="Valores frecuentes de cantidad de color" data-for="colorQuantityValue">
+                            <button type="button" class="btn-filter preset-chip" data-value="30" aria-pressed="false">30</button>
+                            <button type="button" class="btn-filter preset-chip" data-value="40" aria-pressed="false">40</button>
+                            <button type="button" class="btn-filter preset-chip" data-value="50" aria-pressed="false">50</button>
+                            <button type="button" class="btn-filter preset-chip" data-value="60" aria-pressed="false">60</button>
+                            <button type="button" class="btn-filter preset-chip" data-value="80" aria-pressed="false">80</button>
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label for="colorOxidantValue">Oxidante</label>
                         <div class="input-with-unit">
-                            <input type="number" id="colorOxidantValue" class="input-base" min="1" step="1" inputmode="numeric" placeholder="Ej: 20" data-presets="10,20,30,40">
+                            <input type="number" id="colorOxidantValue" class="input-base" min="1" step="1" inputmode="numeric" placeholder="Ej: 20">
                             <span>vol</span>
+                        </div>
+                        <div class="preset-chips" role="group" aria-label="Valores frecuentes de oxidante" data-for="colorOxidantValue">
+                            <button type="button" class="btn-filter preset-chip" data-value="10" aria-pressed="false">10</button>
+                            <button type="button" class="btn-filter preset-chip" data-value="20" aria-pressed="false">20</button>
+                            <button type="button" class="btn-filter preset-chip" data-value="30" aria-pressed="false">30</button>
+                            <button type="button" class="btn-filter preset-chip" data-value="40" aria-pressed="false">40</button>
                         </div>
                     </div>
                 </div>
@@ -120,8 +133,15 @@
                 <div class="form-group">
                     <label for="colorTimeValue">Exposición</label>
                     <div class="input-with-unit">
-                        <input type="number" id="colorTimeValue" class="input-base" min="1" step="1" inputmode="numeric" placeholder="Ej: 35" data-presets="20,30,35,45,60">
+                        <input type="number" id="colorTimeValue" class="input-base" min="1" step="1" inputmode="numeric" placeholder="Ej: 35">
                         <span>min</span>
+                    </div>
+                    <div class="preset-chips" role="group" aria-label="Valores frecuentes de exposición" data-for="colorTimeValue">
+                        <button type="button" class="btn-filter preset-chip" data-value="20" aria-pressed="false">20</button>
+                        <button type="button" class="btn-filter preset-chip" data-value="30" aria-pressed="false">30</button>
+                        <button type="button" class="btn-filter preset-chip" data-value="35" aria-pressed="false">35</button>
+                        <button type="button" class="btn-filter preset-chip" data-value="45" aria-pressed="false">45</button>
+                        <button type="button" class="btn-filter preset-chip" data-value="60" aria-pressed="false">60</button>
                     </div>
                 </div>
 
@@ -169,8 +189,14 @@
                     <div class="form-group">
                         <label for="treatmentMlValue">Cantidad aplicada</label>
                         <div class="input-with-unit">
-                            <input type="number" id="treatmentMlValue" class="input-base" min="1" step="1" inputmode="numeric" placeholder="Ej: 60" data-presets="30,60,100,150">
+                            <input type="number" id="treatmentMlValue" class="input-base" min="1" step="1" inputmode="numeric" placeholder="Ej: 60">
                             <span>ml</span>
+                        </div>
+                        <div class="preset-chips" role="group" aria-label="Valores frecuentes de cantidad aplicada" data-for="treatmentMlValue">
+                            <button type="button" class="btn-filter preset-chip" data-value="30" aria-pressed="false">30</button>
+                            <button type="button" class="btn-filter preset-chip" data-value="60" aria-pressed="false">60</button>
+                            <button type="button" class="btn-filter preset-chip" data-value="100" aria-pressed="false">100</button>
+                            <button type="button" class="btn-filter preset-chip" data-value="150" aria-pressed="false">150</button>
                         </div>
                     </div>
                 </div>
@@ -179,16 +205,28 @@
                     <div class="form-group">
                         <label for="treatmentTempValue">Temperatura de plancha</label>
                         <div class="input-with-unit">
-                            <input type="number" id="treatmentTempValue" class="input-base" min="1" step="1" inputmode="numeric" placeholder="Ej: 200" data-presets="160,180,200,210">
+                            <input type="number" id="treatmentTempValue" class="input-base" min="1" step="1" inputmode="numeric" placeholder="Ej: 200">
                             <span>°C</span>
+                        </div>
+                        <div class="preset-chips" role="group" aria-label="Valores frecuentes de temperatura de plancha" data-for="treatmentTempValue">
+                            <button type="button" class="btn-filter preset-chip" data-value="160" aria-pressed="false">160</button>
+                            <button type="button" class="btn-filter preset-chip" data-value="180" aria-pressed="false">180</button>
+                            <button type="button" class="btn-filter preset-chip" data-value="200" aria-pressed="false">200</button>
+                            <button type="button" class="btn-filter preset-chip" data-value="210" aria-pressed="false">210</button>
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label for="treatmentPassesValue">Pasadas por mecha</label>
                         <div class="input-with-unit">
-                            <input type="number" id="treatmentPassesValue" class="input-base" min="1" step="1" inputmode="numeric" placeholder="Ej: 10" data-presets="5,8,10,12">
+                            <input type="number" id="treatmentPassesValue" class="input-base" min="1" step="1" inputmode="numeric" placeholder="Ej: 10">
                             <span>pasadas</span>
+                        </div>
+                        <div class="preset-chips" role="group" aria-label="Valores frecuentes de pasadas por mecha" data-for="treatmentPassesValue">
+                            <button type="button" class="btn-filter preset-chip" data-value="5" aria-pressed="false">5</button>
+                            <button type="button" class="btn-filter preset-chip" data-value="8" aria-pressed="false">8</button>
+                            <button type="button" class="btn-filter preset-chip" data-value="10" aria-pressed="false">10</button>
+                            <button type="button" class="btn-filter preset-chip" data-value="12" aria-pressed="false">12</button>
                         </div>
                     </div>
                 </div>

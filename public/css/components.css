@@ -1063,6 +1063,7 @@ select.form-select:focus {
 
 .detail-card--end .detail-value {
   text-align: right;
+  white-space: pre-line;
 }
 
 .detail-card--inline {
@@ -2495,15 +2496,16 @@ label.btn-filter {
   font-size: 0.75rem;
 }
 
-.quick-cat-btn.has-data::after {
-  content: "";
-  display: inline-block;
-  width: 0.4rem;
-  height: 0.4rem;
-  margin-left: var(--space-2);
+.quick-cat-btn.has-data {
   background: var(--color-gold);
-  border-radius: var(--radius-ctrl);
-  vertical-align: middle;
+  border-color: var(--color-gold-dark);
+  color: var(--color-text);
+}
+
+.quick-cat-btn.has-data.is-active {
+  background: var(--color-text);
+  border-color: var(--color-gold);
+  color: var(--color-surface);
 }
 
 .selected-chip__actions {
