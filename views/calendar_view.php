@@ -172,8 +172,48 @@ foreach ($events as $dayEvents) {
             <button type="button" class="surface__close" id="panelClose" aria-label="Cerrar"></button>
         </div>
     </div>
-    <div class="surface__body" id="panelBody"></div>
+    <div class="surface__body" id="panelBody">
+        <div class="panel-controls">
+            <div class="search-field">
+                <input
+                    class="panel-search"
+                    type="text"
+                    id="appointmentSearch"
+                    aria-label="Buscar turnos"
+                    placeholder="Buscar por cliente…"
+                    autocomplete="off">
+            </div>
+
+            <div class="panel-filters" id="appointmentFilters" role="group" aria-label="Filtrar por estado"></div>
+        </div>
+
+        <div id="appointmentsListContainer"></div>
+    </div>
 </aside>
+
+<template id="appointmentFilterTemplate">
+    <button type="button" class="btn-filter" aria-pressed="false"></button>
+</template>
+<template id="appointmentLoadingTemplate">
+    <p class="panel-loading" role="status">Cargando turnos…</p>
+</template>
+<template id="appointmentEmptyTemplate">
+    <p class="panel-empty" role="status">No se encontraron turnos para este día con los filtros aplicados.</p>
+</template>
+<template id="appointmentCardTemplate">
+    <div class="appointment-card">
+        <div class="appointment-card__row" role="button" tabindex="0">
+            <span class="appointment-card__moment" hidden></span>
+            <span class="appointment-card__time"></span>
+            <span class="appointment-card__name"></span>
+            <span class="appointment-card__service"></span>
+        </div>
+
+        <div class="appointment-card__status">
+            <button type="button" class="status-badge status-badge--action" data-action="status" title="Cambiar estado"></button>
+        </div>
+    </div>
+</template>
 
 <!-- =====================================================
      VENTANITA DE ESTADO DEL TURNO
@@ -269,4 +309,75 @@ foreach ($events as $dayEvents) {
 </template>
 <template id="statusHistoryErrorTemplate">
     <p class="history-error" role="alert"></p>
+</template>
+<template id="appointmentDetailTemplate">
+    <div class="side-drawer-overlay side-drawer-overlay--nested is-open"></div>
+    <aside class="side-drawer side-drawer--nested is-open" role="dialog" aria-modal="true" aria-label="Detalle del turno" tabindex="-1">
+        <div class="surface__header">
+            <div class="surface__heading">
+                <span class="surface__meta" data-field="time"></span>
+                <h3 class="surface__title" data-field="client"></h3>
+            </div>
+
+            <button type="button" class="surface__close" data-action="close-detail" aria-label="Cerrar detalle"></button>
+        </div>
+
+        <div class="surface__body">
+            <section class="detail-grid">
+                <div class="detail-card detail-card-full detail-card--inline">
+                    <span class="detail-label">Fecha</span>
+                    <span class="detail-value" data-field="date"></span>
+                </div>
+
+                <div class="detail-card detail-card-full detail-card--end">
+                    <span class="detail-label">Servicio</span>
+                    <span class="detail-value" data-field="service"></span>
+                </div>
+
+                <div class="detail-card detail-card-full detail-card--inline">
+                    <span class="detail-label">Profesional</span>
+                    <span class="detail-value" data-field="stylist"></span>
+                </div>
+
+                <div class="detail-card detail-card-full detail-card--inline">
+                    <span class="detail-label">Duración</span>
+                    <span class="detail-value" data-field="duration"></span>
+                </div>
+
+                <div class="detail-card detail-card-full detail-card--inline">
+                    <span class="detail-label">Precio</span>
+                    <span class="detail-value" data-field="price"></span>
+                </div>
+
+                <div class="detail-card detail-card-full detail-card--inline">
+                    <span class="detail-label">Estado</span>
+                    <button type="button" class="status-badge status-badge--action" data-action="status" data-id="" data-detail-status title="Cambiar estado"></button>
+                </div>
+
+                <div class="detail-card detail-card-full detail-card--inline">
+                    <span class="detail-label">Horario</span>
+                    <span class="detail-value" data-field="schedule"></span>
+                </div>
+
+                <div class="detail-card detail-card-full" data-notes>
+                    <span class="detail-label">Notas</span>
+                    <span class="detail-value" data-field="notes"></span>
+                </div>
+            </section>
+
+            <section class="appointment-history-log">
+                <div class="history-title">Historial de estado</div>
+                <div class="history-items">
+                    <p class="history-placeholder" role="status">Cargando historial…</p>
+                </div>
+            </section>
+        </div>
+
+        <div class="surface__footer">
+            <button type="button" class="btn btn--ghost" data-action="close-detail">Cerrar</button>
+            <button type="button" class="btn btn--danger" data-action="delete" data-id="">Eliminar turno</button>
+            <button type="button" class="btn btn--ghost" data-action="edit" data-id="">Editar turno</button>
+            <button type="button" class="btn btn--primary" data-action="record" data-id="">Cargar ficha</button>
+        </div>
+    </aside>
 </template>

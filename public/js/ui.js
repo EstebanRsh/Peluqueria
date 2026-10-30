@@ -21,7 +21,7 @@ import {
   INACTIVE_STATUSES,
   STATUS_FILTERS,
 } from "./constants.js";
-import { $, escapeHtml, restoreFocus, setActiveFilter } from "./dom.js";
+import { $, restoreFocus, setActiveFilter } from "./dom.js";
 import {
   displayStatus,
   formatDate,
@@ -31,7 +31,7 @@ import {
   toMinutes,
 } from "./utils.js";
 import { setSearching } from "./feedback.js";
-import { debounce, errorBlock } from "./list.js";
+import { debounce, errorBlock, fillFields } from "./list.js";
 import { appState } from "./state.js";
 
 // ============================================================
@@ -42,10 +42,6 @@ const panel = document.getElementById("dayPanel");
 const panelOverlay = document.getElementById("dayPanelOverlay");
 const panelDate = document.getElementById("panelDate");
 const panelBody = document.getElementById("panelBody");
-
-if (panel && !panel.hasAttribute("tabindex")) {
-  panel.setAttribute("tabindex", "-1");
-}
 
 const appointmentMap = new Map();
 
@@ -94,7 +90,7 @@ export function openPanelForDate(cell, date, statusFilter) {
   const dateFormatted = formatDate(date);
   panelDate.textContent = dateFormatted;
 
-  renderPanelShell();
+  resetPanelControls();
 
   panel.classList.add("is-open");
   panel.setAttribute("aria-hidden", "false");
@@ -316,43 +312,21 @@ export async function syncCalendarDay(date) {
 // ESTRUCTURA DEL PANEL (BÚSQUEDA, FILTROS Y LISTA)
 // ============================================================
 
-function renderPanelShell() {
-  const filterButtons = STATUS_FILTERS.map((filter) => {
-    const isActive = appointmentFilterStatus === filter.value;
+function resetPanelControls() {
+  $("appointmentSearch").value = appointmentSearchQuery;
+  $("appointmentFilters").replaceChildren(
+    ...STATUS_FILTERS.map((filter) => {
+      const button = $("appointmentFilterTemplate").content.firstElementChild.cloneNode(true);
+      const isActive = appointmentFilterStatus === filter.value;
 
-    return `
-      <button
-        type="button"
-        class="btn-filter${isActive ? " is-active" : ""}"
-        data-status="${filter.value}"
-        aria-pressed="${isActive}"
-      >
-        ${filter.label}
-      </button>
-    `;
-  }).join("");
+      button.classList.toggle("is-active", isActive);
+      button.dataset.status = filter.value;
+      button.setAttribute("aria-pressed", String(isActive));
+      button.textContent = filter.label;
 
-  panelBody.innerHTML = `
-    <div class="panel-controls">
-      <div class="search-field">
-        <input
-          class="panel-search"
-          type="text"
-          id="appointmentSearch"
-          aria-label="Buscar turnos"
-          placeholder="Buscar por cliente…"
-          value="${escapeHtml(appointmentSearchQuery)}"
-          autocomplete="off"
-        />
-      </div>
-
-      <div class="panel-filters" role="group" aria-label="Filtrar por estado">
-        ${filterButtons}
-      </div>
-    </div>
-
-    <div id="appointmentsListContainer"></div>
-  `;
+      return button;
+    }),
+  );
 }
 
 panelBody?.addEventListener("click", (event) => {
@@ -424,15 +398,13 @@ export async function loadAppointments(date, { showLoading = true } = {}) {
     return;
   }
 
-  if (!document.getElementById("appointmentsListContainer")) {
-    renderPanelShell();
-  }
-
   const container = document.getElementById("appointmentsListContainer");
   const token = ++loadToken;
 
   if (showLoading) {
-    container.innerHTML = `<p class="panel-loading" role="status">Cargando turnos…</p>`;
+    container.replaceChildren(
+      $("appointmentLoadingTemplate").content.firstElementChild.cloneNode(true),
+    );
   }
 
   container.setAttribute("aria-busy", "true");
@@ -477,68 +449,46 @@ function renderAppointmentsList(container, appointments) {
   appointmentMap.clear();
 
   if (!appointments || !appointments.length) {
-    container.innerHTML = `
-      <p class="panel-empty" role="status">
-        No se encontraron turnos para este día con los filtros aplicados.
-      </p>
-    `;
+    container.replaceChildren(
+      $("appointmentEmptyTemplate").content.firstElementChild.cloneNode(true),
+    );
     return;
   }
 
-  container.innerHTML = appointments
-    .map((appointment) => {
+  container.replaceChildren(
+    ...appointments.map((appointment) => {
+      const card = $("appointmentCardTemplate").content.firstElementChild.cloneNode(true);
+      const row = card.querySelector(".appointment-card__row");
+      const moment = card.querySelector(".appointment-card__moment");
+      const badge = card.querySelector(".status-badge");
       const shownStatus = displayStatus(appointment);
-      const sluggedStatus = slugify(shownStatus);
-
-      const displayClientName =
+      const clientName =
         appointment.client_name || appointment.alias || "Sin cliente asociado";
-
       const time = formatTime(appointment.time_start);
 
       appointmentMap.set(String(appointment.id), appointment);
 
-      return `
-        <div
-          class="appointment-card"
-          data-id="${escapeHtml(appointment.id)}"
-        >
-          <div
-            class="appointment-card__row"
-            role="button"
-            tabindex="0"
-            aria-label="Ver detalle del turno de ${escapeHtml(displayClientName)} a las ${escapeHtml(time)}"
-            aria-describedby="moment-${escapeHtml(appointment.id)}"
-          >
-            <span class="appointment-card__moment" id="moment-${escapeHtml(appointment.id)}" hidden></span>
+      card.dataset.id = appointment.id;
+      row.setAttribute(
+        "aria-label",
+        `Ver detalle del turno de ${clientName} a las ${time}`,
+      );
+      row.setAttribute("aria-describedby", `moment-${appointment.id}`);
+      moment.id = `moment-${appointment.id}`;
+      card.querySelector(".appointment-card__time").textContent = time;
+      card.querySelector(".appointment-card__name").textContent = clientName;
+      card.querySelector(".appointment-card__service").textContent =
+        appointment.service_name || "Servicio no disponible";
+      badge.classList.add(`status-badge--${slugify(shownStatus)}`);
+      badge.textContent = shownStatus;
+      badge.setAttribute(
+        "aria-label",
+        `Cambiar el estado del turno de ${clientName}: ${shownStatus}`,
+      );
 
-            <span class="appointment-card__time">
-              ${escapeHtml(time)}
-            </span>
-
-            <span class="appointment-card__name">
-              ${escapeHtml(displayClientName)}
-            </span>
-
-            <span class="appointment-card__service">
-              ${escapeHtml(appointment.service_name || "Servicio no disponible")}
-            </span>
-          </div>
-
-          <div class="appointment-card__status">
-            <button
-              type="button"
-              class="status-badge status-badge--${sluggedStatus} status-badge--action"
-              data-action="status"
-              aria-label="Cambiar el estado del turno de ${escapeHtml(displayClientName)}: ${escapeHtml(shownStatus)}"
-              title="Cambiar estado"
-            >
-              ${escapeHtml(shownStatus)}
-            </button>
-          </div>
-        </div>
-      `;
-    })
-    .join("");
+      return card;
+    }),
+  );
 
   applyMoments();
 }
@@ -637,21 +587,6 @@ function stopMomentTimer() {
 // DETALLE DE TURNO
 // ============================================================
 
-function serviceDetailHtml(appointment) {
-  const services = appointment.services ?? [];
-
-  if (services.length < 2) {
-    return escapeHtml(appointment.service_name || "No disponible");
-  }
-
-  return services
-    .map(
-      (service) =>
-        `${escapeHtml(service.name)} · $${escapeHtml(service.price)}`,
-    )
-    .join("<br>");
-}
-
 function openAppointmentDetailModal(appointmentId) {
   const appointment = appointmentMap.get(String(appointmentId));
 
@@ -666,163 +601,49 @@ function openAppointmentDetailModal(appointmentId) {
   const displayClientName =
     appointment.client_name || appointment.alias || "Sin cliente asociado";
 
-  const detailOverlay = document.createElement("div");
-  detailOverlay.className =
-    "side-drawer-overlay side-drawer-overlay--nested is-open";
+  const fragment = $("appointmentDetailTemplate").content.cloneNode(true);
+  const detailOverlay = fragment.querySelector(".side-drawer-overlay");
+  const detailPanel = fragment.querySelector("aside");
+  const status = displayStatus(appointment);
+  const services = appointment.services ?? [];
+  const badge = detailPanel.querySelector("[data-detail-status]");
 
-  const detailPanel = document.createElement("aside");
-  detailPanel.className = "side-drawer side-drawer--nested is-open";
-  detailPanel.setAttribute("role", "dialog");
-  detailPanel.setAttribute("aria-modal", "true");
-  detailPanel.setAttribute("aria-label", "Detalle del turno");
-  detailPanel.setAttribute("tabindex", "-1");
+  fillFields(detailPanel, {
+    time: `${formatTime(appointment.time_start)} hs`,
+    client: displayClientName,
+    date: formatDate(appState.activeDay),
+    service:
+      services.length < 2
+        ? appointment.service_name || "No disponible"
+        : services
+            .map((service) => `${service.name} · $${service.price}`)
+            .join("\n"),
+    stylist: appointment.stylist || "Sin asignar",
+    duration: appointment.service_duration
+      ? `${appointment.service_duration} min`
+      : "No disponible",
+    price: `$${appointment.price || "0"}`,
+    schedule: `${formatTime(appointment.time_start)} - ${formatTime(appointment.time_end)}`,
+    notes: appointment.notes || "Sin observaciones",
+  });
+  detailPanel
+    .querySelector("[data-notes]")
+    .classList.toggle("detail-card--inline", !appointment.notes);
+  badge.classList.add(`status-badge--${slugify(status)}`);
+  badge.textContent = status;
+  badge.setAttribute("aria-label", `Cambiar el estado del turno: ${status}`);
+  detailPanel.querySelectorAll("[data-id]").forEach((button) => {
+    button.dataset.id = appointment.id;
+  });
 
-  detailPanel.innerHTML = `
-      <div class="surface__header">
-        <div class="surface__heading">
-          <span class="surface__meta">
-            ${escapeHtml(formatTime(appointment.time_start))} hs
-          </span>
+  if (
+    appointment.status !== FINISHED_STATUS ||
+    Number(appointment.has_record) === 1
+  ) {
+    detailPanel.querySelector('[data-action="record"]').remove();
+  }
 
-          <h3 class="surface__title">
-            ${escapeHtml(displayClientName)}
-          </h3>
-        </div>
-
-        <button
-          type="button"
-          class="surface__close"
-          data-action="close-detail"
-          aria-label="Cerrar detalle"
-        ></button>
-      </div>
-
-      <div class="surface__body">
-        <section class="detail-grid">
-          <div class="detail-card detail-card-full detail-card--inline">
-            <span class="detail-label">Fecha</span>
-            <span class="detail-value">
-              ${escapeHtml(formatDate(appState.activeDay))}
-            </span>
-          </div>
-
-          <div class="detail-card detail-card-full detail-card--end">
-            <span class="detail-label">Servicio</span>
-            <span class="detail-value">
-              ${serviceDetailHtml(appointment)}
-            </span>
-          </div>
-
-          <div class="detail-card detail-card-full detail-card--inline">
-            <span class="detail-label">Profesional</span>
-            <span class="detail-value">
-              ${escapeHtml(appointment.stylist || "Sin asignar")}
-            </span>
-          </div>
-
-          <div class="detail-card detail-card-full detail-card--inline">
-            <span class="detail-label">Duración</span>
-            <span class="detail-value">
-              ${
-                appointment.service_duration
-                  ? `${escapeHtml(appointment.service_duration)} min`
-                  : "No disponible"
-              }
-            </span>
-          </div>
-
-          <div class="detail-card detail-card-full detail-card--inline">
-            <span class="detail-label">Precio</span>
-            <span class="detail-value">
-              $${escapeHtml(appointment.price || "0")}
-            </span>
-          </div>
-
-          <div class="detail-card detail-card-full detail-card--inline">
-            <span class="detail-label">Estado</span>
-            <button
-              type="button"
-              class="status-badge status-badge--${slugify(displayStatus(appointment))} status-badge--action"
-              data-action="status"
-              data-id="${escapeHtml(appointment.id)}"
-              data-detail-status
-              aria-label="Cambiar el estado del turno: ${escapeHtml(displayStatus(appointment))}"
-              title="Cambiar estado"
-            >
-              ${escapeHtml(displayStatus(appointment))}
-            </button>
-          </div>
-
-          <div class="detail-card detail-card-full detail-card--inline">
-            <span class="detail-label">Horario</span>
-            <span class="detail-value">
-              ${escapeHtml(formatTime(appointment.time_start))} - ${escapeHtml(
-                formatTime(appointment.time_end),
-              )}
-            </span>
-          </div>
-
-          <div class="detail-card detail-card-full${appointment.notes ? "" : " detail-card--inline"}">
-            <span class="detail-label">Notas</span>
-            <span class="detail-value">
-              ${escapeHtml(appointment.notes || "Sin observaciones")}
-            </span>
-          </div>
-        </section>
-
-        <section class="appointment-history-log">
-          <div class="history-title">Historial de estado</div>
-          <div class="history-items">
-            <p class="history-placeholder" role="status">Cargando historial…</p>
-          </div>
-        </section>
-      </div>
-
-      <div class="surface__footer">
-        <button
-          type="button"
-          class="btn btn--ghost"
-          data-action="close-detail"
-        >
-          Cerrar
-        </button>
-
-        <button
-          type="button"
-          class="btn btn--danger"
-          data-action="delete"
-          data-id="${escapeHtml(appointment.id)}"
-        >
-          Eliminar turno
-        </button>
-
-        <button
-          type="button"
-          class="btn btn--ghost"
-          data-action="edit"
-          data-id="${escapeHtml(appointment.id)}"
-        >
-          Editar turno
-        </button>
-
-        ${
-          appointment.status === FINISHED_STATUS &&
-          Number(appointment.has_record) !== 1
-            ? `<button
-          type="button"
-          class="btn btn--primary"
-          data-action="record"
-          data-id="${escapeHtml(appointment.id)}"
-        >
-          Cargar ficha
-        </button>`
-            : ""
-        }
-      </div>
-  `;
-
-  document.body.appendChild(detailOverlay);
-  document.body.appendChild(detailPanel);
+  document.body.append(detailOverlay, detailPanel);
   document.body.classList.add("has-detail-modal");
 
   activeDetailModal = {

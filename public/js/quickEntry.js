@@ -220,9 +220,7 @@ export function initQuickEntry() {
       });
     });
 
-    panel.querySelectorAll("input[data-presets]").forEach((input) => {
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-    });
+    syncPresetChips();
 
     cartItems = (record.consumptions ?? []).map((item) => ({
       product_id: Number(item.product_id),
@@ -410,44 +408,24 @@ export function initQuickEntry() {
   // VALORES FRECUENTES DE LOS CAMPOS NUMÉRICOS
   // ============================================================
 
-  panel.querySelectorAll("input[data-presets]").forEach((input) => {
-    const values = input.dataset.presets
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean);
+  const syncPresetChips = () => {
+    panel.querySelectorAll(".preset-chips[data-for]").forEach((group) => {
+      $(group.dataset.for).dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  };
 
-    const label = document.querySelector(`label[for="${input.id}"]`);
-    const group = document.createElement("div");
+  panel.querySelectorAll(".preset-chips[data-for]").forEach((group) => {
+    const input = $(group.dataset.for);
+    const chips = [...group.querySelectorAll(".preset-chip")];
 
-    group.className = "preset-chips";
-    group.setAttribute("role", "group");
-    group.setAttribute(
-      "aria-label",
-      `Valores frecuentes${label ? ` de ${label.textContent.trim().toLowerCase()}` : ""}`,
-    );
-
-    values.forEach((value) => {
-      const chip = document.createElement("button");
-
-      chip.type = "button";
-      chip.className = "btn-filter preset-chip";
-      chip.dataset.value = value;
-      chip.setAttribute("aria-pressed", "false");
-      chip.textContent = value;
-
+    chips.forEach((chip) => {
       chip.addEventListener("click", () => {
-        input.value = value;
+        input.value = chip.dataset.value;
         input.dispatchEvent(new Event("input", { bubbles: true }));
       });
-
-      group.appendChild(chip);
     });
 
-    input.closest(".input-with-unit")?.insertAdjacentElement("afterend", group);
-
     input.addEventListener("input", () => {
-      const chips = [...group.querySelectorAll(".preset-chip")];
-
       setActiveFilter(
         chips,
         chips.find((chip) => chip.dataset.value === input.value) ?? null,
@@ -966,9 +944,7 @@ export function initQuickEntry() {
         input.value = "";
       });
 
-    panel.querySelectorAll("input[data-presets]").forEach((input) => {
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-    });
+    syncPresetChips();
 
     clearClientUi();
     linkedAppointment = null;
