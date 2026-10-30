@@ -21,7 +21,7 @@ import {
   INACTIVE_STATUSES,
   STATUS_FILTERS,
 } from "./constants.js";
-import { escapeHtml, restoreFocus, setActiveFilter } from "./dom.js";
+import { $, escapeHtml, restoreFocus, setActiveFilter } from "./dom.js";
 import {
   displayStatus,
   formatDate,
@@ -1198,37 +1198,44 @@ async function loadTimelineHistory(id, container) {
     }
 
     if (!history || !history.length) {
-      container.innerHTML = `<p class="history-empty">Sin cambios de estado registrados.</p>`;
+      container.replaceChildren(
+        $("statusHistoryEmptyTemplate").content.firstElementChild.cloneNode(true),
+      );
       return;
     }
 
-    container.innerHTML = history
-      .map((historyItem) => {
-        const time = String(historyItem.changed_at ?? "").slice(11, 16);
+    container.replaceChildren(
+      ...history.map((historyItem) => {
+        const entry = $("statusHistoryEntryTemplate").content.firstElementChild.cloneNode(true);
+        const reason = entry.querySelector('[data-field="reason"]');
 
-        return `
-          <div class="shadow-text">
-            <span class="shadow-text__dot" aria-hidden="true"></span>
-            <strong>${escapeHtml(time)} hs:</strong>
-            ${
-              historyItem.status_from
-                ? escapeHtml(historyItem.status_from)
-                : "Turno creado"
-            }
-            <span class="shadow-text__arrow" aria-hidden="true"></span>
-            <span>${escapeHtml(historyItem.status_to)}</span>
-            ${historyItem.reason ? `<span class="shadow-text__reason">Motivo: ${escapeHtml(historyItem.reason)}</span>` : ""}
-          </div>
-        `;
-      })
-      .join("");
+        entry.querySelector('[data-field="time"]').textContent =
+          `${String(historyItem.changed_at ?? "").slice(11, 16)} hs:`;
+        entry.querySelector('[data-field="from"]').textContent =
+          historyItem.status_from || "Turno creado";
+        entry.querySelector('[data-field="to"]').textContent =
+          historyItem.status_to;
+
+        if (historyItem.reason) {
+          reason.textContent = `Motivo: ${historyItem.reason}`;
+        } else {
+          reason.remove();
+        }
+
+        return entry;
+      }),
+    );
   } catch (error) {
     logError("Error al cargar historial:", error);
 
     if (container.isConnected) {
-      container.innerHTML = `<p class="history-error" role="alert">${escapeHtml(
-        getErrorMessage(error, "No se pudo cargar el historial."),
-      )}</p>`;
+      const message = $("statusHistoryErrorTemplate").content.firstElementChild.cloneNode(true);
+
+      message.textContent = getErrorMessage(
+        error,
+        "No se pudo cargar el historial.",
+      );
+      container.replaceChildren(message);
     }
   }
 }

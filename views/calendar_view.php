@@ -253,3 +253,20 @@ foreach ($events as $dayEvents) {
         </form>
     </div>
 </dialog>
+
+<template id="statusHistoryEntryTemplate">
+    <div class="shadow-text">
+        <span class="shadow-text__dot" aria-hidden="true"></span>
+        <strong data-field="time"></strong>
+        <span data-field="from"></span>
+        <span class="shadow-text__arrow" aria-hidden="true"></span>
+        <span data-field="to"></span>
+        <span class="shadow-text__reason" data-field="reason"></span>
+    </div>
+</template>
+<template id="statusHistoryEmptyTemplate">
+    <p class="history-empty">Sin cambios de estado registrados.</p>
+</template>
+<template id="statusHistoryErrorTemplate">
+    <p class="history-error" role="alert"></p>
+</template>
