@@ -15,10 +15,11 @@ import {
 } from "./api.js";
 import { createAutocomplete, createClientAutocomplete } from "./autocomplete.js";
 import { UNIT_SHORTS } from "./constants.js";
-import { $, escapeHtml, setActiveFilter } from "./dom.js";
+import { $, setActiveFilter } from "./dom.js";
 import { clearInvalidOnInput, createFeedback, setBusy } from "./feedback.js";
 import { confirmAction, confirmChoice, showResult } from "./confirm.js";
 import { appState } from "./state.js";
+import { fillFields } from "./list.js";
 import { loadAppointments, syncCalendarDay } from "./ui.js";
 import { missingAppointmentNotice, stockChanges } from "./utils.js";
 
@@ -503,32 +504,28 @@ export function initQuickEntry() {
   function renderCart() {
     if (!productsTableBody) return;
 
-    if (cartItems.length === 0) {
-      productsTableBody.innerHTML =
-        '<tr><td colspan="5" class="panel-empty">Todavía no agregaste productos.</td></tr>';
-      updateTabIndicators();
-      return;
-    }
+    productsTableBody.replaceChildren(
+      ...(cartItems.length === 0
+        ? [$("cartEmptyTemplate").content.firstElementChild.cloneNode(true)]
+        : cartItems.map((item, index) => {
+            const row = $("cartRowTemplate").content.firstElementChild.cloneNode(true);
+            const quantity = row.querySelector(".cart-quantity");
+            const remove = row.querySelector(".cart-remove");
 
-    productsTableBody.innerHTML = cartItems
-      .map(
-        (item, index) => `
-          <tr>
-            <td data-label="Cantidad">
-              <input type="number" min="1" step="1" inputmode="numeric" class="cart-quantity"
-                value="${item.quantity}" data-index="${index}"
-                aria-label="Cantidad de ${escapeHtml(item.name)}">
-            </td>
-            <td data-label="Unidad">${escapeHtml(UNIT_SHORTS[item.unit] || item.unit || "—")}</td>
-            <td data-label="Nombre">${escapeHtml(item.name)}</td>
-            <td data-label="Marca">${escapeHtml(item.brand || "—")}</td>
-            <td data-label="Acciones">
-              <button type="button" class="cart-remove" data-index="${index}"
-                aria-label="Quitar ${escapeHtml(item.name)}" title="Quitar"></button>
-            </td>
-          </tr>`,
-      )
-      .join("");
+            quantity.value = item.quantity;
+            quantity.dataset.index = index;
+            quantity.setAttribute("aria-label", `Cantidad de ${item.name}`);
+            fillFields(row, {
+              unit: UNIT_SHORTS[item.unit] || item.unit || "—",
+              name: item.name,
+              brand: item.brand || "—",
+            });
+            remove.dataset.index = index;
+            remove.setAttribute("aria-label", `Quitar ${item.name}`);
+
+            return row;
+          })),
+    );
 
     updateTabIndicators();
   }

@@ -296,6 +296,22 @@
                             </tr>
                         </tbody>
                     </table>
+                    <template id="cartEmptyTemplate">
+                        <tr><td colspan="5" class="panel-empty">Todavía no agregaste productos.</td></tr>
+                    </template>
+                    <template id="cartRowTemplate">
+                        <tr>
+                            <td data-label="Cantidad">
+                                <input type="number" min="1" step="1" inputmode="numeric" class="cart-quantity">
+                            </td>
+                            <td data-label="Unidad" data-field="unit"></td>
+                            <td data-label="Nombre" data-field="name"></td>
+                            <td data-label="Marca" data-field="brand"></td>
+                            <td data-label="Acciones">
+                                <button type="button" class="cart-remove" title="Quitar"></button>
+                            </td>
+                        </tr>
+                    </template>
                 </div>
 
                 <div class="form-group">
