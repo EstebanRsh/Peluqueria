@@ -116,7 +116,7 @@ $mail = static fn(string $key): string => '<a class="text-link" href="mailto:' .
                 <p>Usamos conexión cifrada (HTTPS), guardamos las contraseñas cifradas, protegemos la sesión con una cookie que el navegador no deja leer a otros programas, y cada cuenta ve únicamente sus propios datos. Ninguna medida es infalible, pero trabajamos para proteger tu información.</p>
 
                 <h2>10. Cookies y almacenamiento en tu navegador</h2>
-                <p>Solo usamos una cookie de sesión, necesaria para que la aplicación funcione. No guardamos datos en tu navegador ni usamos cookies de publicidad ni de seguimiento.</p>
+                <p>Solo usamos una cookie de sesión, necesaria para que la aplicación funcione. No guardamos tus datos en el navegador ni usamos cookies de publicidad ni de seguimiento. Para mostrar el aviso «Sin conexión» cuando no hay internet, el navegador guarda una copia de esa pantalla con sus estilos, sin datos tuyos.</p>
 
                 <h2>11. Menores</h2>
                 <p>HairApp es para profesionales mayores de 18 años.</p>

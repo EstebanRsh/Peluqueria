@@ -5,6 +5,8 @@
 
 import { initAuthPage } from "./auth.js";
 import { initLegal } from "./legal.js";
+import { registerServiceWorker } from "./pwa.js";
 
 initAuthPage();
 initLegal();
+registerServiceWorker();

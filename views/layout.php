@@ -33,6 +33,11 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HairApp</title>
+    <meta name="theme-color" content="#1a1511">
+    <meta name="apple-mobile-web-app-title" content="HairApp">
+    <link rel="manifest" href="<?= $baseAttr ?>/public/manifest.webmanifest">
+    <link rel="icon" type="image/png" sizes="32x32" href="<?= $baseAttr ?>/public/icons/favicon-32.png">
+    <link rel="apple-touch-icon" href="<?= $baseAttr ?>/public/icons/apple-touch-icon.png">
     <style>
         html:not(.is-styled) body { visibility: hidden; animation: boot-show 0s 5s forwards; }
         @keyframes boot-show { to { visibility: visible; } }
@@ -143,6 +148,16 @@ $iconAttrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
                     </span>
                     <span class="nav-item__label">Ajustes</span>
                 </a>
+                <button type="button" class="nav-item" id="navInstall" hidden>
+                    <span class="nav-item__icon" aria-hidden="true">
+                        <svg <?= $iconAttrs ?>>
+                            <path d="M12 3v12" />
+                            <path d="M7 10l5 5 5-5" />
+                            <path d="M5 21h14" />
+                        </svg>
+                    </span>
+                    <span class="nav-item__label">Instalar app</span>
+                </button>
             </nav>
 
             <div class="premium-sidebar__footer">

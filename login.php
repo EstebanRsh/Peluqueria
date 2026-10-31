@@ -19,6 +19,11 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Acceso - HairApp</title>
+    <meta name="theme-color" content="#1a1511">
+    <meta name="apple-mobile-web-app-title" content="HairApp">
+    <link rel="manifest" href="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/public/manifest.webmanifest">
+    <link rel="icon" type="image/png" sizes="32x32" href="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/public/icons/favicon-32.png">
+    <link rel="apple-touch-icon" href="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/public/icons/apple-touch-icon.png">
     <style>
         html:not(.is-styled) body {
             visibility: hidden;
@@ -260,7 +265,6 @@ $iconAttrs = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="cur
             }
         })();
     </script>
-    <script src="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/public/js/service-worker-cleanup.js" defer></script>
     <script type="module" src="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/public/js/login.js"></script>
 </body>
 

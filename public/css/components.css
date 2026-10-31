@@ -1361,6 +1361,7 @@ select.form-select:focus {
 
 .message-screen__button {
   min-width: 10rem;
+  text-decoration: none;
   background: var(--color-on-dark);
   color: var(--message-color);
 }

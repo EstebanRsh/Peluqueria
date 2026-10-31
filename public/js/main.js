@@ -17,6 +17,7 @@ import { initLogout } from "./auth.js";
 import { initFab } from "./fab.js";
 import { appState } from "./state.js";
 import { initPanelFocusTrap } from "./dom.js";
+import { registerServiceWorker, initInstallButton } from "./pwa.js";
 
 const panel = document.getElementById("dayPanel");
 const closeBtn = document.getElementById("panelClose");
@@ -175,6 +176,8 @@ initSettings();
 initLegal();
 initQuickEntry();
 initLogout();
+initInstallButton();
+registerServiceWorker();
 
 const UNEXPECTED_ERROR_MESSAGE =
   "Ocurrió un error inesperado. Si el problema continúa, recargá la página.";

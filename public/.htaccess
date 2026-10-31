@@ -1,6 +1,7 @@
 # El navegador revalida JS y CSS en cada carga (usa ETag, no los vuelve a bajar si no cambiaron).
 <IfModule mod_mime.c>
     AddType font/woff2 .woff2
+    AddType application/manifest+json .webmanifest
 </IfModule>
 <IfModule mod_headers.c>
     <FilesMatch "\.(js|css)$">

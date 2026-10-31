@@ -120,7 +120,8 @@
     border-color var(--t-base) var(--ease-out);
 }
 
-.premium-sidebar__logout {
+.premium-sidebar__logout,
+button.nav-item {
   width: 100%;
   border: 0;
   border-left: 3px solid transparent;
