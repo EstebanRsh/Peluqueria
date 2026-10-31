@@ -404,6 +404,269 @@
 }
 
 /* ==========================================================================
+   PANEL DEL DÍA: SELECTOR DE VISTA Y AGENDA POR HORAS
+   ========================================================================== */
+
+.panel-controls__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.panel-controls__row .search-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.view-toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-round);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.view-toggle:hover {
+  background: var(--color-hover-strong);
+  border-color: var(--color-gold);
+}
+
+.view-toggle:focus-visible {
+  outline: 2px solid var(--color-gold-text);
+  outline-offset: 2px;
+}
+
+.view-toggle svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.view-toggle .view-toggle__list,
+.view-toggle.is-grid .view-toggle__grid {
+  display: none;
+}
+
+.view-toggle.is-grid .view-toggle__list {
+  display: block;
+}
+
+.day-grid {
+  --grid-hour: 3rem;
+  display: grid;
+  grid-template-columns: 2.75rem 1fr;
+  padding-top: var(--space-2);
+}
+
+.day-grid__axis {
+  position: relative;
+}
+
+.day-grid__label {
+  position: absolute;
+  top: calc(var(--y) * var(--grid-hour) / 60);
+  right: var(--space-2);
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.day-grid__track {
+  position: relative;
+  height: calc(var(--span) * var(--grid-hour) / 60);
+}
+
+.day-grid__line {
+  position: absolute;
+  top: calc(var(--y) * var(--grid-hour) / 60);
+  right: 0;
+  left: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.day-grid__line--half {
+  border-top-style: dashed;
+  opacity: 0.5;
+}
+
+.day-grid__closed {
+  position: absolute;
+  top: calc(var(--y) * var(--grid-hour) / 60);
+  right: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  height: calc(var(--len) * var(--grid-hour) / 60);
+  padding: 0 var(--space-2);
+  background: var(--color-bg);
+  border-block: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+}
+
+.day-grid__item {
+  position: absolute;
+  top: calc(var(--y) * var(--grid-hour) / 60 + 1px);
+  left: calc(var(--lane) * 100% / var(--lanes) + 2px);
+  width: calc(100% / var(--lanes) - 4px);
+  height: calc(var(--len) * var(--grid-hour) / 60 - 2px);
+  overflow: hidden;
+  font-family: var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.day-grid__item:focus-visible {
+  outline: 2px solid var(--color-gold-text);
+  outline-offset: 1px;
+  z-index: 1;
+}
+
+.day-grid__block {
+  --tone: var(--color-reservado-solid);
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  column-gap: var(--space-2);
+  padding: 2px var(--space-2);
+  border: 0;
+  border-left: 3px solid var(--tone);
+  border-radius: var(--radius-ctrl);
+  background: color-mix(in srgb, var(--tone) 13%, var(--color-surface));
+  color: var(--color-text);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.day-grid__block:hover {
+  background: color-mix(in srgb, var(--tone) 22%, var(--color-surface));
+}
+
+.day-grid__block time {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.day-grid__block strong {
+  max-width: 100%;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.day-grid__block span {
+  flex-basis: 100%;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.day-grid__block--finalizado {
+  --tone: var(--color-finalizado-solid);
+}
+
+.day-grid__block--pendiente-de-cierre {
+  --tone: var(--color-pendiente-de-cierre-solid);
+}
+
+.day-grid__block--cancelado {
+  --tone: var(--color-cancelado-solid);
+}
+
+.day-grid__block--ausente {
+  --tone: var(--color-ausente-solid);
+}
+
+.day-grid__block--cancelado,
+.day-grid__block--ausente {
+  opacity: 0.6;
+}
+
+.day-grid__block--cancelado strong,
+.day-grid__block--ausente strong {
+  text-decoration: line-through;
+}
+
+.day-grid__gap,
+.day-grid__more {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-ctrl);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.day-grid__gap {
+  background: transparent;
+  color: var(--color-gold-text);
+}
+
+.day-grid__gap:hover {
+  background: var(--color-gold-wash);
+}
+
+.day-grid__more {
+  justify-content: center;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.day-grid__more:hover {
+  background: var(--color-hover-strong);
+}
+
+.slot-options {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.slot-option {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  cursor: pointer;
+}
+
+.slot-option:focus-visible {
+  outline: 2px solid var(--color-gold-text);
+  outline-offset: 2px;
+}
+
+.day-grid__now {
+  position: absolute;
+  top: calc(var(--y) * var(--grid-hour) / 60);
+  right: 0;
+  left: 0;
+  z-index: 2;
+  border-top: 1px solid var(--color-danger);
+  pointer-events: none;
+}
+
+.day-grid__now::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-round);
+  background: var(--color-danger);
+}
+
+/* ==========================================================================
    CALENDARIO COMPACTO EN DESKTOP CON POCO ALTO
    ========================================================================== */
 

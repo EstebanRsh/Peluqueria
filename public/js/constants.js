@@ -7,6 +7,8 @@ export const DEFAULT_APPOINTMENT_STATUS = "Reservado";
 
 export const FINISHED_STATUS = "Finalizado";
 
+export const CANCELLED_STATUS = "Cancelado";
+
 export const RECORD_STATUS = {
   active: { slug: "activo", label: "Activo" },
   inactive: { slug: "inactivo", label: "Inactivo" },

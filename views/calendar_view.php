@@ -174,14 +174,21 @@ foreach ($events as $dayEvents) {
     </div>
     <div class="surface__body" id="panelBody">
         <div class="panel-controls">
-            <div class="search-field">
-                <input
-                    class="panel-search"
-                    type="text"
-                    id="appointmentSearch"
-                    aria-label="Buscar turnos"
-                    placeholder="Buscar por cliente…"
-                    autocomplete="off">
+            <div class="panel-controls__row">
+                <div class="search-field">
+                    <input
+                        class="panel-search"
+                        type="text"
+                        id="appointmentSearch"
+                        aria-label="Buscar turnos"
+                        placeholder="Buscar por cliente…"
+                        autocomplete="off">
+                </div>
+
+                <button type="button" class="view-toggle" id="dayViewToggle" aria-label="Ver por horas" title="Ver por horas">
+                    <svg class="view-toggle__grid" <?= $iconAttrs ?>><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                    <svg class="view-toggle__list" <?= $iconAttrs ?>><line x1="9" y1="6" x2="20" y2="6" /><line x1="9" y1="12" x2="20" y2="12" /><line x1="9" y1="18" x2="20" y2="18" /><circle cx="4.5" cy="6" r="1" /><circle cx="4.5" cy="12" r="1" /><circle cx="4.5" cy="18" r="1" /></svg>
+                </button>
             </div>
 
             <div class="panel-filters" id="appointmentFilters" role="group" aria-label="Filtrar por estado"></div>
@@ -199,6 +206,33 @@ foreach ($events as $dayEvents) {
 </template>
 <template id="appointmentEmptyTemplate">
     <p class="panel-empty" role="status">No se encontraron turnos para este día con los filtros aplicados.</p>
+</template>
+<template id="dayGridTemplate">
+    <div class="day-grid">
+        <div class="day-grid__axis" aria-hidden="true"></div>
+        <div class="day-grid__track"></div>
+    </div>
+</template>
+<template id="dayGridLabelTemplate">
+    <span class="day-grid__label"></span>
+</template>
+<template id="dayGridLineTemplate">
+    <span class="day-grid__line" aria-hidden="true"></span>
+</template>
+<template id="dayGridClosedTemplate">
+    <div class="day-grid__closed"></div>
+</template>
+<template id="dayGridBlockTemplate">
+    <button type="button" class="day-grid__item day-grid__block"><time></time><strong></strong><span></span></button>
+</template>
+<template id="dayGridGapTemplate">
+    <button type="button" class="day-grid__item day-grid__gap"></button>
+</template>
+<template id="dayGridMoreTemplate">
+    <button type="button" class="day-grid__item day-grid__more"></button>
+</template>
+<template id="dayGridNowTemplate">
+    <span class="day-grid__now" aria-hidden="true"></span>
 </template>
 <template id="appointmentCardTemplate">
     <div class="appointment-card">
@@ -380,4 +414,28 @@ foreach ($events as $dayEvents) {
             <button type="button" class="btn btn--primary" data-action="record" data-id="">Cargar ficha</button>
         </div>
     </aside>
+</template>
+
+<!-- =====================================================
+     VENTANITA DE LA AGENDA POR HORAS
+====================================================== -->
+
+<dialog class="surface-dialog" id="slotDialog" aria-labelledby="slotDialogTitle">
+    <div class="surface__header">
+        <div class="surface__heading">
+            <h3 class="surface__title" id="slotDialogTitle"></h3>
+            <p class="surface__meta" id="slotDialogMeta"></p>
+        </div>
+        <button type="button" class="surface__close" id="slotDialogClose" aria-label="Cerrar"></button>
+    </div>
+    <div class="surface__body">
+        <div class="slot-options" id="slotDialogTurns"></div>
+    </div>
+    <div class="surface__footer">
+        <button type="button" class="btn btn--primary" id="slotDialogAdd"></button>
+    </div>
+</dialog>
+
+<template id="slotTurnTemplate">
+    <button type="button" class="day-grid__block slot-option"><time></time><strong></strong><span></span></button>
 </template>

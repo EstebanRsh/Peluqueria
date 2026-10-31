@@ -7,6 +7,7 @@
 import {
   ApiError,
   fetchAppointments,
+  fetchDaySchedule,
   updateAppointmentStatus,
   fetchTimelineHistory,
   removeAppointment,
@@ -16,6 +17,7 @@ import {
 
 import { confirmAction, showError, showResult } from "./confirm.js";
 import {
+  CANCELLED_STATUS,
   DEFAULT_APPOINTMENT_STATUS,
   FINISHED_STATUS,
   INACTIVE_STATUSES,
@@ -62,6 +64,7 @@ const CELL_BADGE_LABELS = {
 
 let appointmentSearchQuery = "";
 let appointmentFilterStatus = "todos";
+let dayView = "list";
 let loadToken = 0;
 
 // ============================================================
@@ -125,7 +128,7 @@ export function closePanel() {
 panelOverlay?.addEventListener("click", closePanel);
 
 document.addEventListener("keydown", (event) => {
-  if (event.key !== "Escape" || statusDialog?.open) {
+  if (event.key !== "Escape" || statusDialog?.open || slotDialog?.open) {
     return;
   }
 
@@ -327,9 +330,46 @@ function resetPanelControls() {
       return button;
     }),
   );
+  syncDayViewSwitch();
+}
+
+function syncDayViewSwitch() {
+  const toggle = $("dayViewToggle");
+  const label = dayView === "grid" ? "Ver como lista" : "Ver por horas";
+
+  toggle.classList.toggle("is-grid", dayView === "grid");
+  toggle.setAttribute("aria-label", label);
+  toggle.title = label;
+}
+
+function setDayView(view) {
+  dayView = view;
+  syncDayViewSwitch();
+  loadAppointments(appState.activeDay);
 }
 
 panelBody?.addEventListener("click", (event) => {
+  if (event.target.closest("#dayViewToggle")) {
+    setDayView(dayView === "grid" ? "list" : "grid");
+    return;
+  }
+
+  const gridItem = event.target.closest(".day-grid__item");
+
+  if (gridItem?.dataset.time) {
+    document.dispatchEvent(
+      new CustomEvent("appointment:new", {
+        detail: { time: gridItem.dataset.time },
+      }),
+    );
+    return;
+  }
+
+  if (gridItem) {
+    openSlotDialog(slotMinutes(gridItem, event));
+    return;
+  }
+
   const filterButton = event.target.closest(".btn-filter[data-status]");
 
   if (filterButton) {
@@ -412,17 +452,27 @@ export async function loadAppointments(date, { showLoading = true } = {}) {
   setSearching(searchInput, true);
 
   try {
-    const appointments = await fetchAppointments(
-      date,
-      appointmentSearchQuery.trim(),
-      appointmentFilterStatus,
-    );
+    const [appointments, schedule] = await Promise.all([
+      fetchAppointments(date, appointmentSearchQuery.trim(), appointmentFilterStatus),
+      dayView === "grid"
+        ? fetchDaySchedule({ date, duration: GRID_MIN_GAP })
+        : null,
+    ]);
 
     if (token !== loadToken) {
       return;
     }
 
-    renderAppointmentsList(container, appointments);
+    appointmentMap.clear();
+    (appointments ?? []).forEach((appointment) => {
+      appointmentMap.set(String(appointment.id), appointment);
+    });
+
+    if (dayView === "grid") {
+      renderDayGrid(container, appointments ?? [], schedule?.data ?? null);
+    } else {
+      renderAppointmentsList(container, appointments);
+    }
   } catch (error) {
     if (token !== loadToken) {
       return;
@@ -446,8 +496,6 @@ export async function loadAppointments(date, { showLoading = true } = {}) {
 // ============================================================
 
 function renderAppointmentsList(container, appointments) {
-  appointmentMap.clear();
-
   if (!appointments || !appointments.length) {
     container.replaceChildren(
       $("appointmentEmptyTemplate").content.firstElementChild.cloneNode(true),
@@ -465,8 +513,6 @@ function renderAppointmentsList(container, appointments) {
       const clientName =
         appointment.client_name || appointment.alias || "Sin cliente asociado";
       const time = formatTime(appointment.time_start);
-
-      appointmentMap.set(String(appointment.id), appointment);
 
       card.dataset.id = appointment.id;
       row.setAttribute(
@@ -492,6 +538,371 @@ function renderAppointmentsList(container, appointments) {
 
   applyMoments();
 }
+
+// ============================================================
+// AGENDA POR HORAS
+// ============================================================
+
+const GRID_MIN_GAP = 30;
+const GRID_MAX_LANES = 3;
+const GRID_CLOSED_MINUTES = 24;
+
+let gridSegments = [];
+let gridHeight = 0;
+let gridAppointments = [];
+
+function cloneGridPart(id) {
+  return $(id).content.firstElementChild.cloneNode(true);
+}
+
+function hourLabel(minutes) {
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}
+
+function buildGridSegments(appointments, ranges) {
+  const visible = [
+    ...ranges.map((range) => [toMinutes(range.start), toMinutes(range.end)]),
+    ...appointments.map((appointment) => [
+      toMinutes(appointment.time_start),
+      toMinutes(appointment.time_end),
+    ]),
+  ]
+    .map(([start, end]) => [Math.floor(start / 60) * 60, Math.ceil(end / 60) * 60])
+    .sort((a, b) => a[0] - b[0])
+    .reduce((merged, range) => {
+      const last = merged[merged.length - 1];
+
+      if (last && range[0] <= last[1]) {
+        last[1] = Math.max(last[1], range[1]);
+      } else {
+        merged.push(range);
+      }
+
+      return merged;
+    }, []);
+
+  const segments = [];
+  let y = 0;
+
+  visible.forEach(([start, end], index) => {
+    if (index > 0) {
+      segments.push({ closed: true, start: visible[index - 1][1], end: start, y });
+      y += GRID_CLOSED_MINUTES;
+    }
+
+    segments.push({ closed: false, start, end, y });
+    y += end - start;
+  });
+
+  return { segments, height: y };
+}
+
+function gridMinutesAt(y) {
+  const segment = gridSegments.find(
+    (item) => !item.closed && y >= item.y && y <= item.y + item.end - item.start,
+  );
+
+  return segment ? segment.start + y - segment.y : null;
+}
+
+function gridY(minutes) {
+  const segment = gridSegments.find(
+    (item) => !item.closed && minutes >= item.start && minutes <= item.end,
+  );
+
+  return segment ? segment.y + minutes - segment.start : null;
+}
+
+function assignLanes(items) {
+  const placed = [];
+  let group = [];
+  let groupEnd = -1;
+
+  const closeGroup = () => {
+    const needed = Math.max(...group.map((item) => item.lane)) + 1;
+    const lanes = Math.min(needed, GRID_MAX_LANES);
+    const hidden = group.filter((item) => item.lane >= GRID_MAX_LANES - 1);
+
+    group.forEach((item) => {
+      item.lanes = lanes;
+    });
+
+    if (needed > GRID_MAX_LANES) {
+      const hiddenTurns = hidden.filter((item) => item.kind === "block");
+
+      placed.push(...group.filter((item) => item.lane < GRID_MAX_LANES - 1));
+
+      if (hiddenTurns.length) {
+        placed.push({
+          kind: "more",
+          start: Math.min(...hiddenTurns.map((item) => item.start)),
+          end: Math.max(...hiddenTurns.map((item) => item.end)),
+          lane: GRID_MAX_LANES - 1,
+          lanes,
+          count: hiddenTurns.length,
+        });
+      }
+    } else {
+      placed.push(...group);
+    }
+
+    group = [];
+  };
+
+  items.forEach((item) => {
+    if (group.length && item.start >= groupEnd) {
+      closeGroup();
+    }
+
+    const used = new Set(
+      group.filter((other) => other.end > item.start).map((other) => other.lane),
+    );
+    let lane = 0;
+
+    while (used.has(lane)) {
+      lane += 1;
+    }
+
+    item.lane = lane;
+    group.push(item);
+    groupEnd = Math.max(groupEnd, item.end);
+  });
+
+  if (group.length) {
+    closeGroup();
+  }
+
+  return placed;
+}
+
+function gridItem(item) {
+  if (item.kind === "gap") {
+    const gap = cloneGridPart("dayGridGapTemplate");
+
+    gap.dataset.time = hourLabel(item.start);
+    gap.textContent = `+ Libre de ${hourLabel(item.start)} a ${hourLabel(item.end)}`;
+
+    return gap;
+  }
+
+  if (item.kind === "more") {
+    const more = cloneGridPart("dayGridMoreTemplate");
+
+    more.dataset.start = item.start;
+    more.dataset.end = item.end;
+    more.textContent = `+${item.count} turnos`;
+    more.setAttribute("aria-label", `Ver los ${item.count} turnos más de este horario`);
+
+    return more;
+  }
+
+  const { appointment } = item;
+  const block = cloneGridPart("dayGridBlockTemplate");
+  const clientName =
+    appointment.client_name || appointment.alias || "Sin cliente asociado";
+  const service = appointment.service_name || "Servicio no disponible";
+
+  block.dataset.start = item.start;
+  block.dataset.end = item.end;
+  block.classList.add(`day-grid__block--${slugify(displayStatus(appointment))}`);
+  block.querySelector("time").textContent = hourLabel(item.start);
+  block.querySelector("strong").textContent = clientName;
+  block.querySelector("span").textContent = `${service} · hasta ${hourLabel(item.end)}`;
+  block.setAttribute(
+    "aria-label",
+    `Ver detalle del turno de ${clientName} de ${hourLabel(item.start)} a ${hourLabel(item.end)}, ${displayStatus(appointment)}`,
+  );
+
+  return block;
+}
+
+function placeNowLine() {
+  const track = panelBody.querySelector(".day-grid__track");
+
+  if (!track) {
+    return;
+  }
+
+  track.querySelector(".day-grid__now")?.remove();
+
+  const y = appState.activeDay === todayIso() ? gridY(nowMinutes()) : null;
+
+  if (y !== null) {
+    const line = cloneGridPart("dayGridNowTemplate");
+
+    line.style.setProperty("--y", y);
+    track.append(line);
+  }
+}
+
+function renderDayGrid(container, appointments, schedule) {
+  const shown =
+    appointmentFilterStatus === slugify(CANCELLED_STATUS)
+      ? appointments
+      : appointments.filter((appointment) => appointment.status !== CANCELLED_STATUS);
+  const ranges = schedule && schedule.state !== "closed" ? schedule.ranges : [];
+  const { segments, height } = buildGridSegments(shown, ranges);
+
+  gridSegments = segments;
+  gridHeight = height;
+  gridAppointments = shown;
+
+  if (!segments.length) {
+    container.replaceChildren(cloneGridPart("appointmentEmptyTemplate"));
+    return;
+  }
+
+  const grid = cloneGridPart("dayGridTemplate");
+  const axis = grid.querySelector(".day-grid__axis");
+  const track = grid.querySelector(".day-grid__track");
+
+  track.style.setProperty("--span", height);
+
+  segments.forEach((segment) => {
+    if (segment.closed) {
+      const closed = cloneGridPart("dayGridClosedTemplate");
+
+      closed.textContent = `Cerrado de ${hourLabel(segment.start)} a ${hourLabel(segment.end)}`;
+      closed.style.setProperty("--y", segment.y);
+      closed.style.setProperty("--len", GRID_CLOSED_MINUTES);
+      track.append(closed);
+      return;
+    }
+
+    for (let minutes = segment.start; minutes <= segment.end; minutes += 30) {
+      const line = cloneGridPart("dayGridLineTemplate");
+
+      line.classList.toggle("day-grid__line--half", minutes % 60 !== 0);
+      line.style.setProperty("--y", gridY(minutes));
+      track.append(line);
+
+      if (minutes % 60 === 0) {
+        const label = cloneGridPart("dayGridLabelTemplate");
+
+        label.textContent = hourLabel(minutes);
+        label.style.setProperty("--y", gridY(minutes));
+        axis.append(label);
+      }
+    }
+  });
+
+  const items = [
+    ...shown.map((appointment) => ({
+      kind: "block",
+      appointment,
+      start: toMinutes(appointment.time_start),
+      end: toMinutes(appointment.time_end),
+    })),
+    ...(schedule?.gaps ?? []).map((gap) => ({
+      kind: "gap",
+      start: toMinutes(gap.start),
+      end: toMinutes(gap.end),
+    })),
+  ].sort((a, b) => a.start - b.start || b.end - a.end);
+
+  assignLanes(items).forEach((item) => {
+    const node = gridItem(item);
+
+    node.style.setProperty("--y", gridY(item.start));
+    node.style.setProperty("--len", item.end - item.start);
+    node.style.setProperty("--lane", item.lane);
+    node.style.setProperty("--lanes", item.lanes);
+    track.append(node);
+  });
+
+  container.replaceChildren(grid);
+  placeNowLine();
+}
+
+// ============================================================
+// VENTANITA DE LA AGENDA POR HORAS
+// ============================================================
+
+const slotDialog = document.getElementById("slotDialog");
+
+function slotMinutes(item, event) {
+  const start = Number(item.dataset.start);
+  const end = Number(item.dataset.end);
+  const track = item.closest(".day-grid__track");
+
+  if (!event.detail || !track) {
+    return start;
+  }
+
+  const bounds = track.getBoundingClientRect();
+  const minutes = gridMinutesAt(
+    ((event.clientY - bounds.top) / bounds.height) * gridHeight,
+  );
+
+  if (minutes === null) {
+    return start;
+  }
+
+  return Math.max(start, Math.min(Math.floor(minutes / 15) * 15, end - 15));
+}
+
+function openSlotDialog(minutes) {
+  const time = hourLabel(minutes);
+  const turns = gridAppointments.filter(
+    (appointment) =>
+      toMinutes(appointment.time_start) <= minutes &&
+      minutes < toMinutes(appointment.time_end),
+  );
+
+  $("slotDialogTitle").textContent = `${time} hs`;
+  $("slotDialogMeta").textContent =
+    turns.length === 1
+      ? "Hay 1 turno en este horario."
+      : `Hay ${turns.length} turnos en este horario.`;
+  $("slotDialogTurns").replaceChildren(
+    ...turns.map((appointment) => {
+      const option = $("slotTurnTemplate").content.firstElementChild.cloneNode(true);
+      const clientName =
+        appointment.client_name || appointment.alias || "Sin cliente asociado";
+      const range = `${formatTime(appointment.time_start)} a ${formatTime(appointment.time_end)}`;
+
+      option.dataset.id = appointment.id;
+      option.classList.add(
+        `day-grid__block--${slugify(displayStatus(appointment))}`,
+      );
+      option.querySelector("time").textContent = range;
+      option.querySelector("strong").textContent = clientName;
+      option.querySelector("span").textContent =
+        `${appointment.service_name || "Servicio no disponible"} · ${displayStatus(appointment)}`;
+      option.setAttribute("aria-label", `Ver el turno de ${clientName}, ${range}`);
+
+      return option;
+    }),
+  );
+  $("slotDialogAdd").dataset.time = time;
+  $("slotDialogAdd").textContent = `Agregar turno superpuesto a las ${time}`;
+
+  slotDialog.showModal();
+}
+
+slotDialog?.addEventListener("click", (event) => {
+  const option = event.target.closest(".slot-option");
+
+  if (option) {
+    slotDialog.close();
+    openAppointmentDetailModal(option.dataset.id);
+    return;
+  }
+
+  if (event.target.closest("#slotDialogAdd")) {
+    slotDialog.close();
+    document.dispatchEvent(
+      new CustomEvent("appointment:new", {
+        detail: { time: $("slotDialogAdd").dataset.time },
+      }),
+    );
+    return;
+  }
+
+  if (event.target === slotDialog || event.target.closest("#slotDialogClose")) {
+    slotDialog.close();
+  }
+});
 
 // ============================================================
 // TURNO EN CURSO Y SIGUIENTE
@@ -570,6 +981,7 @@ function refreshMoments() {
     loadAppointments(appState.activeDay, { showLoading: false });
   } else {
     applyMoments();
+    placeNowLine();
   }
 }
 

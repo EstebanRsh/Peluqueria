@@ -96,12 +96,12 @@ class AppointmentController extends BaseController
                     'past_start' => preg_match($timePattern, $start) === 1 && $this->startsInPast($date, $start),
                 ];
 
-                if ($date < $today) {
-                    $this->json(['success' => true, 'data' => ['state' => 'past'] + $schedule]);
-                }
-
                 if (!in_array((int)date('N', strtotime($date)), $hours['days'], true)) {
                     $this->json(['success' => true, 'data' => ['state' => 'closed', 'within' => false] + $schedule]);
+                }
+
+                if ($date < $today) {
+                    $this->json(['success' => true, 'data' => ['state' => 'past'] + $schedule]);
                 }
 
                 if (preg_match($timePattern, $start) && preg_match($timePattern, $end) && $end > $start) {

@@ -71,6 +71,8 @@ let startIsSuggested = false;
 
 let initialStylist = "";
 
+let initialStart = "";
+
 let lastStylist = "";
 
 let freeGaps = [];
@@ -129,7 +131,7 @@ export function initModal() {
   addButton.addEventListener("click", () => openModal());
 
   document.addEventListener("appointment:new", (event) => {
-    openModal(event.detail?.client ?? null);
+    openModal(event.detail?.client ?? null, event.detail?.time ?? "");
   });
 
   document.addEventListener("appointment:edit", (event) => {
@@ -266,7 +268,7 @@ export function initModal() {
 // APERTURA DEL MODAL
 // ============================================================
 
-async function openModal(client = null) {
+async function openModal(client = null, time = "") {
   const date = appState.activeDay || todayIso();
 
   if (
@@ -286,6 +288,8 @@ async function openModal(client = null) {
   clearModal();
 
   $("appointmentDate").value = date;
+  $("timeStart").value = time;
+  initialStart = time;
 
   initialStylist = lastStylist;
   $("stylist").value = initialStylist;
@@ -1079,7 +1083,7 @@ function isFormDirty() {
     selectedServices.length > 0 ||
     hasValue("serviceSearch") ||
     hasValue("notes") ||
-    (!startIsSuggested && hasValue("timeStart")) ||
+    (!startIsSuggested && $("timeStart").value !== initialStart) ||
     $("stylist").value.trim() !== initialStylist
   );
 }
