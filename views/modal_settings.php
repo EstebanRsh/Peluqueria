@@ -210,16 +210,4 @@
 
     </div>
 
-
-    <div class="surface__footer">
-
-        <button
-            type="button"
-            class="btn btn--ghost"
-            id="settingsModalCancel">
-            Cerrar
-        </button>
-
-    </div>
-
 </aside>

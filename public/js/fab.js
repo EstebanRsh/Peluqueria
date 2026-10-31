@@ -118,6 +118,7 @@ export function initFab({ appState }) {
     });
 
     root.hidden = current.length === 0;
+    root.classList.toggle("fab-actions--direct", isDirect());
     setOpen(false);
   };
 

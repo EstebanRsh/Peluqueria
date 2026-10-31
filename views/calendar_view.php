@@ -168,7 +168,10 @@ foreach ($events as $dayEvents) {
     <div class="surface__header">
         <span class="surface__title" id="panelDate"></span>
         <div class="surface__actions">
-            <button type="button" class="btn btn--primary btn--sm" id="btnAddAppointment">+ Turno</button>
+            <button type="button" class="btn btn--primary btn--sm add-action add-action--panel" id="btnAddAppointment" aria-label="Nuevo turno" title="Nuevo turno">
+                <svg <?= $iconAttrs ?>><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                <span class="add-action__label">Nuevo turno</span>
+            </button>
             <button type="button" class="surface__close" id="panelClose" aria-label="Cerrar"></button>
         </div>
     </div>

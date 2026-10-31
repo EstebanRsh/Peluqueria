@@ -358,7 +358,6 @@ export function initSettings() {
     openSettings();
   });
   $("settingsModalClose").addEventListener("click", () => drawer.close());
-  $("settingsModalCancel").addEventListener("click", () => drawer.close());
   $("settingsModalOverlay").addEventListener("click", () =>
     drawer.requestClose(),
   );

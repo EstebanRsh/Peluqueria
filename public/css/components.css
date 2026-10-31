@@ -278,6 +278,54 @@
 }
 
 /* ==========================================================================
+   BOTÓN DE ALTA
+   En escritorio va en la cabecera; en celular lo reemplaza
+   el botón flotante, y dentro del panel del día se vuelve flotante él mismo.
+   ========================================================================== */
+
+.add-action {
+  padding-left: var(--space-3);
+}
+
+.add-action svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .add-action {
+    display: none;
+  }
+
+  .add-action--panel {
+    position: absolute;
+    right: var(--space-4);
+    bottom: calc(var(--space-7) + var(--space-4) + env(safe-area-inset-bottom));
+    z-index: var(--z-surface);
+    display: flex;
+    width: 52px;
+    height: 52px;
+    padding: 0;
+    border-radius: var(--radius-round);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .add-action--panel svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .add-action--panel .add-action__label {
+    display: none;
+  }
+
+  .side-drawer:has(.add-action--panel) .surface__body {
+    padding-bottom: calc(52px + var(--space-7) * 2 + env(safe-area-inset-bottom));
+  }
+}
+
+/* ==========================================================================
    BOTÓN FLOTANTE DE ACCIONES RÁPIDAS (FAB)
    ========================================================================== */
 
@@ -413,6 +461,12 @@
 
 .fab-actions.is-open .fab-actions__toggle-icon {
   transform: rotate(45deg);
+}
+
+@media (min-width: 769px) {
+  .fab-actions--direct {
+    display: none;
+  }
 }
 
 .fab-actions-backdrop {
