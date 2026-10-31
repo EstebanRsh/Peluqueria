@@ -163,7 +163,7 @@ foreach ($events as $dayEvents) {
 
 <div class="side-drawer-overlay" id="dayPanelOverlay"></div>
 
-<aside class="side-drawer side-drawer--wide" id="dayPanel"
+<aside class="side-drawer" id="dayPanel"
     role="dialog" aria-modal="true" aria-labelledby="panelDate" aria-hidden="true" tabindex="-1">
     <div class="surface__header">
         <span class="surface__title" id="panelDate"></span>

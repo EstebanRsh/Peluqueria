@@ -97,7 +97,7 @@
 
 <div class="side-drawer-overlay" id="clientProfileOverlay"></div>
 
-<aside class="side-drawer side-drawer--wide" id="clientProfilePanel"
+<aside class="side-drawer" id="clientProfilePanel"
     role="dialog" aria-modal="true" aria-labelledby="clientProfileName" aria-hidden="true" tabindex="-1">
     <div class="surface__header">
         <div class="profile-drawer__identity">

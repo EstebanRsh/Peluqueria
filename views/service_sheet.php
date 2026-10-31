@@ -4,7 +4,7 @@
 ====================================================== -->
 <div class="side-drawer-overlay" id="quickEntryOverlay"></div>
 
-<aside class="side-drawer side-drawer--wide" id="quickEntryPanel"
+<aside class="side-drawer" id="quickEntryPanel"
     role="dialog" aria-modal="true" aria-labelledby="quickEntryTitle" aria-hidden="true" tabindex="-1">
 
     <div class="surface__header">

@@ -571,7 +571,7 @@
   right: 0;
   height: 100vh;
   height: 100dvh;
-  width: min(420px, 100vw);
+  width: var(--drawer-width);
   background: var(--color-surface);
   border-left: 1px solid var(--color-border);
   box-shadow: var(--shadow-lg);
@@ -591,11 +591,11 @@
   transition-delay: 0s;
 }
 
-.side-drawer--wide {
-  width: min(760px, 100vw);
-}
-
 @media (max-width: 768px) {
+  .side-drawer {
+    width: 100vw;
+  }
+
   .side-drawer.is-to-left {
     transform: translateX(-100vw);
   }
